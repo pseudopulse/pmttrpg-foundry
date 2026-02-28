@@ -1,0 +1,17 @@
+<form class='flexcol cr-form' autocomplete='off'>
+    <section class="sheet-body cm-resources-holder flexcol">
+        <div class="cm-resource cm-target-div">
+            <h4 class="cm-target-text">{{actor.name}} is targeting {{rollContext.target.name}}!</h4>
+        </div>
+        <div class="cm-item-holder cm-resource">
+            <img class="cm-resource-icon" src='systems/pmttrpg/assets/damageTypes/{{rollContext.damageType}}.png' width='24' height='24' />
+            <h4 class="cm-name-text cm-weapon-text" style="margin: 0 !important">{{rollContext.name}}</h4>
+            <h4 class="cm-name-text cm-resource-icon cm-result-icon">{{rollContext.result}}</h4>
+        </div>
+        <div>
+            <div class="cm-clashDescription cm-resource">
+                {{{enrichedClashData}}}
+            </div>
+        </div>
+    </section>
+</form>

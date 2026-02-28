@@ -1,0 +1,421 @@
+<form class="flexcol cr-form" autocomplete="off" data-actor-id="{{actor._id}}">
+    <section class="sheet-body resource-container flexcol">
+        <div>
+            {{> ptWeaponBlock this editable=false}}
+
+            <div class="cr-resources-holder">
+                <nav class="cr-resource cr-tab-bar" data-group="primary">
+                    <a class="item crw-tab-button">Weapons</a>
+                    <a class="item crw-tab-button">Outfits</a>
+                </nav>
+                <div class="cr-block-holder">
+                    <div id="crw-weapons">
+                        {{#each items as |item id|}}
+                        <li class='item flexrow' data-item-id='{{item._id}}'>
+                            <div class="crw-resource">
+                                <div class='crw-item-name'>
+                                    <div class='crw-item-icon'>
+                                        <a class='rollable' data-roll-type='item'>
+                                            <img class="crw-type-img"
+                                                src='systems/pmttrpg/assets/damageTypes/{{item.system.damageType}}.png'
+                                                title='Counter' width='24' height='24' />
+                                        </a>
+                                    </div>
+                                    <h4 class="crw-item-text">{{item.name}}</h4>
+                                </div>
+                                <div>
+                                    {{#with (rctx item) as |rollContext|}}
+                                    <h4 class="crw-item-text crw-rollText">
+                                        {{rollContext.diceCount}}d{{rollContext.diceMax}}+{{rollContext.dicePower}}</h4>
+                                    {{/with}}
+                                </div>
+                            </div>
+                        </li>
+                        {{/each}}
+                    </div>
+                    <div id="crw-outfits">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div>
+            
+        </div>
+    </section>
+</form>
+
+<script>
+    function setCursorRight() {
+        const input = document.activeElement;
+        const length = input.value.length;
+        input.setSelectionRange(length, length);
+    }
+
+    function unfocus(event) {
+        if (event.key == "Enter") {
+            const input = document.activeElement;
+            input.blur()
+        }
+    }
+</script>
+
+<style>
+    #cr-weapons {
+
+    }
+
+    .cr-block-holder {
+        height: 15rem;
+        overflow-y: scroll;
+    }
+
+    .cr-tab-bar {
+        display: flex !important;
+        justify-content: space-around;
+        height: 2.5rem;
+        background: none !important;
+        border: none !important;
+        padding: 0% 0% 1% 0% !important;
+    }
+
+    .crw-tab-button {
+        padding: 1%;
+        background: slategrey;
+        width: 8rem;
+        text-align: center;
+        align-content: center;
+        justify-content: center;
+        height: 2rem;
+        margin: 0px;
+        justify-items: center;
+        border: 3px solid silver;
+        font-size: 15px;
+    }
+
+    .cr-clashDescription {
+        overflow-y: scroll;
+        width: 100%;
+        padding: 0 2% !important;
+        text-wrap-mode: wrap;
+    }
+
+    .cr-statblock-container {
+        padding: 2% !important;
+        columns: 2;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .cr-rollInfo {
+        height: 9rem;
+        width: 8rem;
+        padding: 2% !important;
+    }
+
+    .cr-resource {
+        background-color: cadetblue;
+        border: 2px solid black;
+        border-radius: 1px;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 5%;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .cr-item-holder {
+        display: flex;
+        columns: 2;
+        width: 10rem;
+        padding: 1%;
+        height: 3.5rem;
+        justify-content: center;
+        align-items: center;
+        align-content: center;
+    }
+
+    .cr-resource-input {
+        background-color: slategray;
+        border: 1px solid silver;
+        text-align: center;
+        width: 4rem;
+    }
+
+    .cr-nop {
+        pointer-events: none;
+    }
+
+    .cr-resource-content {
+        display: flexbox;
+        justify-content: center;
+        align-items: center;
+        flex-direction: row;
+        grid: 1 / span 3;
+        gap: 0;
+        margin: auto;
+    }
+
+    .cr-resource-divider {
+        text-align: center;
+    }
+
+    .cr-resource-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        margin: auto;
+        padding: 10%;
+        background: slategray;
+        border: 1px solid silver;
+    }
+
+    .cr-resource-icon:hover {
+        background: rgb(147, 161, 175);
+    }
+
+    .cr-resources-holder {
+        background-color: #1d1b22;
+        border: 2px solid slategray;
+        padding: 2%;
+    }
+
+    .cr-padding-t2 {
+        padding-top: 2%;
+        padding-bottom: 2%;
+    }
+
+    .cr-padding-0 {
+        padding: 0;
+    }
+</style>
+
+<style>
+    .crw-rollText {
+        align-content: center;
+        margin: 0 0 0 8rem;
+    }
+
+    .crw-item-name {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        justify-items: center;
+        gap: 2rem;
+        margin: 0px;
+        padding: 2%;
+        text-align: center;
+    }
+
+    .crw-controls {
+        position: absolute;
+        right: 3%;
+    }
+
+    .crw-font-button {
+        font-size: 20px;
+    }
+
+    .crw-item-icon {}
+
+    .crw-type-img {
+        width: 2.5rem;
+        height: 2.5rem;
+        background-color: slategray;
+        border: 1px solid gray;
+    }
+
+    .crw-type-img:hover {
+        background: rgb(147, 161, 175);
+    }
+
+    .crw-dropdown-holder {}
+
+    .crw-item-text {
+        text-wrap-mode: nowrap;
+        margin: 0px;
+        font-size: 20px;
+        color: black;
+        width: 5rem;
+    }
+
+    .crw-attack-type-button {
+        width: 5rem;
+        height: 2.5rem;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        justify-items: middle;
+        display: flex;
+        padding: 2%;
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    .crw-type-container {
+        display: flex;
+        gap: 1rem;
+        align-content: center;
+        align-items: center;
+        justify-items: center;
+        margin: auto;
+    }
+
+    .crw-dropdownIcon {
+        margin: 0px !important;
+        padding: 10% !important;
+    }
+
+    .crw-resource-button {
+        background-color: slategray;
+        border: 1px solid gray;
+        text-align: center;
+    }
+
+    .crw-resource-button:hover {
+        background: rgb(147, 161, 175);
+    }
+
+    .crw-clashDescription {
+        overflow-y: scroll;
+        width: 100%;
+        padding: 2% 2% !important;
+        text-wrap-mode: wrap;
+        display: block !important;
+    }
+
+    .crw-statblock-container {
+        padding: 2% !important;
+        columns: 2;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .crw-rollInfo {
+        height: 9rem;
+        width: 14rem;
+        padding: 0% !important;
+        columns: 1;
+        display: flex !important;
+        gap: 0rem !important;
+    }
+
+    .crw-resource {
+        background-color: cadetblue;
+        border: 2px solid black;
+        23 border-radius: 1px;
+        display: flex;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 4rem;
+        padding: 5% 2%;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .crw-resource-input {
+        background-color: slategray;
+        border: 1px solid silver;
+        text-align: center;
+        width: 4rem;
+    }
+
+    .crw-nop {
+        pointer-events: none;
+    }
+
+    .crw-resource-content {
+        display: flexbox;
+        justify-content: center;
+        align-items: center;
+        flex-direction: row;
+        grid: 1 / span 3;
+        gap: 0;
+        margin: auto;
+    }
+
+    .crw-resource-divider {
+        text-align: center;
+    }
+
+    .crw-resource-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border: none;
+        margin: auto;
+        padding: 10%;
+    }
+
+    .crw-resources-holder {
+        background-color: #1d1b22;
+        border: 2px solid slategray;
+        padding: 2%;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .crw-padding-t2 {
+        padding-top: 2%;
+        padding-bottom: 2%;
+    }
+
+    .crw-padding-0 {
+        padding: 0;
+    }
+
+    .crw-dropbtn {
+        background-color: cadetblue;
+        color: white;
+        padding: 16px;
+        font-size: 16px;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+        justify-content: center;
+        width: 9rem;
+        height: 2rem;
+        line-height: 0;
+        text-wrap-mode: nowrap;
+    }
+
+    .crw-dropbtn-small {
+        width: 3rem;
+        height: 2rem;
+        line-height: 0;
+    }
+
+    .crw-dropbtn:hover,
+    .crw-dropbtn:focus {
+        background-color: slategray;
+    }
+
+    .crw-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .crw-dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #f6f6f6;
+        border: 1px solid #ddd;
+        z-index: 1;
+        max-height: 20rem;
+    }
+
+    .crw-dropdown-content a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+    }
+
+    .crw-dropdown-content a:hover {
+        background-color: #f1f1f1;
+    }
+
+    .crw-show {
+        display: block;
+    }
+</style>

@@ -1,0 +1,172 @@
+<div class="tab stats" data-group="primary" data-tab="stats">
+  <div class="as-resources-holder">
+    {{!-- XP/RANK/LVL --}}
+    <div class="resources grid grid-3col">
+      <div class="as-resource flex-group-center">
+        <label for="system.attributes.xp.value" class="resource-label">XP</label>
+        <div class="as-resource-content flexrow flex-center flex-between as-resource-xp">
+          <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="as-resource-input" type="text"
+            inputmode="numeric" name="system.attributes.xp.value" value="{{system.attributes.xp.value}}"
+            data-dtype="Number" />
+        </div>
+      </div>
+
+      <div class="as-resource flex-group-center">
+        <label for="system.attributes.rank.value" class="resource-label">Rank</label>
+        <div class="as-resource-content flexrow flex-center flex-between as-resource-xp">
+          <input class="as-resource-input as-nop" type="text" inputmode="numeric"
+            value="{{system.attributes.rank.value}}" data-dtype="Number" />
+        </div>
+      </div>
+
+      <div class="as-resource flex-group-center">
+        <label for="system.attributes.level.value" class="resource-label">Level</label>
+        <div class="as-resource-content flexrow flex-center flex-between as-resource-xp">
+          <input class="as-resource-input as-nop" type="text" inputmode="numeric"
+            value="{{system.attributes.level.value}}" data-dtype="Number" />
+        </div>
+      </div>
+    </div>
+
+    {{!-- HP/ST/SP --}}
+    <div class="resources grid grid-3col">
+      <div class="as-resource">
+        <img src="systems/pmttrpg/assets/resources/HPIcon.webp" class="as-resource-icon" />
+        <div class="as-resource-content flexrow flex-center flex-between">
+          <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="as-resource-input as-resource-hp"
+            type="text" inputmode="numeric" name="system.attributes.health.value"
+            value="{{system.attributes.health.value}}" data-dtype="Number" />
+          <span class="as-resource-divider"> / </span>
+          <input class="as-resource-input as-nop as-resource-hp" type="text" inputmode="numeric"
+            value="{{system.attributes.health.max}}" data-dtype="Number" />
+        </div>
+      </div>
+
+      <div class="as-resource">
+        <img src="systems/pmttrpg/assets/resources/StaggerIcon.webp" class="as-resource-icon" />
+        <div class="as-resource-content flexrow flex-center flex-between">
+          <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="as-resource-input as-resource-hp"
+            type="text" inputmode="numeric" name="system.attributes.stagger.value"
+            value="{{system.attributes.stagger.value}}" data-dtype="Number" />
+          <span class="as-resource-divider"> / </span>
+          <input class="as-resource-input as-nop as-resource-hp" type="text" inputmode="numeric"
+            value="{{system.attributes.stagger.max}}" data-dtype="Number" />
+        </div>
+      </div>
+
+      <div class="as-resource">
+        <img src="systems/pmttrpg/assets/resources/PanicBlue.png" class="as-resource-icon" />
+        <div class="as-resource-content flexrow flex-center flex-between">
+          <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="as-resource-input as-resource-hp"
+            type="text" inputmode="numeric" name="system.attributes.sanity.value"
+            value="{{system.attributes.sanity.value}}" data-dtype="Number" />
+          <span class="as-resource-divider"> / </span>
+          <input class="as-resource-input as-nop as-resource-hp" type="text" inputmode="numeric"
+            value="{{system.attributes.sanity.max}}" data-dtype="Number" />
+        </div>
+      </div>
+    </div>
+
+    {{!-- Core Stats --}}
+    <div class="resources as-padding-t2 grid grid-3col">
+      {{#each system.abilities as |ability key|}}
+      <div class="as-resource flexrow flex-group-center">
+        <img src="systems/pmttrpg/assets/stats/{{key}}.png" class="as-resource-icon" />
+        <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="as-resource-input as-resource-stat"
+          type="text" inputmode="numeric" name="system.abilities.{{key}}.value" value="{{ability.value}}"
+          data-dtype="Number" />
+      </div>
+      {{/each}}
+    </div>
+  </div>
+</div>
+
+<script>
+  function setCursorRight() {
+    const input = document.activeElement;
+    const length = input.value.length;
+    input.setSelectionRange(length, length);
+  }
+
+  function unfocus(event) {
+    if (event.key == "Enter") {
+      const input = document.activeElement;
+      input.blur()
+    }
+  }
+</script>
+
+<style>
+  .as-resource {
+    background-color: cadetblue;
+    border: 2px solid black;
+    border-radius: 1px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 5%;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .as-resource-input {
+    background-color: slategray;
+    border: 1px solid silver;
+    text-align: center;
+    width: 4rem;
+  }
+
+  .as-resource-hp {}
+
+  .as-resource-xp {
+    padding: 8%;
+  }
+
+  .as-resource-stat {
+    margin: auto;
+  }
+
+  .as-nop {
+    pointer-events: none;
+  }
+
+  .as-resource-content {
+    display: flexbox;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    grid: 1 / span 3;
+    gap: 0;
+    margin: auto;
+  }
+
+  .as-resource-divider {
+    text-align: center;
+  }
+
+  .as-resource-icon {
+    width: 50px;
+    height: 50px;
+    border: none;
+    margin: auto;
+    padding: 10%;
+  }
+
+  .as-resources-holder {
+    background-color: #1d1b22;
+    border: 2px solid slategray;
+    padding: 2%;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .as-padding-t2 {
+    padding-top: 2%;
+    padding-bottom: 2%;
+  }
+
+  .as-padding-0 {
+    padding: 0;
+  }
+</style>

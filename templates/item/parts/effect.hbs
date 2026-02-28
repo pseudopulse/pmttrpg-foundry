@@ -1,0 +1,196 @@
+<div class="ef-resources-holder flexcol">
+    <div class="ef-resources">
+        <div class="ef-resource-content">
+            <button onclick="toggle('effect{{index}}')" class="ef-dropbtn ef-large-dropdown">
+                {{name}}
+            </button>
+            <div id="effect{{index}}" class="ef-dropdown-content">
+                <input type="text" placeholder="Search.." id="effectInput{{index}}"
+                    onkeyup="filterFunction('effectInput{{index}}', 'effect{{index}}')">
+                {{#each effectsList as |effect effect|}}
+                <a class="effect-type" id="effectType-{{../index}}">{{effect.name}}</a>
+                {{/each}}
+            </div>
+        </div>
+
+        <div class="ef-resource-content">
+            <button onclick="toggle('type{{index}}')" class="ef-dropbtn ef-small-dropdown">
+                {{trigger}}
+            </button>
+            {{#with (effect name 'Weapon') as |effectData|}}
+            <div id="type{{../index}}" class="ef-dropdown-content">
+                {{#each effectData.validTriggers}}
+                <a class="effect-trigger" id="effectTrigger-{{../../index}}">{{this}}</a>
+                {{/each}}
+            </div>
+            {{/with}}
+        </div>
+
+        <div class="ef-resource-content">
+            <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="ef-resource-input effect-counter"
+                id="effectCounter-{{index}}" type="number" min="-10" max="10" value="{{count}}" data-dtype="Number" />
+        </div>
+
+        <div class="ef-resource-content">
+            <button class="ef-dropbtn ef-dropbtn-small effect-remove-button" id="removeEffect-{{index}}">-</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggle(element) {
+        document.getElementById(element).classList.toggle("ef-show");
+    }
+
+    function filterFunction(element1, element2) {
+        let input = document.getElementById(element1);
+        let filter = input.value.toUpperCase();
+        let div = document.getElementById(element2);
+        let a = div.getElementsByTagName("a");
+
+        for (let i = 0; i < a.length; i++) {
+            let txtValue = a[i].textContent || a[i].innerText;
+            a[i].style.display =
+                txtValue.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+        }
+    }
+</script>
+
+<style>
+    .ef-resource {
+        background-color: cadetblue;
+        border: 2px solid black;
+        border-radius: 1px;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 5%;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .ef-resources {
+        display: flex;
+        columns: 4;
+        align-items: center;
+        gap: 0rem;
+        padding: 1.5% 0px;
+    }
+
+    .ef-resource-input {
+        background-color: slategray;
+        border: 1px solid silver;
+        text-align: center;
+        width: 4rem;
+    }
+
+    .ef-nop {
+        pointer-events: none;
+    }
+
+    .ef-resource-content {
+        display: flexbox;
+        justify-content: center;
+        align-items: center;
+        flex-direction: row;
+        grid: 1 / span 3;
+        gap: 0;
+        margin: auto;
+    }
+
+    .ef-resource-divider {
+        text-align: center;
+    }
+
+    .ef-large-dropdown {
+        width: 11.5rem !important;
+    }
+
+    .ef-small-dropdown {
+        width: 8rem !important;
+        margin: 0px 10% !important;
+    }
+
+    .ef-resource-icon {
+        width: 50px;
+        height: 50px;
+        border: none;
+        margin: auto;
+        padding: 10%;
+    }
+
+    .ef-resources-holder {
+        background-color: #1d1b22;
+        border: 2px solid slategray;
+        padding: 2%;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .ef-padding-t2 {
+        padding-top: 2%;
+        padding-bottom: 2%;
+    }
+
+    .ef-padding-0 {
+        padding: 0;
+    }
+
+    .ef-dropbtn {
+        background-color: cadetblue;
+        color: white;
+        padding: 16px;
+        font-size: 16px;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+        justify-content: center;
+        width: 9rem;
+        height: 2rem;
+        line-height: 0;
+        text-wrap-mode: nowrap;
+    }
+
+    .ef-dropbtn-small {
+        width: 3rem;
+        height: 2rem;
+        line-height: 0;
+    }
+
+    .ef-dropbtn:hover,
+    .ef-dropbtn:focus {
+        background-color: slategray;
+    }
+
+    .ef-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .ef-dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #f6f6f6;
+        min-width: 230px;
+        border: 1px solid #ddd;
+        z-index: 1;
+        max-height: 20rem;
+        overflow-y: scroll;
+    }
+
+    .ef-dropdown-content a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+    }
+
+    .ef-dropdown-content a:hover {
+        background-color: #f1f1f1;
+    }
+
+    .ef-show {
+        display: block;
+    }
+</style>

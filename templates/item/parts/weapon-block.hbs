@@ -1,0 +1,242 @@
+<div class="wb-statblock-container wb-resources-holder">
+    <div class="wb-rollInfo flexcol wb-resource">
+        <p class="wb-rollDisplay">{{rollContext.diceCount}}d{{rollContext.diceMax}}+{{rollContext.dicePower}}</p>
+        <div class="wb-type-container">
+            {{#if editable}}
+            <div class="wb-dropdown-holder">
+                <img class="wb-resource-icon wb-resource-button" onclick="toggle('weaponDMGDrp')"
+                    src='systems/pmttrpg/assets/damageTypes/{{rollContext.damageType}}.png' width='24' height='24' />
+                <div id="weaponDMGDrp" class="wb-dropdown-content">
+                    {{#if (ne rollContext.damageType 'Slash' )}}
+                    <img class="wb-resource-icon  wb-dropdownIcon wb-typeBtn" id="Slash"
+                        src='systems/pmttrpg/assets/damageTypes/Slash.png' width='24' height='24' />
+                    {{/if}}
+                    {{#if (ne rollContext.damageType 'Pierce' )}}
+                    <img class="wb-resource-icon  wb-dropdownIcon wb-typeBtn" id="Pierce"
+                        src='systems/pmttrpg/assets/damageTypes/Pierce.png' width='24' height='24' />
+                    {{/if}}
+                    {{#if (ne rollContext.damageType 'Blunt' )}}
+                    <img class="wb-resource-icon wb-dropdownIcon wb-typeBtn" id="Blunt"
+                        src='systems/pmttrpg/assets/damageTypes/Blunt.png' width='24' height='24' />
+                    {{/if}}
+                </div>
+            </div>
+            <p class="wb-resource-button wb-attack-type-button">{{rollContext.attackType}}</p>
+            {{else}}
+            <img class="wb-resource-icon wb-resource-button wb-resource-icon-noEdit wb-resource-button-noEdit"
+            src='systems/pmttrpg/assets/damageTypes/{{rollContext.damageType}}.png' width='24' height='24' />
+            <p class="wb-resource-button wb-resource-button-noEdit wb-attack-type-button">{{rollContext.attackType}}</p>
+            {{/if}}
+        </div>
+    </div>
+
+    <div class="wb-clashDescription wb-resource">
+        {{{enrichedClashData}}}
+    </div>
+</div>
+
+<script>
+    function toggle(element) {
+        document.getElementById(element).classList.toggle("wb-show");
+    }
+</script>
+
+<style>
+    .wb-resource-icon-noEdit {
+        padding: 0% !important;
+        background: none !important;
+    }
+    
+    .wb-resource-button-noEdit {
+        background: none !important;
+        border: none !important;
+        width: 3rem !important;
+    }
+
+    .wb-dropdown-holder {}
+
+    .wb-rollDisplay {
+        font-size: 20px;
+        text-align: center;
+        margin-top: 2rem;
+    }
+
+    .wb-attack-type-button {
+        width: 5rem;
+        height: 2.5rem;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        justify-items: middle;
+        display: flex;
+        padding: 2%;
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    .wb-type-container {
+        display: flex;
+        gap: 1rem;
+        align-content: center;
+        align-items: center;
+        justify-items: center;
+        margin: auto;
+    }
+
+    .wb-dropdownIcon {
+        margin: 0px !important;
+        padding: 10% !important;
+    }
+
+    .wb-resource-button {
+        background-color: slategray;
+        border: 1px solid gray;
+        text-align: center;
+    }
+
+    .wb-resource-button:hover {
+        background: rgb(147, 161, 175);
+    }
+
+    .wb-clashDescription {
+        overflow-y: scroll;
+        width: 100%;
+        padding: 2% 2% !important;
+        text-wrap-mode: wrap;
+        display: block !important;
+    }
+
+    .wb-statblock-container {
+        padding: 2% !important;
+        columns: 2;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .wb-rollInfo {
+        height: 9rem;
+        width: 14rem;
+        padding: 0% !important;
+        columns: 1;
+        display: flex !important;
+        gap: 0rem !important;
+    }
+
+    .wb-resource {
+        background-color: cadetblue;
+        border: 2px solid black;
+        border-radius: 1px;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 5%;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .wb-resource-input {
+        background-color: slategray;
+        border: 1px solid silver;
+        text-align: center;
+        width: 4rem;
+    }
+
+    .wb-nop {
+        pointer-events: none;
+    }
+
+    .wb-resource-content {
+        display: flexbox;
+        justify-content: center;
+        align-items: center;
+        flex-direction: row;
+        grid: 1 / span 3;
+        gap: 0;
+        margin: auto;
+    }
+
+    .wb-resource-divider {
+        text-align: center;
+    }
+
+    .wb-resource-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border: none;
+        margin: auto;
+        padding: 10%;
+    }
+
+    .wb-resources-holder {
+        background-color: #1d1b22;
+        border: 2px solid slategray;
+        padding: 2%;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .wb-padding-t2 {
+        padding-top: 2%;
+        padding-bottom: 2%;
+    }
+
+    .wb-padding-0 {
+        padding: 0;
+    }
+
+    .wb-dropbtn {
+        background-color: cadetblue;
+        color: white;
+        padding: 16px;
+        font-size: 16px;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+        justify-content: center;
+        width: 9rem;
+        height: 2rem;
+        line-height: 0;
+        text-wrap-mode: nowrap;
+    }
+
+    .wb-dropbtn-small {
+        width: 3rem;
+        height: 2rem;
+        line-height: 0;
+    }
+
+    .wb-dropbtn:hover,
+    .wb-dropbtn:focus {
+        background-color: slategray;
+    }
+
+    .wb-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .wb-dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #f6f6f6;
+        border: 1px solid #ddd;
+        z-index: 1;
+        max-height: 20rem;
+    }
+
+    .wb-dropdown-content a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+    }
+
+    .wb-dropdown-content a:hover {
+        background-color: #f1f1f1;
+    }
+
+    .wb-show {
+        display: block;
+    }
+</style>

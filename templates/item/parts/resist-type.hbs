@@ -1,0 +1,221 @@
+<div class="rt-dropdown-holder">
+    {{#if (ne cat "Stg")}}
+        <img class="rt-resource-icon rt-resource-button" onclick="toggle('{{type}}{{cat}}Drp')"
+        src='systems/pmttrpg/assets/damageTypes/Res{{type}}.png' width='24' height='24' />
+    {{/if}}
+    <h4 onclick="toggle('{{type}}{{cat}}Drp')">{{reslook item type cat}}x</h4>
+    <div id="{{type}}{{cat}}Drp" class="rt-dropdown-content">
+        <a class="rt-dropdown-button" class="rt-drpbtn" data-res-type="{{type}}" data-res-cat="{{cat}}" data-res-val="0">Immune (0x)</a>
+        <a class="rt-dropdown-button" class="rt-drpbtn" data-res-type="{{type}}" data-res-cat="{{cat}}" data-res-val="0.25">Resisted (0.25x)</a>
+        <a class="rt-dropdown-button" class="rt-drpbtn" data-res-type="{{type}}" data-res-cat="{{cat}}" data-res-val="0.5">Endured (0.5x)</a>
+        <a class="rt-dropdown-button" class="rt-drpbtn" data-res-type="{{type}}" data-res-cat="{{cat}}" data-res-val="1">Normal (1x)</a>
+        <a class="rt-dropdown-button" class="rt-drpbtn" data-res-type="{{type}}" data-res-cat="{{cat}}" data-res-val="1.5">Weak (1.5x)</a>
+        <a class="rt-dropdown-button" class="rt-drpbtn" data-res-type="{{type}}" data-res-cat="{{cat}}" data-res-val="2">Fatal (2x)</a>
+    </div>
+</div>
+
+<script>
+    function toggle(element) {
+        document.getElementById(element).classList.toggle("rt-show");
+    }
+</script>
+
+<style>
+    .rt-resource-icon-noEdit {
+        padding: 0% !important;
+        background: none !important;
+    }
+
+    .rt-resource-button-noEdit {
+        background: none !important;
+        border: none !important;
+        width: 3rem !important;
+    }
+
+    .rt-dropdown-holder {}
+
+    .rt-rollDisplay {
+        font-size: 20px;
+        text-align: center;
+        margin-top: 2rem;
+    }
+
+    .rt-attack-type-button {
+        width: 5rem;
+        height: 2.5rem;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        justify-items: middle;
+        display: flex;
+        padding: 2%;
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    .rt-type-container {
+        display: flex;
+        gap: 1rem;
+        align-content: center;
+        align-items: center;
+        justify-items: center;
+        margin: auto;
+    }
+
+    .rt-dropdownIcon {
+        margin: 0px !important;
+        padding: 10% !important;
+    }
+
+    .rt-resource-button {
+        background-color: slategray;
+        border: 1px solid gray;
+        text-align: center;
+    }
+
+    .rt-resource-button:hover {
+        background: rgb(147, 161, 175);
+    }
+
+    .rt-clashDescription {
+        overflow-y: scroll;
+        width: 100%;
+        padding: 2% 2% !important;
+        text-wrap-mode: wrap;
+        display: block !important;
+    }
+
+    .rt-statblock-container {
+        padding: 2% !important;
+        columns: 2;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .rt-rollInfo {
+        height: 9rem;
+        width: 14rem;
+        padding: 0% !important;
+        columns: 1;
+        display: flex !important;
+        gap: 0rem !important;
+    }
+
+    .rt-resource {
+        background-color: cadetblue;
+        border: 2px solid black;
+        border-radius: 1px;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 5%;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .rt-resource-input {
+        background-color: slategray;
+        border: 1px solid silver;
+        text-align: center;
+        width: 4rem;
+    }
+
+    .rt-nop {
+        pointer-events: none;
+    }
+
+    .rt-resource-content {
+        display: flexbox;
+        justify-content: center;
+        align-items: center;
+        flex-direction: row;
+        grid: 1 / span 3;
+        gap: 0;
+        margin: auto;
+    }
+
+    .rt-resource-divider {
+        text-align: center;
+    }
+
+    .rt-resource-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border: none;
+        margin: auto;
+        padding: 10%;
+    }
+
+    .rt-resources-holder {
+        background-color: #1d1b22;
+        border: 2px solid slategray;
+        padding: 2%;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .rt-padding-t2 {
+        padding-top: 2%;
+        padding-bottom: 2%;
+    }
+
+    .rt-padding-0 {
+        padding: 0;
+    }
+
+    .rt-dropbtn {
+        background-color: cadetblue;
+        color: white;
+        padding: 16px;
+        font-size: 16px;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+        justify-content: center;
+        width: 9rem;
+        height: 2rem;
+        line-height: 0;
+        text-wrap-mode: nowrap;
+    }
+
+    .rt-dropbtn-small {
+        width: 3rem;
+        height: 2rem;
+        line-height: 0;
+    }
+
+    .rt-dropbtn:hover,
+    .rt-dropbtn:focus {
+        background-color: slategray;
+    }
+
+    .rt-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .rt-dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #f6f6f6;
+        border: 1px solid #ddd;
+        z-index: 1;
+        max-height: 20rem;
+    }
+
+    .rt-dropdown-content a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+    }
+
+    .rt-dropdown-content a:hover {
+        background-color: #f1f1f1;
+    }
+
+    .rt-show {
+        display: block;
+    }
+</style>

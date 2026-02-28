@@ -1,0 +1,95 @@
+{
+  "Actor": {
+    "types": ["character"],
+    "character": {
+      "attributes": {
+        "rank": {
+          "value": 1
+        },
+        "level": {
+          "value": 1
+        },
+        "xp": {
+          "value": 1
+        },
+        "health": {
+          "value": 10,
+          "min": 0,
+          "max": 10
+        },
+        "stagger": {
+          "value": 10,
+          "min": 0,
+          "max": 10
+        },
+        "sanity": {
+          "value": 10,
+          "min": 0,
+          "max": 10
+        },
+        "light": {
+          "value": 10,
+          "min": 0,
+          "max": 10
+        }
+      },
+      "abilities": {
+        "Fortitude": {
+          "value": 1
+        },
+        "Charm": {
+          "value": 1
+        },
+        "Justice": {
+          "value": 1
+        },
+        "Insight": {
+          "value": 1
+        },
+        "Prudence": {
+          "value": 1
+        },
+        "Temperance": {
+          "value": 1
+        }
+      }
+    }
+  },
+  "Item": {
+    "types": ["weapon", "tool", "skill", "outfit"],
+    "weapon": {
+      "diceMax": 10,
+      "dicePower": 1,
+      "type": "Melee",
+      "hand": "Offensive 1-Handed",
+      "form": "Medium",
+      "attachment": "",
+      "description": "",
+      "rank": 1,
+      "damageType": "Slash",
+      "effects": [
+      ]
+    },
+    "tool": {
+
+    },
+    "skill": {
+
+    },
+    "outfit": {
+      "diceMaxBlo": 10,
+      "diceMaxEvd": 10,
+      "dicePowerBlo": 10,
+      "dicePowerEvd": 10,
+      "form": "Armored",
+      "slashRes": 1,
+      "slashResST": 1,
+      "pierceRes": 1,
+      "pierceResST": 1,
+      "bluntRes": 1,
+      "bluntResST": 1,
+      "effects": [
+      ]
+    }
+  }
+}
