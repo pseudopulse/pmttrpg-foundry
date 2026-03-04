@@ -1,7 +1,7 @@
 <div class="ef-resources-holder flexcol">
     <div class="ef-resources">
         <div class="ef-resource-content">
-            <button onclick="toggle('effect{{index}}')" class="ef-dropbtn ef-large-dropdown">
+            <button onclick="toggleEF('effect{{index}}')" class="ef-dropbtn ef-large-dropdown">
                 {{name}}
             </button>
             <div id="effect{{index}}" class="ef-dropdown-content">
@@ -14,7 +14,7 @@
         </div>
 
         <div class="ef-resource-content">
-            <button onclick="toggle('type{{index}}')" class="ef-dropbtn ef-small-dropdown">
+            <button onclick="toggleEF('type{{index}}')" class="ef-dropbtn ef-small-dropdown">
                 {{trigger}}
             </button>
             {{#with (effect name 'Weapon') as |effectData|}}
@@ -38,7 +38,7 @@
 </div>
 
 <script>
-    function toggle(element) {
+    function toggleEF(element) {
         document.getElementById(element).classList.toggle("ef-show");
     }
 
@@ -191,6 +191,6 @@
     }
 
     .ef-show {
-        display: block;
+        display: block !important;
     }
 </style>

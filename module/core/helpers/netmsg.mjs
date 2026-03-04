@@ -1,5 +1,6 @@
 // import Actor from "@client/documents/actor.mjs";
 
+import { searchByObject } from "../../pmttrpg.mjs";
 import { RollContext } from "../combat/rollContext.mjs";
 
 export function sendNetworkMessage(type, data) {
@@ -16,9 +17,9 @@ export function sendNetworkMessage(type, data) {
 export const handler = {};
 
 export function registerMessages() {
-    handler["PENDING_CLASH"] = (data) => {
-        const target = game.actors.get(data.target._id);
-        const attacker = game.actors.get(data.attacker._id);
+    handler["PENDING_CLASH"] = async (data) => {
+        const target = searchByObject(data.target);
+        const attacker = searchByObject(data.attacker);
         
         if (existsInTokensList(target)) {
             const context = new RollContext();
@@ -28,9 +29,21 @@ export function registerMessages() {
             Object.assign(context, data.context);
             context.fix();
 
-            target.handlePendingClash(context);
+            await target.handlePendingClash(context);
         }
     };
+
+    handler["RESOLVE_CLASH"] = async (data) => {
+        const target = searchByObject(data.target);
+        const attacker = searchByObject(data.attacker);
+
+        if (game.user.isGM) {
+            console.log("we are gm");
+            attacker.prepareData();
+            console.log(attacker);
+            await attacker.sendAttackRoll();
+        }
+    }
 }
 
 function existsInTokensList(actor) {

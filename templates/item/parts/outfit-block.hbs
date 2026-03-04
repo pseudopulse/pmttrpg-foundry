@@ -1,14 +1,22 @@
 <div class="ob-statblock-container ob-resources-holder">
     <div class="ob-rollInfo flexcol ob-resource">
-        <p class="ob-rollDisplay">{{rollContext.diceCount}}d{{rollContext.diceMax}}+{{rollContext.dicePower}}</p>
+        {{#with (drctx this "Blo") as |ctx|}}
+            <div class="ob-roll-holder">
+                <img class="ob-roll-icon" src='systems/pmttrpg/assets/damageTypes/Block.png' width='24' height='24'/>
+                <p class="ob-rollDisplay">{{ctx.diceCount}}d{{ctx.diceMax}}+{{ctx.dicePower}}</p>
+            </div>
+        {{/with}}
+        {{#with (drctx this "Evd") as |ctx|}}
+            <div class="ob-roll-holder">
+                <img class="ob-roll-icon" src='systems/pmttrpg/assets/damageTypes/Evade.png' width='24' height='24'/>
+                <p class="ob-rollDisplay">{{ctx.diceCount}}d{{ctx.diceMax}}+{{ctx.dicePower}}</p>
+            </div>
+        {{/with}}
         <div class="ob-type-container">
             <div class="ob-stats-grid">
                 {{> "systems/pmttrpg/templates/item/parts/resist-type.hbs" item=system type="Slash" cat=""}}
-                {{> "systems/pmttrpg/templates/item/parts/resist-type.hbs" item=system type="Slash" cat="Stg"}}
                 {{> "systems/pmttrpg/templates/item/parts/resist-type.hbs" item=system type="Pierce" cat=""}}
-                {{> "systems/pmttrpg/templates/item/parts/resist-type.hbs" item=system type="Pierce" cat="Stg"}}
                 {{> "systems/pmttrpg/templates/item/parts/resist-type.hbs" item=system type="Blunt" cat=""}}
-                {{> "systems/pmttrpg/templates/item/parts/resist-type.hbs" item=system type="Blunt" cat="Stg"}}
             </div>
         </div>
     </div>
@@ -34,6 +42,20 @@
         padding: 0% !important;
         background: none !important;
     }
+
+    .ob-roll-holder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+    }
+
+    .ob-roll-icon {
+        background: none;
+        border: none;
+        width: 2.5rem;
+        height: 2.5rem;
+    }
     
     .ob-resource-button-noEdit {
         background: none !important;
@@ -46,7 +68,6 @@
     .ob-rollDisplay {
         font-size: 20px;
         text-align: center;
-        margin-top: 2rem;
     }
 
     .ob-attack-type-button {
@@ -69,6 +90,7 @@
         align-items: center;
         justify-items: center;
         margin: auto;
+        margin-top: 1rem;
     }
 
     .ob-dropdownIcon {
@@ -102,9 +124,9 @@
     }
 
     .ob-rollInfo {
-        height: 9rem;
+        height: 14rem;
         width: 14rem;
-        padding: 0% !important;
+        padding: 2% 1% !important;
         columns: 1;
         display: flex !important;
         gap: 0rem !important;

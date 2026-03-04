@@ -1,0 +1,19 @@
+<form class='flexcol cr-form' autocomplete='off'>
+    <section class="sheet-body cm-resources-holder flexcol">
+        <div class="cm-resource cm-target-div">
+            <h4 class="cm-target-text">{{ctx1.actor.name}} clashes against {{ctx2.actor.name}}!</h4>
+        </div>
+        <div class="cm-item-holder cm-resource">
+            <h4 class="cm-name-text cm-resource-icon cm-result-icon {{ctxc ctx1 ctx2}}">{{ctx1.result}}</h4>
+            <h4 class="cm-vs-text">VS</h4>
+            <h4 class="cm-name-text cm-resource-icon cm-result-icon {{ctxc ctx2 ctx1}}">{{ctx2.result}}</h4>
+        </div>
+        {{#if (ne enrichedClashData "")}}
+        <div>
+            <div class="cm-clashDescription cm-resource">
+                {{{enrichedClashData}}}
+            </div>
+        </div>
+        {{/if}}
+    </section>
+</form>

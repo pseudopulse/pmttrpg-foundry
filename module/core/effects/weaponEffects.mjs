@@ -63,8 +63,8 @@ export const weaponEffects = [
         },
         (count) => {
             return handleNegativeText(
-                `Gain % Poise`,
-                `Inflict % Poise`, 
+                `Gain % [/status/Poise] Poise`,
+                `Inflict % [/status/Poise] Poise`, 
             count);
         },
         ["Clash Win", "Clash Lose"],
@@ -87,7 +87,7 @@ export const weaponEffects = [
             context.triggers["Clash Lose"].applyInfliction("Bleed", -2, true);
         },
         (count) => {
-            return [null, "Inflict 2 Bleed", "Gain 2 Bleed"];
+            return [null, "Inflict 2 [/status/Bleed] Bleed", "Gain 2 Bleed"];
         },
         ["Always Active"],
         false,
@@ -106,8 +106,8 @@ export const weaponEffects = [
         },
         (count) => {
             return handleNegativeText(
-                `Gain % Haste next round`,
-                `Gain % Bind next round`, 
+                `Gain % [/status/Haste] Haste next round`,
+                `Gain % [/status/Bind] Bind next round`, 
             count);
         },
         ["Clash Win", "Clash Lose"],
@@ -118,7 +118,7 @@ export const weaponEffects = [
             context.triggers[trigger].applyInfliction("Charge", -count, false);
         },
         (count) => {
-            return `Gain ${Math.abs(count)} Charge`;
+            return `Gain ${Math.abs(count)} [/status/Charge] Charge`;
         },
         ["On Use"],
         false,
@@ -140,7 +140,7 @@ export const weaponEffects = [
             
         },
         (count) => {
-            return "May spend 4 Charge to increase range by 1 SQR."
+            return "May spend 4 [/status/Charge] Charge to increase range by 1 SQR."
         },
         ["On Use"],
         false,
@@ -157,8 +157,8 @@ function simpleStatusEffect(status, nextRound) {
         },
         (count) => {
             return handleNegativeText(
-                `Inflict % ${status}` + str, 
-                `Gain % ${status}` + str, 
+                `Inflict % [/status/${status}] ${status}` + str, 
+                `Gain % [/status/${status}] ${status}` + str, 
             count);
         },
         ["Clash Win", "Clash Lose"]

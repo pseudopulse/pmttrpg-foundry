@@ -1,4 +1,6 @@
+import { outfitEffects } from "./outfitEffects.mjs";
 import { weaponEffects } from "./weaponEffects.mjs";
+import { skillEffects } from "./skillEffects.mjs";
 
 export function handleEffectRemoveButton(event, effects) {
     let index = event.currentTarget.id.split("-")[1];
@@ -9,10 +11,23 @@ export function handleEffectRemoveButton(event, effects) {
     }
 }
 
-export function handleEffectAddButton(event, effects) {
+export function getEffectsArray(type) {
+    switch (type.toLowerCase()) {
+        case "weapon":
+            return weaponEffects;
+        case "skill":
+            return skillEffects;
+        case "outfit":
+            return outfitEffects;
+        default:
+            return null;
+    }
+}
+
+export function handleEffectAddButton(event, effects, type) {
     effects.push({
-        name: "Inflict Burn",
-        trigger: "Clash Win",
+        name: getEffectsArray(type)[0].name,
+        trigger: getEffectsArray(type)[0].validTriggers,
         count: 0,
         index: effects.length
     });
@@ -25,7 +40,6 @@ export function handleEffectCounterChange(event, effects, category = "Weapon") {
 }
 
 export function handleEffectTypeChange(event, effects, category = "Weapon") {
-    console.log(event.currentTarget.id);
     let index = event.currentTarget.id.split("-")[1];
     effects[index].name = event.currentTarget.textContent;
     validate(effects, category);
@@ -47,18 +61,10 @@ export function handleNegativeText(text, altText, count) {
 
 export function validate(effects, category) {
     for (const effect of effects) {
-        let def = null;
-        switch (category) {
-            case "Weapon":
-                def = weaponEffects.find(x => x.name == effect.name);
-                break;
-            default:
-                break;
-        }
+        let def = getEffectsArray(category).find(x => x.name == effect.name);
 
         if (def != null) {
             if (!def.validTriggers.find(x => x == effect.trigger)) {
-                console.log("trigger " + effect.trigger + " does not exist in " + def.validTriggers);
                 effect.trigger = def.validTriggers[0];
             }
 

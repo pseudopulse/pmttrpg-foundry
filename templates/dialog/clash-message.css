@@ -1,9 +1,44 @@
+#cm-subject {
+    padding: 1% !important;
+}
+
+.inline-status {
+    display: inline !important;
+    vertical-align: middle !important;
+    border: none !important;
+    height: 1.5em !important;
+    width: auto !important;
+}
+
+.cm-vs-text {
+    margin: 0;
+}
+
+.cm-clash-lose {
+    border-color: rgb(255, 0, 0) !important;
+    border-radius: 3px !important;
+    border-width: 3px !important;
+}
+
+.cm-clash-win {
+    border-color: rgb(43, 255, 43) !important;
+    border-radius: 3px !important;
+    border-width: 3px !important;
+}
+
+.cm-clash-draw {
+    border-color: #75654d !important;
+    border-radius: 3px !important;
+    border-width: 3px !important;
+}
+
 .cm-clashDescription {
     overflow-y: scroll;
     width: 100%;
     padding: 0 2% !important;
     text-wrap-mode: wrap;
     display: block !important;
+    font-weight: bold;
 }
 
 .cm-statblock-container {

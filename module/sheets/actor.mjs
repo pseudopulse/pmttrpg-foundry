@@ -1,3 +1,6 @@
+import { roughSizeOfObject } from "../pmttrpg.mjs";
+import { statusList } from "../core/status/statusEffects.mjs";
+
 //
 export class PTActorSheet extends ActorSheet {
     /** @override */
@@ -6,7 +9,7 @@ export class PTActorSheet extends ActorSheet {
             classes: ["pmttrpg", "sheet", "actor"],
             width: 600,
             height: 600,
-            tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "features" }]
+            tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "stats" }, { navSelector: ".sheet-tabs2", contentSelector: ".sheet-body2", initial: "weapons" }]
         });
     }
 
@@ -21,7 +24,12 @@ export class PTActorSheet extends ActorSheet {
         context.system = actorData.system;
         context.flags = actorData.flags;
 
+        context.statusList = statusList;
+
         this.prepareItems(context);
+
+        console.log(this.document.name);
+        console.log(roughSizeOfObject(this.document));
 
         return context;
     }
@@ -38,7 +46,7 @@ export class PTActorSheet extends ActorSheet {
             else if (i.type === 'outfit') {
                 outfits.push(i);
             }
-            else if (i.type === 'skills') {
+            else if (i.type === 'skill') {
                 skills.push(i);
             }
         }
@@ -68,13 +76,37 @@ export class PTActorSheet extends ActorSheet {
             item.delete();
             li.slideUp(200, () => this.render(false));
         });
+
+        html.on('change', '.ast-cur', (ev) => {
+            const element = ev.currentTarget;
+            this.actor.setStatus(element.closest('.ast-st-holder').dataset.status, element.value);
+        })
+
+        html.on('change', '.ast-nxt', (ev) => {
+            const element = ev.currentTarget;
+            this.actor.setStatusNext(element.closest('.ast-st-holder').dataset.status, element.value);
+        })
+
+        // Drag events for macros.
+        if (this.actor.isOwner) {
+            let handler = (ev) => this._onDragStart(ev);
+            html.find('li.item').each((i, li) => {
+                if (li.classList.contains('inventory-header')) return;
+                li.setAttribute('draggable', true);
+                li.addEventListener('dragstart', handler, false);
+            });
+        }
+    }
+
+    processData(func) {
+        func(this);
     }
 
     async _onItemCreate(event) {
         event.preventDefault();
         const header = event.currentTarget;
         // Get the type of item to create.
-        const type = "weapon";
+        const type = event.currentTarget.dataset.type;
         // Grab any data associated with this control.
         const data = duplicate(header.dataset);
         // Initialize a default name.

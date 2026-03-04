@@ -5,7 +5,17 @@ import { PTActorSheet } from "./sheets/actor.mjs";
 import { PTItemSheet } from "./sheets/item.mjs";
 import { handler, sendNetworkMessage, registerMessages } from "./core/helpers/netmsg.mjs";
 import { roundChange, turnChange, updateCombatant } from "./core/combat/combatState.mjs";
+import { getEffectsArray } from "./core/effects/effectHelpers.mjs";
 // import Hooks from "@client/helpers/hooks.mjs";
+
+game.wipeAllDbg = () => {
+  console.log("wiping all");
+  for (const token of canvas.tokens.placeables) {
+    const obj = token.actor.system.toObject(false);
+    obj.mostRecentRoll = null;
+    token.actor.update({ obj }, { render: true, diff: false });
+  }
+}
 
 Hooks.once("init", () => {
   // debug
@@ -69,14 +79,7 @@ Hooks.once("init", () => {
         return Array.prototype.slice.call(arguments, 0, -1).some(Boolean);
     },
     effect(name, type) {
-      switch (type) {
-        case "Weapon":
-          return weaponEffects.find(x => x.name == name);
-        case "Outfit":
-          return outfitEffects.find(x => x.name == name);
-        default:
-          break;
-      }
+      return getEffectsArray(type).find(x => x.name == name);
 
       return null;
     },
@@ -97,12 +100,41 @@ Hooks.once("init", () => {
         default:
           return 1;
       }
+    },
+    ctxc(ctx1, ctx2) {
+      if (ctx1.result == "X" || ctx1.result < ctx2.result) {
+        return "cm-clash-lose";
+      }
+
+      if (ctx1.result > ctx2.result || ctx2.result == "X") {
+        return "cm-clash-win";
+      }
+
+      return "cm-clash-draw";
+    },
+    gst(system, name) {
+      let status = system.statusEffects.find(x => x.name == name);
+
+      if (status != null) {
+        return status;
+      }
+
+      return {
+        name: name,
+        count: 0,
+        nextRoundCount: 0
+      }
+    },
+    uts(text) {
+      return text.replace("_", " ");
     }
   });
 
   Handlebars.registerPartial('ptEffect', '{{> systems/pmttrpg/templates/item/parts/effect.hbs}}')
   Handlebars.registerPartial('ptWeaponBlock', '{{> systems/pmttrpg/templates/item/parts/weapon-block.hbs}}')
   Handlebars.registerPartial('ptOutfitBlock', '{{> systems/pmttrpg/templates/item/parts/outfit-block.hbs}}')
+  Handlebars.registerPartial('ptSkillBlock', '{{> systems/pmttrpg/templates/item/parts/skill-block.hbs}}')
+  Handlebars.registerPartial('ptSkillCosts', '{{> systems/pmttrpg/templates/item/parts/skill-costs.hbs}}')
   return preloadHandlebarsTemplates();
 });
 
@@ -118,21 +150,22 @@ Hooks.on(`renderChatMessageHTML`, (message, html, context) => {
   }
 });
 
-Hooks.on(`combatRound`, (combat, data, options) => {
-  roundChange(combat, data.round, data.turn);
+Hooks.on(`combatRound`, async (combat, data, options) => {
+  await roundChange(combat, data.round, data.turn);
 });
 
-Hooks.on(`combatTurn`, (combat, data, options) => {
-  turnChange(combat, data.round, data.turn);
+Hooks.on(`combatTurn`, async (combat, data, options) => {
+  await turnChange(combat, data.round, data.turn);
 });
 
-Hooks.on(`combatStart`, (combat, data) => {
-  turnChange(combat, data.round, data.turn);
+Hooks.on(`combatStart`, async (combat, data) => {
+  await roundChange(combat, data.round, data.turn);
 });
 
-Hooks.on(`updateCombatant`, (combatant, data, options, id) => {
-  updateCombatant(combatant, data, id);
+Hooks.on(`updateCombatant`, async (combatant, data, options, id) => {
+  await updateCombatant(combatant, data, id);
 });
+
 
 /**
  * @param {HTMLElement} html
@@ -146,16 +179,106 @@ function hideChatMessage(html) {
   html.style.setProperty("display", "none", "important");
 }
 
+export function findItemOwner(item) {
+  for (const token of canvas.tokens.placeables) {
+    if (token.actor == null) continue;
+      for (const aItem of token.actor.items) {
+        if (aItem._id == item._id) {
+          return token.actor;
+        }
+      }
+  }
+
+  for (const actor of game.actors) {
+    for (const aItem of actor.items) {
+      if (aItem._id == item._id) {
+        return actor;
+      }
+    }
+  }
+
+  return null;
+}
+
+export function searchByObject(actor) {
+    if (canvas.tokens != undefined) {
+      for (let token of canvas.tokens.placeables) {
+        if (token.actor == null) continue;
+        if (token.actor._id == actor._id) {
+            return token.actor;
+        }
+      }
+    }
+
+    return game.actors.get(actor._id);
+}
+
+export function searchForActor(id) {
+    if (canvas.tokens != undefined) {
+      for (let token of canvas.tokens.placeables) {
+        if (token.actor == null) continue;
+        if (token.actor._id == id) {
+            return token.actor;
+        }
+      }
+    }
+
+    return game.actors.get(id);
+}
+
+export function roughSizeOfObject(object) {
+  const objectList = [];
+  const stack = [object];
+  let bytes = 0;
+
+  while (stack.length) {
+    const value = stack.pop();
+
+    switch (typeof value) {
+      case 'boolean':
+        bytes += 4;
+        break;
+      case 'string':
+        bytes += value.length * 2;
+        break;
+      case 'number':
+        bytes += 8;
+        break;
+      case 'object':
+        if (!objectList.includes(value)) {
+          objectList.push(value);
+          for (const prop in value) {
+            if (value.hasOwnProperty(prop)) {
+              stack.push(value[prop]);
+            }
+          }
+        }
+        break;
+    }
+  }
+
+  return bytes;
+}
 
 const preloadHandlebarsTemplates = async function () {
   return loadTemplates([
     'systems/pmttrpg/templates/actor/parts/actor-stats.hbs',
     'systems/pmttrpg/templates/actor/parts/actor-weapons.hbs',
+    'systems/pmttrpg/templates/actor/parts/actor-outfits.hbs',
+    'systems/pmttrpg/templates/actor/parts/actor-skills.hbs',
+    'systems/pmttrpg/templates/actor/parts/actor-status.hbs',
+    //
     'systems/pmttrpg/templates/item/parts/effect.hbs',
+    'systems/pmttrpg/templates/item/parts/resist-type.hbs',
+    'systems/pmttrpg/templates/item/parts/skill-costs.hbs',
+    //
     'systems/pmttrpg/templates/dialog/clash-response.hbs',
     'systems/pmttrpg/templates/dialog/clash-message.hbs',
+    'systems/pmttrpg/templates/dialog/clash-result.hbs',
+    'systems/pmttrpg/templates/dialog/clash-effects.hbs',
+    //
     'systems/pmttrpg/templates/item/parts/weapon-block.hbs',
+    'systems/pmttrpg/templates/item/parts/skill-block.hbs',
     'systems/pmttrpg/templates/item/parts/outfit-block.hbs',
-    'systems/pmttrpg/templates/item/parts/resist-type.hbs',
   ]);
 };

@@ -1,16 +1,39 @@
 <div class="rt-dropdown-holder">
-    {{#if (ne cat "Stg")}}
-        <img class="rt-resource-icon rt-resource-button" onclick="toggle('{{type}}{{cat}}Drp')"
-        src='systems/pmttrpg/assets/damageTypes/Res{{type}}.png' width='24' height='24' />
-    {{/if}}
-    <h4 onclick="toggle('{{type}}{{cat}}Drp')">{{reslook item type cat}}x</h4>
-    <div id="{{type}}{{cat}}Drp" class="rt-dropdown-content">
-        <a class="rt-dropdown-button" class="rt-drpbtn" data-res-type="{{type}}" data-res-cat="{{cat}}" data-res-val="0">Immune (0x)</a>
-        <a class="rt-dropdown-button" class="rt-drpbtn" data-res-type="{{type}}" data-res-cat="{{cat}}" data-res-val="0.25">Resisted (0.25x)</a>
-        <a class="rt-dropdown-button" class="rt-drpbtn" data-res-type="{{type}}" data-res-cat="{{cat}}" data-res-val="0.5">Endured (0.5x)</a>
-        <a class="rt-dropdown-button" class="rt-drpbtn" data-res-type="{{type}}" data-res-cat="{{cat}}" data-res-val="1">Normal (1x)</a>
-        <a class="rt-dropdown-button" class="rt-drpbtn" data-res-type="{{type}}" data-res-cat="{{cat}}" data-res-val="1.5">Weak (1.5x)</a>
-        <a class="rt-dropdown-button" class="rt-drpbtn" data-res-type="{{type}}" data-res-cat="{{cat}}" data-res-val="2">Fatal (2x)</a>
+    <img class="rt-resource-icon rt-resource-button" src='systems/pmttrpg/assets/damageTypes/Res{{type}}.png' width='24'
+        height='24' />
+    <h4 class="rt-res-text" onclick="toggle('{{type}}Drp1')">{{reslook item type ""}}x</h4>
+    <div id="{{type}}Drp1" class="rt-dropdown-content">
+        <a class="rt-dropdown-button rt-drpbtn" data-res-type="{{type}}" data-res-cat=""
+            data-res-val="0">Immune
+            (0x)</a>
+        <a class="rt-dropdown-button rt-drpbtn" data-res-type="{{type}}" data-res-cat=""
+            data-res-val="0.25">Resisted (0.25x)</a>
+        <a class="rt-dropdown-button rt-drpbtn" data-res-type="{{type}}" data-res-cat=""
+            data-res-val="0.5">Endured (0.5x)</a>
+        <a class="rt-dropdown-button rt-drpbtn" data-res-type="{{type}}" data-res-cat=""
+            data-res-val="1">Normal
+            (1x)</a>
+        <a class="rt-dropdown-button rt-drpbtn" data-res-type="{{type}}" data-res-cat=""
+            data-res-val="1.5">Weak
+            (1.5x)</a>
+        <a class="rt-dropdown-button rt-drpbtn" data-res-type="{{type}}" data-res-cat=""
+            data-res-val="2">Fatal
+            (2x)</a>
+    </div>
+    <h4 class="rt-res-text" onclick="toggle('{{type}}Drp2')">{{reslook item type "Stg"}}x</h4>
+    <div id="{{type}}Drp2" class="rt-dropdown-content">
+        <a class="rt-dropdown-button rt-drpbtn" data-res-type="{{type}}" data-res-cat="Stg"
+            data-res-val="0">Immune (0x)</a>
+        <a class="rt-dropdown-button rt-drpbtn" data-res-type="{{type}}" data-res-cat="Stg"
+            data-res-val="0.25">Resisted (0.25x)</a>
+        <a class="rt-dropdown-button rt-drpbtn" data-res-type="{{type}}" data-res-cat="Stg"
+            data-res-val="0.5">Endured (0.5x)</a>
+        <a class="rt-dropdown-button rt-drpbtn" data-res-type="{{type}}" data-res-cat="Stg"
+            data-res-val="1">Normal (1x)</a>
+        <a class="rt-dropdown-button rt-drpbtn" data-res-type="{{type}}" data-res-cat="Stg"
+            data-res-val="1.5">Weak (1.5x)</a>
+        <a class="rt-dropdown-button rt-drpbtn" data-res-type="{{type}}" data-res-cat="Stg"
+            data-res-val="2">Fatal (2x)</a>
     </div>
 </div>
 
@@ -21,6 +44,23 @@
 </script>
 
 <style>
+    .rt-res-text {
+        width: 3rem;
+        height: 100%;
+        text-align: center;
+        font-size: 16px;
+        background: slategray;
+        border: 1.5px solid silver;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .rt-res-text:hover {
+        background: rgb(147, 161, 175);
+    }
+
     .rt-resource-icon-noEdit {
         padding: 0% !important;
         background: none !important;
@@ -32,7 +72,15 @@
         width: 3rem !important;
     }
 
-    .rt-dropdown-holder {}
+    .rt-dropdown-holder {
+        display: flex;
+        justify-content: center;
+        justify-items: center;
+        align-content: center;
+        flex-wrap: nowrap;
+        flex-direction: row;
+        align-items: center;
+    }
 
     .rt-rollDisplay {
         font-size: 20px;
@@ -71,10 +119,6 @@
         background-color: slategray;
         border: 1px solid gray;
         text-align: center;
-    }
-
-    .rt-resource-button:hover {
-        background: rgb(147, 161, 175);
     }
 
     .rt-clashDescription {
@@ -140,11 +184,12 @@
     }
 
     .rt-resource-icon {
-        width: 2.5rem;
-        height: 2.5rem;
+        width: 2rem;
+        height: 2rem;
         border: none;
         margin: auto;
-        padding: 10%;
+        padding: 0% !important;
+        border: 1.5px solid silver;
     }
 
     .rt-resources-holder {

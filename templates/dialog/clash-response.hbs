@@ -10,7 +10,7 @@
                 </nav>
                 <div class="cr-block-holder">
                     <div id="crw-weapons">
-                        {{#each items as |item id|}}
+                        {{#each weapons as |item id|}}
                         <li class='item flexrow' data-item-id='{{item._id}}'>
                             <div class="crw-resource">
                                 <div class='crw-item-name'>
@@ -34,7 +34,35 @@
                         {{/each}}
                     </div>
                     <div id="crw-outfits">
-
+                        {{#each outfits as |item id|}}
+                        <li class='item flexrow' data-item-id='{{item._id}}'>
+                            <div class="crw-resource">
+                                <h4 class="crw-item-text">{{item.name}}</h4>
+                                <div class="cr-def-roll">
+                                    {{#with (drctx item "Block") as |rollContext|}}
+                                    <a class='rollable' data-roll-type='block'>
+                                            <img class="crw-type-img"
+                                                src='systems/pmttrpg/assets/damageTypes/Block.png'
+                                                title='Block' width='24' height='24' />
+                                        </a>
+                                    <h4 class="crw-item-text crw-rollText">
+                                        {{rollContext.diceCount}}d{{rollContext.diceMax}}+{{rollContext.dicePower}}</h4>
+                                    {{/with}}
+                                </div>
+                                <div class="cr-def-roll">
+                                    {{#with (drctx item "Evade") as |rollContext|}}
+                                    <a class='rollable' data-roll-type='evade'>
+                                            <img class="crw-type-img"
+                                                src='systems/pmttrpg/assets/damageTypes/Evade.png'
+                                                title='Evade' width='24' height='24' />
+                                        </a>
+                                    <h4 class="crw-item-text crw-rollText">
+                                        {{rollContext.diceCount}}d{{rollContext.diceMax}}+{{rollContext.dicePower}}</h4>
+                                    {{/with}}
+                                </div>
+                            </div>
+                        </li>
+                        {{/each}}
                     </div>
                 </div>
             </div>
@@ -63,6 +91,15 @@
 <style>
     #cr-weapons {
 
+    }
+
+    .cr-def-roll {
+        display: flex;
+        gap: 0.5rem;
+        height: 4rem;
+        padding: 1%;
+        justify-content: center;
+        align-items: center;
     }
 
     .cr-block-holder {

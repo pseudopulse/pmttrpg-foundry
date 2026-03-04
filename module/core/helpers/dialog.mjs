@@ -1,5 +1,6 @@
 import { RollContext } from "../combat/rollContext.mjs";
 import { enrichClashData } from "../helpers/clash.mjs";
+import { sendNetworkMessage } from "./netmsg.mjs";
 
 export function createAlertBox(alert) {
     const dialog = new Dialog({
@@ -14,41 +15,167 @@ export function createAlertBox(alert) {
     }).render(true);
 }
 
+function matchesType(context, type) {
+    switch (context.damageType) {
+        case "Slash":
+        case "Pierce":
+        case "Blunt":
+            return type == "Attack";
+        case "Block":
+            return type == "Block";
+        case "Evade":
+            return type == "Evade";
+        default:
+            return false;
+    }
+}
+
+/**
+    * @param {RollContext} context 
+    */
+export async function getActionModifiers(actor, context) {
+    const content = await renderTemplate("systems/pmttrpg/templates/dialog/action-modifiers.hbs", {
+        skills: actor.items.filter(x => x.type == "skill" && matchesType(context, x.system.type)),
+        tools: actor.items.filter(x => x.type == "tools" && matchesType(context, x.system.type)),
+        rollContext: context,
+        actor: actor
+    });
+
+    return new Promise((resolve, reject) => {
+        const data = {
+            activeConditionals: [],
+            item: null
+        };
+        let allowClose = false;
+        const dialog = new Dialog({
+            title: "",
+            content: content,
+            buttons: {
+                submit: {
+                    label: "Continue",
+                    callback: () => {
+                        allowClose = true;
+                        resolve(data);
+                    }
+                }
+            },
+            close: () => {
+                if (!allowClose) {
+                    throw new Error();
+                }
+            },
+            render: (html) => {
+                $("#amw-tools").hide();
+                $("#amw-conditionals").hide();
+
+                html.on('click', '.skill-toggle', (event) => {
+                    if (event.currentTarget.checked) {
+                        const itemId = event.currentTarget.closest('.item').dataset.itemId;
+                        const item = actor.items.get(itemId);
+                        data.item = item;
+
+                        html.find('input').each((x, input) => {
+                            console.log(input);
+                            if ((input.classList.contains('skill-toggle') || input.classList.contains('tool-toggle')) && input != event.currentTarget) {
+                                input.checked = false;
+                            }
+                        });
+                    }
+                    else {
+                        data.item = null;
+                    }
+                })
+
+                html.on('click', '.amw-tab-button', (event) => {
+                    const element = event.currentTarget;
+                    console.log(element);
+        
+                    if (element.textContent == "Skills") {
+                        $("#amw-skills").show();
+                        $("#amw-tools").hide();
+                        $("#amw-conditionals").hide();
+                    }
+
+                    if (element.textContent == "Tools") {
+                        $("#amw-tools").show();
+                        $("#amw-skills").hide();
+                        $("#amw-conditionals").hide();
+                    }
+
+                    if (element.textContent == "Conditionals") {
+                        $("#amw-conditionals").show();
+                        $("#amw-tools").hide();
+                        $("#amw-skills").hide();
+                    }
+                });
+            },
+        }, {
+            width: 600,
+            height: 380
+        }).render(true);
+    });
+}
+
 /**
     * @param {RollContext} context 
     */
 export async function createClashResponse(actor, context) {
     const desc = context.getDescription();
     const content = await renderTemplate("systems/pmttrpg/templates/dialog/clash-response.hbs", {
-        items: actor.items,
+        weapons: actor.items.filter(x => x.type == "weapon"),
+        outfits: actor.items.filter(x => x.type == "outfit"),
         rollContext: context,
         enrichedClashData: enrichClashData(desc),
         actor: actor
     });
 
+    let allowClose = false;
     const dialog = new Dialog({
         title: "",
         content: content,
-        buttons: {},
-        render: (html) => {
+        buttons: {
+            skip: {
+                label: "Take Unopposed",
+                callback: () => {
+                    sendNetworkMessage("RESOLVE_CLASH", {
+                        target: context.target,
+                        attacker: context.actor
+                    });
+                    allowClose = true;
+                    dialog.close();
+                }
+            }
+        },
+        close: () => {
+            if (!allowClose) {
+                throw new Error();
+            }
+        },
+        render: async (html) => {
             $("#crw-outfits").hide();
-            $(document).on('click', '.rollable', (event) => {
+            html.on('click', '.rollable', async (event) => {
                 const element = event.currentTarget;
                 const dataset = element.dataset;
 
                 const itemId = element.closest('.item').dataset.itemId;
-                const actorId = element.closest('.cr-form').dataset.actorId;
-                const item = game.actors.find(x => x._id == actorId).items.get(itemId);
-                item.roll(false);
-                dialog.close();
+                const item = actor.items.get(itemId);
+                item.roll(false).then(() => {
+                    allowClose = true;
+
+                    console.log("resolving clash now !!");
+
+                    sendNetworkMessage("RESOLVE_CLASH", {
+                        target: context.target,
+                        attacker: context.actor
+                    });
+                    
+                    dialog.close();
+                })
             });
 
-            $(document).on('click', '.crw-tab-button', (event) => {
+            html.on('click', '.crw-tab-button', (event) => {
                 const element = event.currentTarget;
-                console.log(element);
-
-                console.log(element.textContent);
-
+        
                 if (element.textContent == "Weapons") {
                     $("#crw-outfits").hide();
                     $("#crw-weapons").show();
@@ -61,7 +188,7 @@ export async function createClashResponse(actor, context) {
             });
         }
     }, {
-        width: 800,
-        height: 500,
+        width: 500,
+        height: 600,
     }).render(true);
 }

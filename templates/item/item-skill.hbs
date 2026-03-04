@@ -1,0 +1,123 @@
+<form class="{{cssClass}} flexcol" autocomplete="off">
+    <header class="sheet-header">
+        <div class="header-fields">
+            <h1 class="charname">
+                <input name="name" type="text" value="{{item.name}}" placeholder="Name" />
+            </h1>
+        </div>
+    </header>
+
+    <section class="sheet-body">
+        {{> ptSkillBlock this}}
+
+        {{#each item.system.effects as |effect effect|}}
+        <div>
+            {{> ptEffect effect effectsList=../effectsList}}
+        </div>
+        {{/each}}
+
+        <div class="iw-resource-content">
+            <button class="dropbtn dropbtn-small effect-add-button">+</button>
+        </div>
+    </section>
+</form>
+
+<script>
+    function setCursorRight() {
+        const input = document.activeElement;
+        const length = input.value.length;
+        input.setSelectionRange(length, length);
+    }
+
+    function unfocus(event) {
+        if (event.key == "Enter") {
+            const input = document.activeElement;
+            input.blur()
+        }
+    }
+</script>
+
+<style>
+    .iw-clashDescription {
+        overflow-y: scroll;
+        width: 100%;
+        padding: 0 2% !important;
+        text-wrap-mode: wrap;
+    }
+
+    .iw-statblock-container {
+        padding: 2% !important;
+        columns: 2;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .iw-rollInfo {
+        height: 9rem;
+        width: 8rem;
+        padding: 2% !important;
+    }
+
+    .iw-resource {
+        background-color: cadetblue;
+        border: 2px solid black;
+        border-radius: 1px;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 5%;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .iw-resource-input {
+        background-color: slategray;
+        border: 1px solid silver;
+        text-align: center;
+        width: 4rem;
+    }
+
+    .iw-nop {
+        pointer-events: none;
+    }
+
+    .iw-resource-content {
+        display: flexbox;
+        justify-content: center;
+        align-items: center;
+        flex-direction: row;
+        grid: 1 / span 3;
+        gap: 0;
+        margin: auto;
+    }
+
+    .iw-resource-divider {
+        text-align: center;
+    }
+
+    .iw-resource-icon {
+        width: 50px;
+        height: 50px;
+        border: none;
+        margin: auto;
+        padding: 10%;
+    }
+
+    .iw-resources-holder {
+        background-color: #1d1b22;
+        border: 2px solid slategray;
+        padding: 2%;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .iw-padding-t2 {
+        padding-top: 2%;
+        padding-bottom: 2%;
+    }
+
+    .iw-padding-0 {
+        padding: 0;
+    }
+</style>

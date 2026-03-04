@@ -1,0 +1,268 @@
+<div class="sb-statblock-container sb-resources-holder">
+    <div class="sb-rollInfo flexcol sb-resource">
+        <div class="sb-type-container">
+            <div class="sb-resource flex-group-center">
+                <label class="resource-label">Light</label>
+                <div class="sb-resource-content flexrow flex-center flex-between sb-resource-light">
+                    <input class="sb-resource-input sb-light-cost" type="text" inputmode="numeric"
+                        value="{{system.light}}" data-dtype="Number" />
+                </div>
+            </div>
+            <div class="sb-dropdown-holder">
+                <img class="sb-resource-icon sb-resource-button" onclick="toggle('skillTypeDrp')"
+                    src='systems/pmttrpg/assets/damageTypes/{{system.type}}.png' width='24' height='24' />
+                <label class="resource-label">{{system.type}} Skill</label>
+                <div id="skillTypeDrp" class="sb-dropdown-content">
+                    {{#if (ne system.type 'Attack' )}}
+                    <img class="sb-resource-icon  sb-dropdownIcon sb-typeBtn" id="Attack"
+                        src='systems/pmttrpg/assets/damageTypes/Attack.png' width='24' height='24' title="Attack Skill" />
+                    {{/if}}
+                    {{#if (ne system.type 'Block' )}}
+                    <img class="sb-resource-icon  sb-dropdownIcon sb-typeBtn" id="Block"
+                        src='systems/pmttrpg/assets/damageTypes/Block.png' width='24' height='24' title="Block Skill" />
+                    {{/if}}
+                    {{#if (ne system.type 'Evade' )}}
+                    <img class="sb-resource-icon  sb-dropdownIcon sb-typeBtn" id="Evade"
+                        src='systems/pmttrpg/assets/damageTypes/Evade.png' width='24' height='24' title="Evade Skill" />
+                    {{/if}}
+                    {{#if (ne system.type 'Action' )}}
+                    <img class="sb-resource-icon sb-dropdownIcon sb-typeBtn" id="Action"
+                        src='systems/pmttrpg/assets/damageTypes/Action.png' width='24' height='24' title="Action Skill" />
+                    {{/if}}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sb-clashDescription sb-resource">
+        {{{enrichedClashData}}}
+    </div>
+</div>
+
+<script>
+    function toggle(element) {
+        document.getElementById(element).classList.toggle("sb-show");
+    }
+</script>
+
+<style>
+    .sb-stats-grid {
+        display: grid;
+        columns: 2;
+    }
+
+    .sb-resource-icon-noEdit {
+        padding: 0% !important;
+        background: none !important;
+    }
+
+    .sb-roll-holder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+    }
+
+    .sb-roll-icon {
+        background: none;
+        border: none;
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+
+    .sb-resource-button-noEdit {
+        background: none !important;
+        border: none !important;
+        width: 3rem !important;
+    }
+
+    .sb-dropdown-holder {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .sb-rollDisplay {
+        font-size: 20px;
+        text-align: center;
+    }
+
+    .sb-attack-type-button {
+        width: 5rem;
+        height: 2.5rem;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        justify-items: middle;
+        display: flex;
+        padding: 2%;
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    .sb-type-container {
+        display: grid;
+        columns: 1;
+        gap: 1rem;
+        align-content: center;
+        align-items: center;
+        justify-items: center;
+        margin: auto;
+        margin-top: 1rem;
+    }
+
+    .sb-dropdownIcon {
+        margin: 0px !important;
+        padding: 10% !important;
+    }
+
+    .sb-resource-button {
+        background-color: slategray;
+        border: 1px solid gray;
+        text-align: center;
+    }
+
+    .sb-resource-button:hover {
+        background: rgb(147, 161, 175);
+    }
+
+    .sb-clashDescription {
+        overflow-y: scroll;
+        width: 100%;
+        padding: 2% 2% !important;
+        text-wrap-mode: wrap;
+        display: block !important;
+    }
+
+    .sb-statblock-container {
+        padding: 2% !important;
+        columns: 2;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .sb-rollInfo {
+        height: 14rem;
+        width: 14rem;
+        padding: 2% 1% !important;
+        columns: 1;
+        display: flex !important;
+        gap: 0rem !important;
+    }
+
+    .sb-resource {
+        background-color: cadetblue;
+        border-radius: 1px;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 5%;
+    }
+
+    .sb-resource-input {
+        background-color: slategray;
+        border: 1px solid silver;
+        text-align: center;
+        width: 4rem;
+    }
+
+    .sb-nop {
+        pointer-events: none;
+    }
+
+    .sb-resource-content {
+        display: flexbox;
+        justify-content: center;
+        align-items: center;
+        flex-direction: row;
+        grid: 1 / span 3;
+        gap: 0;
+        margin: auto;
+    }
+
+    .sb-resource-divider {
+        text-align: center;
+    }
+
+    .sb-resource-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border: none;
+        margin: auto;
+        padding: 0%;
+        background: none;
+    }
+
+    .sb-resources-holder {
+        background-color: #1d1b22;
+        border: 2px solid slategray;
+        padding: 2%;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .sb-padding-t2 {
+        padding-top: 2%;
+        padding-bottom: 2%;
+    }
+
+    .sb-padding-0 {
+        padding: 0;
+    }
+
+    .sb-dropbtn {
+        background-color: cadetblue;
+        color: white;
+        padding: 16px;
+        font-size: 16px;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+        justify-content: center;
+        width: 9rem;
+        height: 2rem;
+        line-height: 0;
+        text-wrap-mode: nowrap;
+    }
+
+    .sb-dropbtn-small {
+        width: 3rem;
+        height: 2rem;
+        line-height: 0;
+    }
+
+    .sb-dropbtn:hover,
+    .sb-dropbtn:focus {
+        background-color: slategray;
+    }
+
+    .sb-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .sb-dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #f6f6f6;
+        border: 1px solid #ddd;
+        z-index: 1;
+        max-height: 20rem;
+    }
+
+    .sb-dropdown-content a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+    }
+
+    .sb-dropdown-content a:hover {
+        background-color: #f1f1f1;
+    }
+
+    .sb-show {
+        display: block;
+    }
+</style>

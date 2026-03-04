@@ -1,0 +1,156 @@
+<div class="inherit">
+  <div class="ast-resources-holder inherit">
+    <div class="resources ast-padding-t2 ast-grid inherit">
+      {{#each statusList as |status|}}
+      <div class="ast-resource flexrow flex-group-center inherit">
+        <img src="systems/pmttrpg/assets/status/{{status.name}}.png" class="ast-resource-icon" title="{{uts status.name}}" />
+        {{#with (gst ../system status.name) as |sts|}}
+        <div class="ast-st-holder inherit" data-status={{status.name}}>
+            <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="ast-resource-input ast-cur"
+                type="text" inputmode="numeric"
+                value="{{sts.count}}" data-dtype="Number" title="Count" />
+            
+            <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="ast-resource-input ast-nxt"
+                type="text" inputmode="numeric" 
+                value="{{sts.nextRoundCount}}" data-dtype="Number" title="Next Round Count" />
+        </div>
+        {{/with}}
+      </div>
+      {{/each}}
+    </div>
+  </div>
+</div>
+
+<script>
+  function setCursorRight() {
+    const input = document.activeElement;
+    const length = input.value.length;
+    input.setSelectionRange(length, length);
+  }
+
+  function unfocus(event) {
+    if (event.key == "Enter") {
+      const input = document.activeElement;
+      input.blur()
+    }
+  }
+</script>
+
+<style>
+  .ast-st-holder {
+    width: 2rem;
+    margin: 0.1rem;
+    padding: 5%;
+  }
+
+  .ast-cur {
+    color: white;
+    font-weight: bold;
+  }
+
+  .ast-nxt {
+    color: #3d3b3b;
+    font-weight: bold;
+  }
+
+  .inherit {
+    height: inherit !important;
+  }
+
+  .ast-grid {
+    justify-items: center;
+    justify-content: space-between;
+    align-items: center;
+    align-content: center;
+    display: inline-grid;
+    grid-template-columns: repeat(6, 1fr);
+    height: inherit;
+    width: inherit;
+    gap: 0.5rem;
+    padding: 5% !important;
+    margin: 0;
+  }
+
+  .ast-resource {
+    background-color: cadetblue;
+    border: 2px solid black;
+    border-radius: 1px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0rem;
+    padding: 0%;
+    padding-top: 0;
+    padding-bottom: 0;
+    width: 5rem;
+  }
+
+  .ast-resource-input {
+    text-align: center;
+    width: 1rem;
+    height: 1rem;
+    margin: 10%;
+    border: none;
+    background: none;
+    padding: 10%;
+  }
+
+  .ast-resource-hp {}
+
+  .ast-resource-xp {
+    padding: 8%;
+  }
+
+  .ast-resource-stat {
+    margin: auto;
+  }
+
+  .ast-nop {
+    pointer-events: none;
+  }
+
+  .ast-resource-content {
+    display: flexbox;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    grid: 1 / span 3;
+    gap: 0;
+    margin: auto;
+  }
+
+  .ast-resource-divider {
+    text-align: center;
+  }
+
+  .ast-resource-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: none;
+    margin: auto;
+    padding: 10%;
+  }
+
+  .ast-resources-holder {
+    background-color: #1d1b22;
+    border: 2px solid slategray;
+    padding-top: 0;
+    height: inherit;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 0;
+    display: flex;
+    gap: 0;
+    align-content: center;
+    flex-wrap: nowrap;
+  }
+
+  .ast-padding-t2 {
+    padding-top: 2%;
+    padding-bottom: 2%;
+  }
+
+  .ast-padding-0 {
+    padding: 0;
+  }
+</style>

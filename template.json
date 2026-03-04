@@ -52,7 +52,10 @@
         "Temperance": {
           "value": 1
         }
-      }
+      },
+      "mostRecentRoll": null,
+      "currentOutfitId": "",
+      "statusEffects": []
     }
   },
   "Item": {
@@ -71,10 +74,13 @@
       ]
     },
     "tool": {
-
+      "effects": [],
+      "type": "Action"
     },
     "skill": {
-
+      "effects": [],
+      "type": "Attack",
+      "light": 0
     },
     "outfit": {
       "diceMaxBlo": 10,

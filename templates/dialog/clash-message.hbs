@@ -8,10 +8,17 @@
             <h4 class="cm-name-text cm-weapon-text" style="margin: 0 !important">{{rollContext.name}}</h4>
             <h4 class="cm-name-text cm-resource-icon cm-result-icon">{{rollContext.result}}</h4>
         </div>
+        {{#if skill}}
+        <div class="cm-resource cm-target-div">
+            <h4 class="cm-target-text">Using Skill: {{skillName}}</h4>
+        </div>
+        {{/if}}
+        {{#if (ne enrichedClashData "")}}
         <div>
             <div class="cm-clashDescription cm-resource">
                 {{{enrichedClashData}}}
             </div>
         </div>
+        {{/if}}
     </section>
 </form>

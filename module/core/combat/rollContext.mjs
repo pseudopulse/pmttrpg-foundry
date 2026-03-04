@@ -1,4 +1,7 @@
+import { searchByObject } from "../../pmttrpg.mjs";
 import { weaponEffects } from "../effects/weaponEffects.mjs";
+import { outfitEffects } from "../effects/outfitEffects.mjs";
+import { getEffectsArray } from "../effects/effectHelpers.mjs";
 
 export class RollContext {
     constructor() {
@@ -17,19 +20,81 @@ export class RollContext {
         this.actor = null;
         this.target = null;
         this.attackType = "Melee";
+        this.modifiers = null;
+        this.costs = [];
+        this.light = 0;
 
         for (const trigger of triggerTypes) {
             this.triggers[trigger] = new TriggerEvents();
         }
     }
 
+    resolveTriggers(triggers) {
+        let lines = [];
+
+        console.log(this.triggers);
+
+        for (const trigger of triggers) {
+            console.log("iterating for: " + trigger);
+            console.log(this.triggers[trigger]);
+            let data = this.triggers[trigger];
+            this.triggers[trigger] = new TriggerEvents();
+            Object.assign(this.triggers[trigger], data);
+            let inflictions = this.triggers[trigger].inflictions;
+
+            for (const infliction of inflictions) {
+                let status = infliction.key;
+                let cur = Number(infliction.count);
+
+                if (cur < 0) {
+                    let prev = infliction.nextRound ? Number(this.actor.getStatusCountNext(status)) : Number(this.actor.getStatusCount(status));
+                    this.actor.applyStatus(status, infliction.nextRound ? 0 : Math.abs(cur), infliction.nextRound ? Math.abs(cur) : 0);
+                    lines.push(`Gain ${Math.abs(cur)} [/status/${status}] ${status}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + Math.abs(cur)})`);
+                }
+                else {
+                    if (this.target != null) {
+                        let prev = infliction.nextRound ? Number(this.target.getStatusCountNext(status)) : Number(this.target.getStatusCount(status));
+                        this.target.applyStatus(status, infliction.nextRound ? 0 : cur, infliction.nextRound ? cur : 0);
+                        lines.push(`Inflict ${cur} [/status/${status}] ${status}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + cur})`);
+                    }
+                }
+            }
+        }
+
+        return this.append("", lines);
+    }
+
     processEffects() {
+        if (this.actor != null) {
+            this.actor.prepareData();
+            console.log(this.actor);
+            console.log("rank: " + Number(this.actor.system.attributes.rank.value));
+
+            switch (this.damageType) {
+                case "Slash":
+                case "Blunt":
+                case "Pierce":
+                    this.dicePower = this.dicePower + Number(this.actor.system.attributes.rank.value);
+                    break;
+                case "Block":
+                    this.dicePower = this.dicePower + Number(this.actor.system.abilities.Temperance.value);
+                    break;
+                case "Evade":
+                    this.dicePower = this.dicePower + Number(this.actor.system.abilities.Insight.value);
+                    break;
+            }
+        }
+
+        if (this.damageType == "Evade") {
+            this.diceMax += 2;
+        }
+
         for (const effect of this.effects) {
             effect.effect.apply(this, effect.count, effect.trigger);
         }
     }
 
-    getDescription() {
+    getDescription(validTriggers = ["On Use", "Clash Win", "Clash Lose"], postClash = false) {
         let desc = "";
         let triggers = {};
         triggers["Clash Win"] = [];
@@ -39,43 +104,39 @@ export class RollContext {
         for (const effect of this.effects) {
             if (valid.find(x => x == effect.trigger) != null && effect.effect.description != null) {
                 triggers[effect.trigger].push(
-                    `<span style="color: ${this.getColor(effect.trigger)} !important;">[${effect.trigger}]</span> ${effect.effect.description(effect.count)}`
+                    this.format(`<span style="color: ${this.getColor(effect.trigger)} !important;">[${effect.trigger}]</span>`, effect.effect.description(effect.count), !postClash)
                 );
             }
             else {
                 if (effect.effect.dontFormat) {
                     let desc = effect.effect.description(effect.count);
-                    if (desc[0] != null) triggers["On Use"].push(`<span style="color: ${this.getColor("On Use")} !important;">[On Use]</span> ${desc[0]}`);
-                    if (desc[1] != null) triggers["Clash Win"].push(`<span style="color: ${this.getColor("Clash Win")} !important;">[Clash Win]</span> ${desc[1]}`);
-                    if (desc[2] != null) triggers["Clash Lose"].push(`<span style="color: ${this.getColor("Clash Lose")} !important;">[Clash Lose]</span> ${desc[2]}`);
+                    if (desc[0] != null) triggers["On Use"].push(this.format(`<span style="color: ${this.getColor("On Use")} !important;">[On Use]</span>`, desc[0], !postClash));
+                    if (desc[1] != null) triggers["Clash Win"].push(this.format(`<span style="color: ${this.getColor("Clash Win")} !important;">Clash Win</span>`, desc[0], !postClash));
+                    if (desc[2] != null) triggers["Clash Lose"].push(this.format(`<span style="color: ${this.getColor("Clash Lose")} !important;">Clash Lose</span>`, desc[0], !postClash));
                 }
             }
         }
 
-        desc = this.append(desc, triggers["On Use"]);
-        desc = this.append(desc, triggers["Clash Win"]);
-        desc = this.append(desc, triggers["Clash Lose"]);
+        if (validTriggers.includes("On Use")) desc = this.append(desc, triggers["On Use"]);
+        if (validTriggers.includes("Clash Win")) desc = this.append(desc, triggers["Clash Win"]);
+        if (validTriggers.includes("Clash Lose")) desc = this.append(desc, triggers["Clash Lose"]);
 
         return desc;
     }
 
+    format(prefix, suffix, usePrefix = true) {
+        return usePrefix ? prefix + " " + suffix : suffix;
+    }
+
     fix() {
         for (const effect of this.effects) {
-            let def = null;
-            switch (effect.source) {
-                case "Weapon":
-                    def = weaponEffects.find(x => x.name == effect.name);
-                    break;
-                default:
-                    break;
-            }
-            effect.effect = def;
-            console.log("fixed - ");
-            console.log(effect);
+            effect.effect = getEffectsArray(effect.source).find(x => x.name == effect.name);
         }
-        console.log("full");
-        console.log(this.effects);
+
+        this.target = searchByObject(this.target);
+        this.actor = searchByObject(this.actor);
     }
+
 
     append(desc, triggers) {
         for (const str of triggers) {
@@ -100,17 +161,7 @@ export class RollContext {
 
     addEffectsList(effects, category) {
         for (const effect of effects) {
-            let def = null;
-            switch (category) {
-                case "Weapon":
-                    def = weaponEffects.find(x => x.name == effect.name);
-                    break;
-                case "Outfit":
-                    def = outfitEffects.find(x => x.name == effect.name);
-                    break;
-                default:
-                    break;
-            }
+            let def = getEffectsArray(category).find(x => x.name == effect.name);
 
             this.effects.push({
                 effect: def,
@@ -120,13 +171,41 @@ export class RollContext {
                 name: effect.name
             });
         }
+
+        if (this.modifiers != null && this.modifiers.item != null) {
+            for (const effect of this.modifiers.item.system.effects) {
+                this.effects.push({
+                    effect: getEffectsArray("skill").find(x => x.name == effect.name),
+                    count: effect.count,
+                    trigger: effect.trigger,
+                    source: "skill",
+                    name: effect.name
+                });
+            }
+        }
     }
 }
-
 
 export class TriggerEvents {
     constructor() {
         this.inflictions = [];
+    }
+
+    mergeInflictions() {
+        let inflictions2 = [];
+
+        for (const infliction of inflictions) {
+            let existing = inflictions2.find(x => x.key == infliction.key && x.nextRound == infliction.nextRound && ((x.count > 0 && infliction.count > 0) || (x.count < 0 && infliction.count < 0)));
+
+            if (existing != null) {
+                existing.count += infliction.count;
+            }
+            else {
+                inflictions2.add(infliction);
+            }
+        }
+
+        this.inflictions = inflictions2;
     }
 
     applyInfliction(key, count, nextRound) {

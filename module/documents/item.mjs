@@ -3,8 +3,10 @@
 // import { ChatMessage } from "@client/config.mjs";
 import { RollContext } from "../core/combat/rollContext.mjs";
 import { createClashMessage } from "../core/helpers/clash.mjs";
-import { createAlertBox } from "../core/helpers/dialog.mjs";
+import { createAlertBox, getActionModifiers } from "../core/helpers/dialog.mjs";
 import { sendNetworkMessage } from "../core/helpers/netmsg.mjs";
+import { Triggers } from "../core/status/statusEffect.mjs";
+import { findItemOwner } from "../pmttrpg.mjs";
 
 //
 export class PTItem extends Item {
@@ -21,17 +23,46 @@ export class PTItem extends Item {
     async roll(initiator = true, defType = "Block") {
         switch (this.type) {
             case "weapon":
-                this.handleUsageWeapon(initiator);
+                await this.handleUsageWeapon(initiator);
                 break;
             case "outfit":
+                await this.handleUsageOutfit(defType);
                 break;
             default:
                 break;
         }
     }
 
+    async handleUsageOutfit(defType) {
+        const item = this;
+
+        console.log("handling outfit usage as " + this.actor.name);
+
+        const speaker = ChatMessage.getSpeaker({ actor: this.actor });
+        const rollMode = game.settings.get('core', 'rollMode');
+
+        if (game.user.targets.first() == null) {
+            createAlertBox("You must designate a target before defending!");
+            return
+        }
+
+        const context = defType == "Block" ? await this.getRollContextBlo(game.user.targets.first().actor, true) : await this.getRollContextEvd(game.user.targets.first().actor, true);
+
+        const label = `[${item.type}] ${item.name} targeting ${game.user.targets.first().actor.name}`;
+
+        const roll = new Roll(`1d${context.diceMax}+${context.dicePower}`, "");
+        const result = await roll.evaluate();
+        context.result = result.total;
+        context.applyClashEffects = true;
+        
+        createClashMessage(this.actor, context);
+        this.actor.queueRoll(context);
+    }
+
     async handleUsageWeapon(initiator) {
         const item = this;
+
+        console.log("handling weapon usage as " + this.actor.name);
 
         const speaker = ChatMessage.getSpeaker({ actor: this.actor });
         const rollMode = game.settings.get('core', 'rollMode');
@@ -41,12 +72,11 @@ export class PTItem extends Item {
             return
         }
 
-        const context = this.getRollContext(game.user.targets.first().actor);
-        console.log("/")
-        console.log("we are: " + this.actor.name);
-        console.log("targeting: " + context.target.name);
-        console.log("/");
+        if (game.user.targets.first().actor == this.actor) {
+            createAlertBox("You can't attack yourself!");
+        }
 
+        const context = await this.getRollContext(game.user.targets.first().actor, true);
         const label = `[${item.type}] ${item.name} targeting ${game.user.targets.first().actor.name}`;
 
         const roll = new Roll(`1d${context.diceMax}+${context.dicePower}`, "");
@@ -60,16 +90,22 @@ export class PTItem extends Item {
                 target: game.user.targets.first().actor,
                 context: context,
             })
+
+            await this.actor.spendAction();
         }
         
+        this.actor.queueRoll(context);
+
         createClashMessage(this.actor, context);
-        game.user.targets.first().actor.processAttackRoll(context);
     }
 
-    getRollContext(target = null) {
+    async getRollContext(target = null, rollSkill = false) {
         const itemData = this;
         const systemData = itemData.system;
         const rollContext = new RollContext();
+        if (rollSkill) {
+            rollContext.modifiers = await getActionModifiers(this.actor, rollContext);
+        }
         rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
         rollContext.damageType = systemData.damageType;
         rollContext.name = this.name;
@@ -80,10 +116,13 @@ export class PTItem extends Item {
         return rollContext;
     }
 
-    getRollContextBlo(target = null) {
+    async getRollContextBlo(target = null, rollSkill = false) {
         const itemData = this;
         const systemData = itemData.system;
         const rollContext = new RollContext();
+        if (rollSkill) {
+            rollContext.modifiers = await getActionModifiers(this.actor, rollContext);
+        }
         rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
         rollContext.damageType = "Block";
         rollContext.name = this.name;
@@ -94,10 +133,13 @@ export class PTItem extends Item {
         return rollContext;
     }
 
-    getRollContextEvd(target = null) {
+    async getRollContextEvd(target = null, rollSkill = false) {
         const itemData = this;
         const systemData = itemData.system;
         const rollContext = new RollContext();
+        if (rollSkill) {
+            rollContext.modifiers = await getActionModifiers(this.actor, rollContext);
+        }
         rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
         rollContext.damageType = "Evade";
         rollContext.name = this.name;
@@ -114,10 +156,15 @@ function fixTypeName(val) {
 }
 
 export function getRollContextFromData(item, def = false, defType = "Block") {
+    if (item.type == null) {
+        item = item.item;
+    }
+
     const itemData = item;
     const systemData = itemData.system;
     const rollContext = new RollContext();
     rollContext.addEffectsList(systemData.effects, fixTypeName(item.type));
+    rollContext.actor = findItemOwner(item);
     rollContext.damageType = def ? defType : systemData.damageType;
     rollContext.name = item.name;
     rollContext.attackType = systemData.type;
