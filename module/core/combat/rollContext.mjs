@@ -1,4 +1,4 @@
-import { searchByObject } from "../../pmttrpg.mjs";
+import { searchByObject, searchForActor } from "../../pmttrpg.mjs";
 import { weaponEffects } from "../effects/weaponEffects.mjs";
 import { outfitEffects } from "../effects/outfitEffects.mjs";
 import { getEffectsArray } from "../effects/effectHelpers.mjs";
@@ -23,9 +23,42 @@ export class RollContext {
         this.modifiers = null;
         this.costs = [];
         this.light = 0;
+        this.messages = [];
+        this.conditionals = [];
+        this.mustDeserialize = false;
+        this.ignoreClashEffects = false;
+        this.forcedAdvState = 0;
 
         for (const trigger of triggerTypes) {
             this.triggers[trigger] = new TriggerEvents();
+        }
+    }
+
+    prepareForSerialization() {
+        this.mustDeserialize = true;
+
+        if (this.actor != null) {
+            this.actor = this.actor._id;
+        }
+
+        if (this.target != null) {
+            this.target = this.target._id;
+        }
+    }
+
+    prepareForDeserialization() {
+        this.actor = searchForActor(this.actor);
+        this.target = searchForActor(this.target);
+        this.mustDeserialize = false;
+    }
+
+    fixTriggers() {
+        const triggerTypes = ["Clash Win", "Clash Lose", "On Use", "Always Active"];
+        
+        for (let trigger of triggerTypes) {
+            let data = this.triggers[trigger];
+            this.triggers[trigger] = new TriggerEvents();
+            Object.assign(this.triggers[trigger], data);
         }
     }
 
@@ -34,15 +67,18 @@ export class RollContext {
 
         console.log(this.triggers);
 
-        for (const trigger of triggers) {
-            console.log("iterating for: " + trigger);
-            console.log(this.triggers[trigger]);
-            let data = this.triggers[trigger];
-            this.triggers[trigger] = new TriggerEvents();
-            Object.assign(this.triggers[trigger], data);
-            let inflictions = this.triggers[trigger].inflictions;
+        for (const cost of this.costs) {
+            let status = cost.status;
+            let prev = this.actor.getStatusCount(status);
 
-            for (const infliction of inflictions) {
+            this.actor.reduceStatus(status, cost.cost);
+            lines.push(`Lose ${cost.cost} [/status/${status}] ${status} (${prev} -> ${prev - cost.cost})`);
+        }
+
+        for (const trigger of triggers) {
+            let data = this.triggers[trigger];
+
+            for (const infliction of data.inflictions) {
                 let status = infliction.key;
                 let cur = Number(infliction.count);
 
@@ -102,6 +138,10 @@ export class RollContext {
         triggers["On Use"] = [];
         let valid = ["Clash Win", "Clash Lose", "On Use"]
         for (const effect of this.effects) {
+            if (this.ignoreClashEffects) {
+                continue;
+            }
+            
             if (valid.find(x => x == effect.trigger) != null && effect.effect.description != null) {
                 triggers[effect.trigger].push(
                     this.format(`<span style="color: ${this.getColor(effect.trigger)} !important;">[${effect.trigger}]</span>`, effect.effect.description(effect.count), !postClash)
@@ -133,8 +173,15 @@ export class RollContext {
             effect.effect = getEffectsArray(effect.source).find(x => x.name == effect.name);
         }
 
-        this.target = searchByObject(this.target);
-        this.actor = searchByObject(this.actor);
+        if (this.mustDeserialize) {
+            this.prepareForDeserialization();
+        }
+        else {
+            this.target = searchByObject(this.target);
+            this.actor = searchByObject(this.actor);
+        }
+
+        this.fixTriggers();
     }
 
 
@@ -172,17 +219,42 @@ export class RollContext {
             });
         }
 
-        if (this.modifiers != null && this.modifiers.item != null) {
-            for (const effect of this.modifiers.item.system.effects) {
-                this.effects.push({
-                    effect: getEffectsArray("skill").find(x => x.name == effect.name),
-                    count: effect.count,
-                    trigger: effect.trigger,
-                    source: "skill",
-                    name: effect.name
-                });
+        if (this.modifiers != null) {
+            if (this.modifiers.item != null) {
+                for (const effect of this.modifiers.item.system.effects) {
+                    this.effects.push({
+                        effect: getEffectsArray("skill").find(x => x.name == effect.name),
+                        count: effect.count,
+                        trigger: effect.trigger,
+                        source: "skill",
+                        name: effect.name
+                    });
+                }
             }
+
+            if (this.modifiers.activeConditionals != null) {
+                for (let conditional of this.modifiers.activeConditionals) {
+                    conditional.onUse(this);
+                    for (let cost of conditional.costs) {
+                        this.costs.push(cost);
+                    }
+                }
+            }
+
+            this.ignoreClashEffects = this.modifiers.ignoreClashEffects;
+            this.forcedAdvState = this.modifiers.forcedAdvState;
+            console.log("ignore cwl - " + this.ignoreClashEffects);
         }
+    }
+}
+
+export class Conditional {
+    constructor(name, description, onUse, costs = [], exclusiveWith = null) {
+        this.costs = costs;
+        this.onUse = onUse;
+        this.name = name;
+        this.description = description;
+        this.exclusiveWith = exclusiveWith;
     }
 }
 

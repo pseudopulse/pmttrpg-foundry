@@ -127,6 +127,19 @@ Hooks.once("init", () => {
     },
     uts(text) {
       return text.replace("_", " ");
+    },
+    checkCosts(actor, costs, light = 0) {
+      console.log(costs);
+      for (const cost of costs) {
+        if (actor.getStatusCount(cost.status) < cost.cost) {
+          console.log("iterating over");
+          console.log(cost);
+          console.log(actor.getStatusCount(cost.status));
+          return false;
+        }
+
+        return true;
+      }
     }
   });
 
@@ -135,6 +148,7 @@ Hooks.once("init", () => {
   Handlebars.registerPartial('ptOutfitBlock', '{{> systems/pmttrpg/templates/item/parts/outfit-block.hbs}}')
   Handlebars.registerPartial('ptSkillBlock', '{{> systems/pmttrpg/templates/item/parts/skill-block.hbs}}')
   Handlebars.registerPartial('ptSkillCosts', '{{> systems/pmttrpg/templates/item/parts/skill-costs.hbs}}')
+  Handlebars.registerPartial('ptConditionalCosts', '{{> systems/pmttrpg/templates/item/parts/conditional-costs.hbs}}')
   return preloadHandlebarsTemplates();
 });
 
@@ -271,6 +285,7 @@ const preloadHandlebarsTemplates = async function () {
     'systems/pmttrpg/templates/item/parts/effect.hbs',
     'systems/pmttrpg/templates/item/parts/resist-type.hbs',
     'systems/pmttrpg/templates/item/parts/skill-costs.hbs',
+    'systems/pmttrpg/templates/item/parts/conditional-costs.hbs',
     //
     'systems/pmttrpg/templates/dialog/clash-response.hbs',
     'systems/pmttrpg/templates/dialog/clash-message.hbs',

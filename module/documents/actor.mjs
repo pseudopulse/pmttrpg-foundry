@@ -53,11 +53,49 @@ export class PTActor extends Actor {
     getModifiedDamage(context, damage, cat) {
         const result = damage * this.findResistance(context.damageType, cat);
 
-        if (this.outfit) {
-            
+        return Math.floor(result);
+    }
+
+    handleProt(context, cat, type = false) {
+        let dmg = 0;
+        let text = null;
+        let performProt = (prot, frag) => {
+            let p = -this.getStatusCount(prot);
+            let f = this.getStatusCount(frag);
+
+            dmg = p + f;
+
+            if (dmg > 0) {
+                text = `Increased by ${dmg} from [/status/${frag}] ${frag.replace("_", " ")}`
+            }
+            else if (dmg < 0) {
+                text = `Reduced by ${Math.abs(dmg)} from [/status/${prot}] ${prot.replace("_", " ")}`
+            }
+        };
+
+        if (type) {
+            performProt(context.damageType + "_Protection", context.damageType + "_Fragility");
+        }
+        else if (cat == "ST") {
+            performProt("Stagger_Protection", "Stagger_Fragile");
+        }
+        else {
+            performProt("Protection", "Fragile");
         }
 
-        return Math.floor(result);
+        return { damage: dmg, text: text};
+    }
+
+    async performContextRoll(context) {
+        let formula = `1d${context.diceMax}+${context.dicePower}`;
+        if (this.getStatusCount("Paralysis") > 0) {
+            await this.reduceStatus("Paralysis", 1);
+            formula = `2d${context.diceMax}kl+${context.dicePower}`
+        }
+
+        let roll = new Roll(formula);
+
+        return await roll.evaluate();
     }
 
     findResistance(type, cat) {
@@ -131,8 +169,10 @@ export class PTActor extends Actor {
             return;
         }
 
-        createEffectsMessage(ctx1.actor.name, ctx1.resolveTriggers(["On Use", "Clash Win"]), true);
-        createEffectsMessage(ctx2.actor.name, ctx2.resolveTriggers(["On Use", "Clash Lose"]), true);
+        if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
+            createEffectsMessage(ctx1.actor.name, ctx1.resolveTriggers(["On Use", "Clash Win"]), true);
+            createEffectsMessage(ctx2.actor.name, ctx2.resolveTriggers(["On Use", "Clash Lose"]), true);
+        }
 
         if (pending[ctx2.actor.name] != null) {
             createEffectsMessage(pending[ctx2.actor.name].subject, pending[ctx2.actor.name].effect);
@@ -173,11 +213,9 @@ export class PTActor extends Actor {
 
             if (systemData.mostRecentRoll.type == "Evade") {
                 if (respCtx.result > context.result) {
-                    console.log("won evade, regen sp");
                     await this.takeDamage(-respCtx.result, context);
                 }
                 else {
-                    console.log("lost evade");
                     await this.takeDamage(damage, context);
                 }
             }
@@ -253,20 +291,26 @@ export class PTActor extends Actor {
         let st = this.system.attributes.stagger.value;
         let sp = this.system.attributes.sanity.value;
 
-        console.log("hp before: " + hp + " - " + st);
-
         let prevHP = hp;
         let prevST = st;
-
-        console.log("---");
-        console.log(this.system);
-        console.log(hp);
-        console.log(context);
-        console.log("---");
+        
+        let protTextHP = [];
+        let protTextST = [];
 
         if (damage != 0) {
-            hp -= this.getModifiedDamage(context, damage, null);
-            st -= this.getModifiedDamage(context, damage, "ST");
+            let hpDmg = this.getModifiedDamage(context, damage, null);
+            let stDmg = this.getModifiedDamage(context, damage, "ST");
+            let hpP = this.handleProt(context, "", false);
+            let hpPT = this.handleProt(context, "", true);
+            let stP = this.handleProt(context, "ST", false);
+
+            
+            hp -= Math.max(hpDmg + (hpP.damage + hpPT.damage), 0);
+            st -= Math.max(stDmg + stP.damage, 0);
+            
+            protTextHP.push(hpP.text);
+            protTextHP.push(hpPT.text);
+            protTextST.push(stP.text);
         }
 
         hp = Math.clamp(hp, 0, this.system.attributes.health.max);
@@ -280,13 +324,21 @@ export class PTActor extends Actor {
         {
             subject: this.name,
             effect:
-            `
-            ${damage} x ${this.findResistance(context.damageType, null)} = ${this.getModifiedDamage(context, damage, null)} HP damage taken.
-            (${prevHP} -> ${hp})
-            ${damage} x ${this.findResistance(context.damageType, "ST")} = ${this.getModifiedDamage(context, damage, "ST")} ST damage taken.
-            (${prevST} -> ${st})
-            `
+            this.removeLinesWithString(`
+            ${damage} x ${this.findResistance(context.damageType, null)} = ${this.getModifiedDamage(context, damage, null)} HP damage taken. (${prevHP} -> ${hp})
+            (${protTextHP[0] != null ? protTextHP[0] : ""})
+            (${protTextHP[1] != null ? protTextHP[1] : ""})
+
+            ${damage} x ${this.findResistance(context.damageType, "ST")} = ${this.getModifiedDamage(context, damage, "ST")} ST damage taken. (${prevST} -> ${st})
+            (${protTextST[0] != null ? protTextST[0] : ""})
+            `, "()")
         }
+    }
+
+    removeLinesWithString(inputText, targetString) {
+        const lines = inputText.split('\n');
+        const filteredLines = lines.filter(line => !line.includes(targetString));
+        return filteredLines.join('\n');
     }
 
     /**
@@ -298,14 +350,20 @@ export class PTActor extends Actor {
             system.mostRecentRoll = null;
         }
         else {
+            let ctx = new RollContext();
+            Object.assign(ctx, context);
+            ctx.prepareForSerialization();
             system.mostRecentRoll = {
-                type: this.fixRollType(context.damageType),
-                roll: context.roll,
-                context: context
+                type: this.fixRollType(ctx.damageType),
+                roll: ctx.roll,
+                context: ctx
             };
         }
 
         this.update({ system }, { diff: false });
+
+        console.log("queueing for: " + this.name);
+        console.log(this);
     }
 
     fixRollType(type) {

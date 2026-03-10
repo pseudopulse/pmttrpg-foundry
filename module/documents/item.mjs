@@ -77,41 +77,53 @@ export class PTItem extends Item {
         }
 
         const context = await this.getRollContext(game.user.targets.first().actor, true);
-        const label = `[${item.type}] ${item.name} targeting ${game.user.targets.first().actor.name}`;
-
-        const roll = new Roll(`1d${context.diceMax}+${context.dicePower}`, "");
-        const result = await roll.evaluate();
-        context.result = result.total;
-        context.applyClashEffects = true;
-        
-        if (initiator) {
-            sendNetworkMessage("PENDING_CLASH", {
-                attacker: this.actor,
-                target: game.user.targets.first().actor,
-                context: context,
-            })
-
-            await this.actor.spendAction();
+        if (context.diceCount > 1 && initiator) { // process multi-hit
+            
         }
-        
-        this.actor.queueRoll(context);
+        else {
+            const label = `[${item.type}] ${item.name} targeting ${game.user.targets.first().actor.name}`;
 
-        createClashMessage(this.actor, context);
+            const roll = new Roll(`1d${context.diceMax}+${context.dicePower}`, "");
+            const result = await roll.evaluate();
+            context.result = result.total;
+            context.applyClashEffects = true;
+            
+            if (initiator) {
+                sendNetworkMessage("PENDING_CLASH", {
+                    attacker: this.actor,
+                    target: game.user.targets.first().actor,
+                    context: context,
+                })
+
+                await this.actor.spendAction();
+            }
+            
+            this.actor.queueRoll(context);
+
+            createClashMessage(this.actor, context);
+        }
     }
 
     async getRollContext(target = null, rollSkill = false) {
         const itemData = this;
         const systemData = itemData.system;
         const rollContext = new RollContext();
-        if (rollSkill) {
-            rollContext.modifiers = await getActionModifiers(this.actor, rollContext);
-        }
-        rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
         rollContext.damageType = systemData.damageType;
         rollContext.name = this.name;
         rollContext.actor = this.actor;
         rollContext.target = target;
         rollContext.type = systemData.type;
+
+        if (rollSkill) {
+            const tmpCtx = new RollContext();
+            Object.assign(tmpCtx, JSON.parse(JSON.stringify(rollContext)));
+            tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
+            tmpCtx.fix();
+            tmpCtx.processEffects();
+            rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
+        }
+
+        rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
         rollContext.processEffects();
         return rollContext;
     }
@@ -120,15 +132,22 @@ export class PTItem extends Item {
         const itemData = this;
         const systemData = itemData.system;
         const rollContext = new RollContext();
-        if (rollSkill) {
-            rollContext.modifiers = await getActionModifiers(this.actor, rollContext);
-        }
-        rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
-        rollContext.damageType = "Block";
+        rollContext.damageType = systemData.damageType;
         rollContext.name = this.name;
         rollContext.actor = this.actor;
         rollContext.target = target;
         rollContext.type = systemData.type;
+
+        if (rollSkill) {
+            const tmpCtx = new RollContext();
+            Object.assign(tmpCtx, JSON.parse(JSON.stringify(rollContext)));
+            tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
+            tmpCtx.fix();
+            tmpCtx.processEffects();
+            rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
+        }
+        
+        rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
         rollContext.processEffects();
         return rollContext;
     }
@@ -137,15 +156,22 @@ export class PTItem extends Item {
         const itemData = this;
         const systemData = itemData.system;
         const rollContext = new RollContext();
-        if (rollSkill) {
-            rollContext.modifiers = await getActionModifiers(this.actor, rollContext);
-        }
-        rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
-        rollContext.damageType = "Evade";
+        rollContext.damageType = systemData.damageType;
         rollContext.name = this.name;
         rollContext.actor = this.actor;
         rollContext.target = target;
         rollContext.type = systemData.type;
+
+        if (rollSkill) {
+            const tmpCtx = new RollContext();
+            Object.assign(tmpCtx, JSON.parse(JSON.stringify(rollContext)));
+            tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
+            tmpCtx.fix();
+            tmpCtx.processEffects();
+            rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
+        }
+        
+        rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
         rollContext.processEffects();
         return rollContext;
     }

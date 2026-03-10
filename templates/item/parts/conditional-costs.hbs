@@ -1,0 +1,267 @@
+<div class="cc-costs-holder">
+    {{#each costs as |cost|}}
+    <div class="cc-cost">
+        <img class="cc-cost-img" src='systems/pmttrpg/assets/status/{{cost.status}}.png'
+        title='Counter' width='24' height='24' />
+        <h4 class="cc-cost-text">{{cost.cost}}</h4>
+    </div>
+    {{/each}}
+</div>
+
+<script>
+    function toggle(element) {
+        document.getElementById(element).classList.toggle("cc-show");
+    }
+</script>
+
+<style>
+    .cc-costs-holder {
+        display: flex;
+        justify-content: space-between;
+        width: fit-content;
+        gap: 0.5rem;
+        height: 2.5rem;
+    }
+
+    .cc-cost {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: slategray;
+        border: 2px solid silver;
+        padding: 5%;
+        width: 3.5rem;
+    }
+
+    .cc-cost-img {
+        background: none;
+        border: none;
+    }
+
+    .cc-cost-text {
+        font-size: 16px;
+        margin: 0;
+        font-weight: bold;
+        color: white;
+    }
+
+    .cc-stats-grid {
+        display: grid;
+        columns: 2;
+    }
+
+    .cc-resource-icon-noEdit {
+        padding: 0% !important;
+        background: none !important;
+    }
+
+    .cc-roll-holder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+    }
+
+    .cc-roll-icon {
+        background: none;
+        border: none;
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+
+    .cc-resource-button-noEdit {
+        background: none !important;
+        border: none !important;
+        width: 3rem !important;
+    }
+
+    .cc-dropdown-holder {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .cc-rollDisplay {
+        font-size: 20px;
+        text-align: center;
+    }
+
+    .cc-attack-type-button {
+        width: 5rem;
+        height: 2.5rem;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        justify-items: middle;
+        display: flex;
+        padding: 2%;
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    .cc-type-container {
+        display: grid;
+        columns: 1;
+        gap: 1rem;
+        align-content: center;
+        align-items: center;
+        justify-items: center;
+        margin: auto;
+        margin-top: 1rem;
+    }
+
+    .cc-dropdownIcon {
+        margin: 0px !important;
+        padding: 10% !important;
+    }
+
+    .cc-resource-button {
+        background-color: slategray;
+        border: 1px solid gray;
+        text-align: center;
+    }
+
+    .cc-resource-button:hover {
+        background: rgb(147, 161, 175);
+    }
+
+    .cc-clashDescription {
+        overflow-y: scroll;
+        width: 100%;
+        padding: 2% 2% !important;
+        text-wrap-mode: wrap;
+        display: block !important;
+    }
+
+    .cc-statblock-container {
+        padding: 2% !important;
+        columns: 2;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .cc-rollInfo {
+        height: 14rem;
+        width: 14rem;
+        padding: 2% 1% !important;
+        columns: 1;
+        display: flex !important;
+        gap: 0rem !important;
+    }
+
+    .cc-resource {
+        background-color: cadetblue;
+        border-radius: 1px;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 5%;
+    }
+
+    .cc-resource-input {
+        background-color: slategray;
+        border: 1px solid silver;
+        text-align: center;
+        width: 4rem;
+    }
+
+    .cc-nop {
+        pointer-events: none;
+    }
+
+    .cc-resource-content {
+        display: flexbox;
+        justify-content: center;
+        align-items: center;
+        flex-direction: row;
+        grid: 1 / span 3;
+        gap: 0;
+        margin: auto;
+    }
+
+    .cc-resource-divider {
+        text-align: center;
+    }
+
+    .cc-resource-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border: none;
+        margin: auto;
+        padding: 0%;
+        background: none;
+    }
+
+    .cc-resources-holder {
+        background-color: #1d1b22;
+        border: 2px solid slategray;
+        padding: 2%;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .cc-padding-t2 {
+        padding-top: 2%;
+        padding-bottom: 2%;
+    }
+
+    .cc-padding-0 {
+        padding: 0;
+    }
+
+    .cc-dropbtn {
+        background-color: cadetblue;
+        color: white;
+        padding: 16px;
+        font-size: 16px;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+        justify-content: center;
+        width: 9rem;
+        height: 2rem;
+        line-height: 0;
+        text-wrap-mode: nowrap;
+    }
+
+    .cc-dropbtn-small {
+        width: 3rem;
+        height: 2rem;
+        line-height: 0;
+    }
+
+    .cc-dropbtn:hover,
+    .cc-dropbtn:focus {
+        background-color: slategray;
+    }
+
+    .cc-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .cc-dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #f6f6f6;
+        border: 1px solid #ddd;
+        z-index: 1;
+        max-height: 20rem;
+    }
+
+    .cc-dropdown-content a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+    }
+
+    .cc-dropdown-content a:hover {
+        background-color: #f1f1f1;
+    }
+
+    .cc-show {
+        display: block;
+    }
+</style>

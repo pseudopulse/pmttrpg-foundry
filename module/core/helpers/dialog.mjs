@@ -37,6 +37,7 @@ export async function getActionModifiers(actor, context) {
     const content = await renderTemplate("systems/pmttrpg/templates/dialog/action-modifiers.hbs", {
         skills: actor.items.filter(x => x.type == "skill" && matchesType(context, x.system.type)),
         tools: actor.items.filter(x => x.type == "tools" && matchesType(context, x.system.type)),
+        conditionals: context.conditionals,
         rollContext: context,
         actor: actor
     });
@@ -44,7 +45,9 @@ export async function getActionModifiers(actor, context) {
     return new Promise((resolve, reject) => {
         const data = {
             activeConditionals: [],
-            item: null
+            item: null,
+            forcedAdvState: 0,
+            ignoreClashEffects: false
         };
         let allowClose = false;
         const dialog = new Dialog({
@@ -68,6 +71,50 @@ export async function getActionModifiers(actor, context) {
                 $("#amw-tools").hide();
                 $("#amw-conditionals").hide();
 
+                html.on('click', '.misc-toggle', (event) => {
+                    if (event.currentTarget.checked) {
+                        const action = event.currentTarget.dataset.id;
+                        console.log(action);
+
+                        switch (action) {
+                            case "IgnoreCWL":
+                                data.ignoreClashEffects = true;
+                                break;
+                            case "Adv":
+                                data.forcedAdvState = 1;
+                                html.find('input').each((x, input) => {
+                                    if (input.dataset.id == "Disadv") {
+                                        input.checked = false;
+                                    }
+                                });
+                                break;
+                            case "Disadv":
+                                data.forcedAdvState = -1;
+                                html.find('input').each((x, input) => {
+                                    if (input.dataset.id == "Adv") {
+                                        input.checked = false;
+                                    }
+                                });
+                            default:
+                                break;
+                        }
+                    }
+                    else {
+                        const action = event.currentTarget.dataset.id;
+
+                        switch (action) {
+                            case "IgnoreCWL":
+                                data.ignoreClashEffects = false;
+                                break;
+                            case "Adv":
+                            case "Disadv":
+                                data.forcedAdvState = 0;
+                            default:
+                                break;
+                        }
+                    }
+                });
+
                 html.on('click', '.skill-toggle', (event) => {
                     if (event.currentTarget.checked) {
                         const itemId = event.currentTarget.closest('.item').dataset.itemId;
@@ -83,6 +130,26 @@ export async function getActionModifiers(actor, context) {
                     }
                     else {
                         data.item = null;
+                    }
+                })
+
+                html.on('click', '.conditional-toggle', (event) => {
+                    if (event.currentTarget.checked) {
+                        const itemId = event.currentTarget.closest('.item').dataset.itemId;
+                        data.activeConditionals.push(context.conditionals.find(x => x.name == itemId));
+
+                        html.find('input').each((x, input) => {
+                            console.log(input);
+                            if (input.classList.contains('conditional-toggle') && input != event.currentTarget) {
+                                if (context.conditionals.find(x => x.name == itemId).exclusiveWith == input.closest('.item').dataset.itemId) {
+                                    input.checked = false;
+                                }
+                            }
+                        });
+                    }
+                    else {
+                        const itemId = event.currentTarget.closest('.item').dataset.itemId;
+                        data.activeConditionals = data.activeConditionals.filter(x => x.name != itemId);
                     }
                 })
 
@@ -111,7 +178,7 @@ export async function getActionModifiers(actor, context) {
             },
         }, {
             width: 600,
-            height: 380
+            height: 450
         }).render(true);
     });
 }

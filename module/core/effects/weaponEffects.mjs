@@ -1,7 +1,9 @@
 import { Effect } from "./effect.mjs";
 import { handleNegativeText } from "../../core/effects/effectHelpers.mjs";
+import { Conditional } from "../combat/rollContext.mjs";
 
 export const weaponEffects = [
+    // Dice Manipulation
     new Effect(
         "Dice Power Up",
         (context, count, trigger) => { context.dicePower = Number(context.dicePower) + Number(count); },
@@ -44,6 +46,7 @@ export const weaponEffects = [
         },
         ["On Use"],
     ),
+    // Status Effects
     simpleStatusEffect("Burn", false),
     simpleStatusEffect("Frostbite", false),
     simpleStatusEffect("Bleed", false),
@@ -69,17 +72,21 @@ export const weaponEffects = [
         },
         ["Clash Win", "Clash Lose"],
     ),
+    // Misc Effects
     new Effect(
         "Multi-hit",
         (context, count, trigger) => { 
-            context.dicePower = Number(context.dicePower) - 2;
-            context.diceCount = Number(context.diceCount) + Number(count);
+            context.conditionals.push(new Conditional("Multi-Hit", `Lose 2 Dice Power. Replace attack with ${count + 1} attacks.`, (context) => {
+                context.dicePower = Number(context.dicePower) - 2;
+                context.diceCount = Number(context.diceCount) + Number(count);
+            }));
         },
         null,
         ["Always Active"],
         false,
         2
     ),
+    // Melee Only
     new Effect(
         "Double-Edged",
         (context, count, trigger) => { 
@@ -113,18 +120,6 @@ export const weaponEffects = [
         ["Clash Win", "Clash Lose"],
     ),
     new Effect(
-        `Gain Charge`,
-        (context, count, trigger) => {
-            context.triggers[trigger].applyInfliction("Charge", -count, false);
-        },
-        (count) => {
-            return `Gain ${Math.abs(count)} [/status/Charge] Charge`;
-        },
-        ["On Use"],
-        false,
-        6
-    ),
-    new Effect(
         `Increase Range`,
         (context, count, trigger) => {
             context.range += 1;
@@ -146,6 +141,83 @@ export const weaponEffects = [
         false,
         1
     ),
+    new Effect(
+        `Extra DMG Type`,
+        (context, count, trigger) => {
+            
+        },
+        null,
+        ["Always Active"],
+        false,
+        2
+    ),
+    new Effect(
+        `Inflict Bind`,
+        (context, count, trigger) => {
+            context.trigger[trigger].applyInfliction("Bind", count, true);
+        },
+        (count) => {
+            return `Inflict ${count} [/status/Bind] Bind next round.`
+        },
+        ["Clash Win", "Clash Lose"],
+        false
+    ),
+    new Effect(
+        `Retracting Cable`,
+        (context, count, trigger) => {
+            
+        },
+        null,
+        ["Always Active"],
+        false,
+        1
+    ),
+    new Effect(
+        `Throwing Weapon`,
+        (context, count, trigger) => {
+            
+        },
+        null,
+        ["Always Active"],
+        false,
+        1
+    ),
+    // Ranged Effects
+    new Effect(
+        `Extra Range`,
+        (context, count, trigger) => {
+            
+        },
+        null,
+        ["Always Active"],
+        true,
+        5
+    ),
+    // Charge Effects
+    new Effect(
+        `Gain Charge`,
+        (context, count, trigger) => {
+            context.triggers[trigger].applyInfliction("Charge", -count, false);
+        },
+        (count) => {
+            return `Gain ${Math.abs(count)} [/status/Charge] Charge`;
+        },
+        ["On Use"],
+        false,
+        6
+    ),
+    new Effect(
+        `Power Engine`,
+        (context, count, trigger) => {
+            context.conditionals.push(new Conditional("Power Engine [C]", `Spend 8 Charge to gain 1 Dice Power.`, (context) => {
+                context.dicePower = Number(context.dicePower) + 1;
+            }, [{ cost: 8, status: "Charge"}]));
+
+            context.conditionals.push(new Conditional("Power Engine [M]", `Spend 1 Overcharge to gain 2 Dice Power`, (context) => {
+                context.dicePower = Number(context.dicePower) + 2;
+            }, [{ cost: 1, status: "Overcharge"}]));
+        },
+    )
 ]
 
 function simpleStatusEffect(status, nextRound) {
