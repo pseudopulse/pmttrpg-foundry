@@ -6,8 +6,6 @@ export let currentTurn = 0;
 export async function roundChange(combat, round, turn) {
     currentRound = round;
 
-    console.log(currentRound);
-
     if (round != 1) {
         for (const token of canvas.tokens.placeables) {
             if (token != null && token.actor != null) {

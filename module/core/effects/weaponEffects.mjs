@@ -211,11 +211,11 @@ export const weaponEffects = [
         (context, count, trigger) => {
             context.conditionals.push(new Conditional("Power Engine [C]", `Spend 8 Charge to gain 1 Dice Power.`, (context) => {
                 context.dicePower = Number(context.dicePower) + 1;
-            }, [{ cost: 8, status: "Charge"}]));
+            }, [{ cost: 8, status: "Charge"}], "Power Engine [O]"));
 
-            context.conditionals.push(new Conditional("Power Engine [M]", `Spend 1 Overcharge to gain 2 Dice Power`, (context) => {
+            context.conditionals.push(new Conditional("Power Engine [O]", `Spend 1 Overcharge to gain 2 Dice Power`, (context) => {
                 context.dicePower = Number(context.dicePower) + 2;
-            }, [{ cost: 1, status: "Overcharge"}]));
+            }, [{ cost: 1, status: "Overcharge"}], "Power Engine [C]"));
         },
     )
 ]

@@ -36,8 +36,6 @@ export class PTItem extends Item {
     async handleUsageOutfit(defType) {
         const item = this;
 
-        console.log("handling outfit usage as " + this.actor.name);
-
         const speaker = ChatMessage.getSpeaker({ actor: this.actor });
         const rollMode = game.settings.get('core', 'rollMode');
 
@@ -51,18 +49,34 @@ export class PTItem extends Item {
         const label = `[${item.type}] ${item.name} targeting ${game.user.targets.first().actor.name}`;
 
         const roll = new Roll(`1d${context.diceMax}+${context.dicePower}`, "");
-        const result = await roll.evaluate();
+        let result = await roll.evaluate();
+
+        if (context.forcedAdvState != 0 || this.actor.getStatusCount("Paralysis") > 0) {
+            const reroll = await new Roll(`1d${context.diceMax}+${context.dicePower}`, "").evaluate();
+
+            if (context.forcedAdvState > 0) {
+                result = result.total > reroll.total ? result : reroll;
+            }
+            else if (context.forcedAdvState < 0) {
+                result = result.total > reroll.total ? reroll : result;
+            }
+            else {
+                await this.actor.reduceStatus("Paralysis", 1);
+                result = result.total > reroll.total ? reroll : result;
+            }
+        }
+
         context.result = result.total;
         context.applyClashEffects = true;
-        
+
         createClashMessage(this.actor, context);
-        this.actor.queueRoll(context);
+        await this.actor.queueRoll(context);
+
+        await this.actor.assignRecycleableAction(context, defType, item);
     }
 
     async handleUsageWeapon(initiator) {
         const item = this;
-
-        console.log("handling weapon usage as " + this.actor.name);
 
         const speaker = ChatMessage.getSpeaker({ actor: this.actor });
         const rollMode = game.settings.get('core', 'rollMode');
@@ -77,31 +91,45 @@ export class PTItem extends Item {
         }
 
         const context = await this.getRollContext(game.user.targets.first().actor, true);
-        if (context.diceCount > 1 && initiator) { // process multi-hit
-            
-        }
-        else {
-            const label = `[${item.type}] ${item.name} targeting ${game.user.targets.first().actor.name}`;
 
-            const roll = new Roll(`1d${context.diceMax}+${context.dicePower}`, "");
-            const result = await roll.evaluate();
-            context.result = result.total;
-            context.applyClashEffects = true;
-            
-            if (initiator) {
-                sendNetworkMessage("PENDING_CLASH", {
-                    attacker: this.actor,
-                    target: game.user.targets.first().actor,
-                    context: context,
-                })
+        const label = `[${item.type}] ${item.name} targeting ${game.user.targets.first().actor.name}`;
 
-                await this.actor.spendAction();
+        const roll = new Roll(`1d${context.diceMax}+${context.dicePower}`, "");
+        let result = await roll.evaluate();
+
+        if (context.forcedAdvState != 0 || this.actor.getStatusCount("Paralysis") > 0) {
+            const reroll = await new Roll(`1d${context.diceMax}+${context.dicePower}`, "").evaluate();
+
+            if (context.forcedAdvState > 0) {
+                result = result.total > reroll.total ? result : reroll;
             }
-            
-            this.actor.queueRoll(context);
-
-            createClashMessage(this.actor, context);
+            else if (context.forcedAdvState < 0) {
+                result = result.total > reroll.total ? reroll : result;
+            }
+            else {
+                await this.actor.reduceStatus("Paralysis", 1);
+                result = result.total > reroll.total ? reroll : result;
+            }
         }
+
+        context.result = result.total;
+        context.applyClashEffects = true;
+
+        if (initiator) {
+            sendNetworkMessage("PENDING_CLASH", {
+                attacker: this.actor,
+                target: game.user.targets.first().actor,
+                context: context,
+            })
+
+            await this.actor.spendAction();
+        }
+
+        await this.actor.queueRoll(context);
+
+        await this.actor.assignRecycleableAction(context, "Attack", item);
+
+        createClashMessage(this.actor, context);
     }
 
     async getRollContext(target = null, rollSkill = false) {
@@ -146,7 +174,7 @@ export class PTItem extends Item {
             tmpCtx.processEffects();
             rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
         }
-        
+
         rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
         rollContext.processEffects();
         return rollContext;
@@ -170,7 +198,7 @@ export class PTItem extends Item {
             tmpCtx.processEffects();
             rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
         }
-        
+
         rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
         rollContext.processEffects();
         return rollContext;

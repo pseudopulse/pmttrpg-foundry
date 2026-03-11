@@ -29,7 +29,7 @@
     </div>
 
     {{!-- HP/ST/SP --}}
-    <div class="resources grid grid-3col">
+    <div class="resources grid grid-2col">
       <div class="as-resource">
         <img src="systems/pmttrpg/assets/resources/HPIcon.webp" class="as-resource-icon" />
         <div class="as-resource-content flexrow flex-center flex-between">
@@ -63,6 +63,18 @@
           <span class="as-resource-divider"> / </span>
           <input class="as-resource-input as-nop as-resource-hp" type="text" inputmode="numeric"
             value="{{system.attributes.sanity.max}}" data-dtype="Number" />
+        </div>
+      </div>
+
+      <div class="as-resource">
+        <img src="systems/pmttrpg/assets/resources/LightIcon.webp" class="as-resource-icon" />
+        <div class="as-resource-content flexrow flex-center flex-between">
+          <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="as-resource-input as-resource-hp"
+            type="text" inputmode="numeric" name="system.attributes.light.value"
+            value="{{system.attributes.light.value}}" data-dtype="Number" />
+          <span class="as-resource-divider"> / </span>
+          <input class="as-resource-input as-nop as-resource-hp" type="text" inputmode="numeric"
+            value="{{system.attributes.light.max}}" data-dtype="Number" />
         </div>
       </div>
     </div>

@@ -41,7 +41,7 @@ export const statusList = [
     new StatusEffect("Haste", Triggers.END, async (actor) => {}, (count) => { return 0; }),
     new StatusEffect("Bind", Triggers.END, async (actor) => {}, (count) => { return 0; }),
     new StatusEffect("Smoke", Triggers.HIT, async (actor) => {
-        await actor.takeDamageStatus(actor.getStatusCount("Smoke"), "Smoke", "HP", "Took %DMG% extra HP damage from [/status/Smoke] Smoke! (%PSP% -> %SP%)")
+        await actor.takeDamageStatus(actor.getStatusCount("Smoke") / 2, "Smoke", "HP", "Took %DMG% extra HP damage from [/status/Smoke] Smoke! (%PSP% -> %SP%)")
     }, (count) => { return count > 10 ? count - 4 : count - 2 }),
     new StatusEffect("Charge", Triggers.NONE, async (actor) => {}, (count) => { return 0; }),
     new StatusEffect("Charge_Barrier", Triggers.END, async (actor) => {
@@ -54,7 +54,7 @@ export const statusList = [
         }
     }, (count) => { return count; }),
     new StatusEffect("Nails", Triggers.NONE, async (actor) => {
-
+        
     }, (count) => { return count; })
 ];
 

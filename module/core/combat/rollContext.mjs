@@ -65,8 +65,6 @@ export class RollContext {
     resolveTriggers(triggers) {
         let lines = [];
 
-        console.log(this.triggers);
-
         for (const cost of this.costs) {
             let status = cost.status;
             let prev = this.actor.getStatusCount(status);
@@ -103,8 +101,6 @@ export class RollContext {
     processEffects() {
         if (this.actor != null) {
             this.actor.prepareData();
-            console.log(this.actor);
-            console.log("rank: " + Number(this.actor.system.attributes.rank.value));
 
             switch (this.damageType) {
                 case "Slash":
@@ -243,7 +239,6 @@ export class RollContext {
 
             this.ignoreClashEffects = this.modifiers.ignoreClashEffects;
             this.forcedAdvState = this.modifiers.forcedAdvState;
-            console.log("ignore cwl - " + this.ignoreClashEffects);
         }
     }
 }

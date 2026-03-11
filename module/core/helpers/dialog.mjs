@@ -74,7 +74,6 @@ export async function getActionModifiers(actor, context) {
                 html.on('click', '.misc-toggle', (event) => {
                     if (event.currentTarget.checked) {
                         const action = event.currentTarget.dataset.id;
-                        console.log(action);
 
                         switch (action) {
                             case "IgnoreCWL":
@@ -122,7 +121,6 @@ export async function getActionModifiers(actor, context) {
                         data.item = item;
 
                         html.find('input').each((x, input) => {
-                            console.log(input);
                             if ((input.classList.contains('skill-toggle') || input.classList.contains('tool-toggle')) && input != event.currentTarget) {
                                 input.checked = false;
                             }
@@ -139,7 +137,6 @@ export async function getActionModifiers(actor, context) {
                         data.activeConditionals.push(context.conditionals.find(x => x.name == itemId));
 
                         html.find('input').each((x, input) => {
-                            console.log(input);
                             if (input.classList.contains('conditional-toggle') && input != event.currentTarget) {
                                 if (context.conditionals.find(x => x.name == itemId).exclusiveWith == input.closest('.item').dataset.itemId) {
                                     input.checked = false;
@@ -155,7 +152,6 @@ export async function getActionModifiers(actor, context) {
 
                 html.on('click', '.amw-tab-button', (event) => {
                     const element = event.currentTarget;
-                    console.log(element);
         
                     if (element.textContent == "Skills") {
                         $("#amw-skills").show();
@@ -228,8 +224,6 @@ export async function createClashResponse(actor, context) {
                 const item = actor.items.get(itemId);
                 item.roll(false).then(() => {
                     allowClose = true;
-
-                    console.log("resolving clash now !!");
 
                     sendNetworkMessage("RESOLVE_CLASH", {
                         target: context.target,

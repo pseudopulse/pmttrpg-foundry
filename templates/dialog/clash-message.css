@@ -134,7 +134,12 @@
     margin: auto;
     width: 2.5rem;
     height: 2.5rem;
-    padding: 1%;
+    padding: 0%;
+}
+
+.cm-result-right {
+    position: absolute;
+    right: 10%;
 }
 
 .cm-result-icon:hover {

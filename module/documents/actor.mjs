@@ -48,6 +48,32 @@ export class PTActor extends Actor {
         else {
             this.outfit = this.items.find(x => x._id == systemData.currentOutfitId);
         }
+
+        let light = 3 + attr.rank.value;
+        if (this.outfit != null && this.outfit.form == "Balanced") {
+            light += 1;
+        }
+
+        attr.light.max = light;
+
+        if (systemData.emotion == null || Object.is(Number(systemData.emotion), NaN)) {
+            systemData.emotion = 0;
+        }
+    }
+
+    async resetCombatData() {
+        const actorData = this;
+        const system = actorData.toObject(false).system;
+        
+        system.emotion = 0;
+        system.damageDealt = 0;
+        system.damageTaken = 0;
+        system.chargeSpent = 0;
+        system.bloodfeastConsumed = 0;
+        system.clashesWon = 0;
+        system.clashesLost = 0;
+
+        await this.update({ system }, { diff: false, render: true });
     }
 
     getModifiedDamage(context, damage, cat) {
@@ -99,7 +125,6 @@ export class PTActor extends Actor {
     }
 
     findResistance(type, cat) {
-        console.log(this.outfit);
         if (this.outfit == null) {
             return 2;
         }
@@ -149,7 +174,6 @@ export class PTActor extends Actor {
             const respCtx = new RollContext();
             Object.assign(respCtx, systemData.mostRecentRoll.context);
             respCtx.fix();
-            console.log(respCtx);
 
             await respCtx.target.receiveAttackRoll(respCtx);
         }
@@ -206,8 +230,6 @@ export class PTActor extends Actor {
                     damage = 0;
                 }
 
-                console.log("blocked, reducing damage by " + respCtx.result);
-
                 await this.takeDamage(damage, context);
             }
 
@@ -221,14 +243,10 @@ export class PTActor extends Actor {
             }
 
             if (systemData.mostRecentRoll.type == "Counter") {
-                console.log("checking against counter");
-                console.log(respCtx.result + " vs " + context.result);
                 if (respCtx.result > context.result) {
-                    console.log("won counter, returning attack");
                     if (canRespond) context.actor.receiveAttackRoll(respCtx, false);
                 }
                 else {
-                    console.log("lost counter");
                     await this.takeDamage(damage, context);
                 }
             }
@@ -246,9 +264,6 @@ export class PTActor extends Actor {
         let hp = this.system.attributes.health.value;
         let st = this.system.attributes.stagger.value;
         let sp = this.system.attributes.sanity.value;
-        
-        console.log("-/-");
-        console.log(this.system);
 
         let prevHP = hp;
         let prevST = st;
@@ -282,8 +297,6 @@ export class PTActor extends Actor {
         await this.update({"system.attributes.health.value": hp}, {diff: false});
         await this.update({"system.attributes.stagger.value": st}, {diff: false});
         await this.update({"system.attributes.sanity.value": sp}, {diff: false});
-
-        console.log(this.system);
     }
 
     async takeDamage(damage, context, flatHP = 0, flatST = 0, flatSP = 0) {
@@ -318,7 +331,6 @@ export class PTActor extends Actor {
         await this.update({"system.attributes.health.value": hp}, {diff: false});
         await this.update({"system.attributes.stagger.value": st}, {diff: false});
 
-        console.log("hp after: " + hp + " - " + st);
         
         pending[this.name] = 
         {
@@ -361,9 +373,6 @@ export class PTActor extends Actor {
         }
 
         this.update({ system }, { diff: false });
-
-        console.log("queueing for: " + this.name);
-        console.log(this);
     }
 
     fixRollType(type) {
@@ -381,19 +390,15 @@ export class PTActor extends Actor {
     async handlePendingClash(context) {
         const actorData = this;
         const systemData = actorData.system;
-        const attr = systemData.attributes;
-        const stats = systemData.abilities;
-
-        console.log(this);
         
-        console.log("we are: " + this.name);
-        console.log("setting target to: " + canvas.tokens.placeables.find(x => x.actor._id == context.actor._id).actor.name);
+
         canvas.tokens.placeables.find(x => x.actor._id == context.actor._id).setTarget(true, { releaseOthers: true });
         createClashResponse(this, context);
     }
 
 
     async handleCombatStart() {
+        await this.resetCombatData();
         const system = this.toObject(false).system;
 
         system.statusEffects = [];
@@ -467,6 +472,10 @@ export class PTActor extends Actor {
             type.count = Number(type.count) - count;
         }
 
+        if (status == "Charge") {
+            system.chargeSpent = Number(system.chargeSpent) + count;
+        }
+
         await this.update({ system }, { diff: false, render: true });
     }
 
@@ -514,7 +523,6 @@ export class PTActor extends Actor {
             let def = statusList.find(x => x.name == status.name);
             if (def.triggerType == trigger && status.count > 0) {
                 await def.activation(this);
-                console.log("setting decay for " + status.name + " to " + def.decay(status.count));
                 await this.setStatus(status.name, def.decay(status.count));
             }
         }
@@ -522,5 +530,17 @@ export class PTActor extends Actor {
 
     async spendAction() {
         await this.fireStatusEffects(Triggers.ACTION);
+    }
+
+    async assignRecycleableAction(context, type, source) {
+        const system = this.toObject(false).system;
+
+        system.recycleAction = {
+            context: context,
+            type: type,
+            source: source
+        };
+
+        await this.update({ system }, { diff: false, render: true });
     }
 }

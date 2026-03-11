@@ -39,7 +39,6 @@ export class PTItemSheet extends ItemSheet {
         context.flags = itemData.flags;
 
         context.effectsList = getEffectsArray(this.item.type);
-        console.log(context.effectsList);
 
         context.rollContext = new RollContext();
         if (this.type == "weapon") {

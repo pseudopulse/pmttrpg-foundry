@@ -87,6 +87,19 @@ export class PTActorSheet extends ActorSheet {
             this.actor.setStatusNext(element.closest('.ast-st-holder').dataset.status, element.value);
         })
 
+        html.on('click', '.dispo-entry', (ev) => {
+            const system = this.actor.toObject(false).system;
+            system.disposition = ev.currentTarget.textContent;
+            this.actor.update({ system }, { diff: false, render: true });
+        });
+
+        html.on('change', '.emotion-input', (ev) => {
+            ev.preventDefault();
+            const system = this.actor.toObject(false).system;
+            system.emotion = ev.currentTarget.value;
+            this.actor.update({ system }, { diff: false, render: true });
+        });
+
         // Drag events for macros.
         if (this.actor.isOwner) {
             let handler = (ev) => this._onDragStart(ev);

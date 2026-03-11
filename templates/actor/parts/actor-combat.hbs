@@ -1,0 +1,449 @@
+<div class="tab combat" data-group="primary" data-tab="combat">
+  <div class="grid-2col">
+    {{!-- Emotion --}}
+    <div class="ac-resources-holder ac-grid-object" style="width: 17.5rem">
+      <div class="ac-resource" style="height: 3.5rem; gap: 4rem; width: 16rem;">
+        <img class="ac-resource-icon" style="padding: 0px; margin: 1rem;" src="systems/pmttrpg/assets/resources/EmotionIcon.png" width="24" height="24" />
+        <div class="ac-resource-xp">
+          <input style="height: 2rem;" onkeypress="unfocus(event)" class="as-resource-input emotion-input" type="text"
+            inputmode="numeric" value="{{system.emotion}}"
+            data-dtype="Number" />
+        </div>
+      </div>
+
+      <div class="ac-resource" style="height: 3.5rem; gap: 1.5rem; width: 16rem;">
+        <label class="ac-item-name">Disposition:</label>
+        <div class="ac-resource-content">
+            <button onclick="toggleDP(event)" class="ac-dropbtn ac-small-dropdown" style="width: 8rem;">
+                {{system.disposition}}
+            </button>
+            <div id="dispodrp" class="ac-dropdown-content">
+                <a class="dispo-entry">None</a>
+                <a class="dispo-entry">Anxious</a>
+                <a class="dispo-entry">Focused</a>
+                <a class="dispo-entry">Generous</a>
+                <a class="dispo-entry">Gloomy</a>
+                <a class="dispo-entry">Masochistic</a>
+                <a class="dispo-entry">Possessive</a>
+                <a class="dispo-entry">Protective</a>
+                <a class="dispo-entry">Tenacious</a>
+                <a class="dispo-entry">Wrathful</a>
+                <a class="dispo-entry">Vengeful</a>
+            </div>
+        </div>
+      </div>
+    </div>
+
+    {{!-- Statistics --}}
+    <div class="ac-resources-holder grid-2col ac-grid-object" style="width: 17.5rem; padding: 3%;">
+      <div class="ac-resource ac-stat-holder">
+        <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/HPIcon.webp" width="24" height="24" />
+        <div class="ac-resource-xp">
+          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+            inputmode="numeric" name="system.emotion" value="{{system.attributes.health.value}}"
+            data-dtype="Number" />
+        </div>
+      </div>
+      <div class="ac-resource ac-stat-holder" >
+        <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/StaggerIcon.webp" width="24" height="24" />
+        <div class="ac-resource-xp">
+          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+            inputmode="numeric" name="system.emotion" value="{{system.attributes.stagger.value}}"
+            data-dtype="Number" />
+        </div>
+      </div>
+      <div class="ac-resource ac-stat-holder" >
+        <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/PanicBlue.png" width="24" height="24" />
+        <div class="ac-resource-xp">
+          <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+            inputmode="numeric" name="system.emotion" value="{{system.attributes.sanity.value}}"
+            data-dtype="Number" />
+        </div>
+      </div>
+      <div class="ac-resource ac-stat-holder">
+        <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/LightIcon.webp" width="24" height="24" />
+        <div class="ac-resource-xp">
+          <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+            inputmode="numeric" name="system.emotion" value="{{system.attributes.light.value}}"
+            data-dtype="Number" />
+        </div>
+      </div>
+    </div>
+
+    {{!- Tracker Panel }}
+    <div class="ac-resources-holder ac-grid-object" style="width: 35.8rem; height: 4.5rem; grid-template-columns: repeat(4, 1fr); grid-column: 1 / -1 !important; padding: 0px; justify-items: center">
+      <div class="ac-resource ac-stat-holder" title="Clashes Won">
+        <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/ClashPowerUp.png" width="24" height="24" />
+        <div class="ac-resource-xp">
+          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+            inputmode="numeric" value="{{system.clashesWon}}"
+            data-dtype="Number" />
+        </div>
+      </div>
+      <div class="ac-resource ac-stat-holder" title="Clashes Lost">
+        <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/ClashPowerDown.png" width="24" height="24" />
+        <div class="ac-resource-xp">
+          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+            inputmode="numeric" value="{{system.clashesLost}}"
+            data-dtype="Number" />
+        </div>
+      </div>
+      <div class="ac-resource ac-stat-holder" title="Charge Spent">
+        <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/status/Charge.png" width="24" height="24" />
+        <div class="ac-resource-xp">
+          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+            inputmode="numeric" value="{{system.chargeSpent}}"
+            data-dtype="Number" />
+        </div>
+      </div>
+      <div class="ac-resource ac-stat-holder" title="Consumed Bloodfeast">
+        <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/Bloodfeast.png" width="24" height="24" />
+        <div class="ac-resource-xp">
+          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+            inputmode="numeric" value="{{system.bloodfeastConsumed}}"
+            data-dtype="Number" />
+        </div>
+      </div>
+    </div>
+
+    {{!- Damage Panel }}
+    <div class="ac-resources-holder ac-grid-object ac-damage-panel" style="width: 35.8rem; height: 4.5rem; grid-template-columns: repeat(2, 1fr); grid-column: 1 / -1 !important;">
+      <div class="ac-resource ac-stat-holder ac-damage-stat" title="Total Damage Dealt" style="gap: 1rem !important;">
+        <label class="ac-item-name">Damage Dealt:</label>
+        <div class="ac-resource-xp">
+          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+            inputmode="numeric" value="{{system.damageDealt}}"
+            data-dtype="Number" style="width: 7rem;" />
+        </div>
+      </div>
+      <div class="ac-resource ac-stat-holder ac-damage-stat" title="Total Damage Taken" style="gap: 1rem !important;">
+        <label class="ac-item-name">Damage Taken:</label>
+        <div class="ac-resource-xp">
+          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+            inputmode="numeric" value="{{system.damageTaken}}"
+            data-dtype="Number" style="width: 7rem;" />
+        </div>
+      </div>
+    </div>
+
+    {{#if (recycleable actor)}}
+    {{!- Recycle Panel }}
+    <div class="ac-resources-holder ac-grid-object ac-recycle-panel" style="width: 35.8rem; height: 10rem; grid-template-columns: repeat(2, 1fr); grid-column: 1 / -1 !important;">
+      {{#with (getRecycleContext system.recycleAction) as |action|}}
+        <div class="ac-resource" style="width: 9rem; height: 100%; justify-content: center; flex-direction: column; gap: 0rem;">
+          <div style="display: flex; gap: 0.3rem; font-size: 18px;">
+            <p class="wb-rollDisplay">{{action.context.diceCount}}d{{action.context.diceMax}}+{{action.context.dicePower}}</p>
+            <p> / </p>
+            <p>{{action.context.result}}</p>
+          </div>
+          <div style="display: flex;">
+            <img class="ac-resource-icon" 
+                    src='systems/pmttrpg/assets/damageTypes/{{action.type}}.png' width='24' height='24' style="width: 3.5rem; height: 3.5rem; margin: 0 0 0 0.5rem; padding: 6%;"/>
+                <label class="resource-label" style="text-align: center; align-self: center">Recycled {{action.type}}</label>
+          </div>
+        </div>
+        <div class="ac-resource ac-clashDescription" style="width: 25rem">
+          {{{action.description}}}
+        </div>
+      {{/with}}
+    </div>
+    {{/if}}
+  </div>
+</div>
+
+<script>
+    function toggleDP(event) {
+      event.preventDefault();
+      document.getElementById('dispodrp').classList.toggle("ac-show");
+    }
+
+    function preventDefault(event) {
+      event.preventDefault();
+    }
+
+    function filterFunction(element1, element2) {
+        let input = document.getElementById(element1);
+        let filter = input.value.toUpperCase();
+        let div = document.getElementById(element2);
+        let a = div.getElementsByTagName("a");
+
+        for (let i = 0; i < a.length; i++) {
+            let txtValue = a[i].textContent || a[i].innerText;
+            a[i].style.display =
+                txtValue.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+        }
+    }
+</script>
+
+<style>
+  .ac-clashDescription {
+      overflow-y: scroll;
+      width: 100%;
+      padding: 2% 2% !important;
+      text-wrap-mode: wrap;
+      display: block !important;
+      height: 100%;
+  }
+
+  .ac-recycle-panel {
+    display: flex;
+  }
+
+  .ac-damage-stat {
+    width: 18rem !important;
+  }
+
+  .ac-damage-panel {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 1rem !important;
+  }
+
+  .ac-grid-object {
+    grid-column: auto !important;
+  }
+
+  .ac-stat-holder {
+    height: 3.5rem;
+    gap: 0rem !important; 
+    width: 7.5rem
+  }
+
+  .ac-stat-icon {
+    padding: 2% !important;
+  }
+
+  .ac-stat-text {
+    height: 2rem;
+    width: 3rem;
+    margin: 0.5rem;
+  }
+
+  .ac-item-name {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    justify-items: center;
+    gap: 2rem;
+    margin: 0px;
+    padding: 2%;
+  }
+
+  .ac-controls {
+    position: absolute;
+    right: 3%;
+  }
+
+  .ac-font-button {
+    font-size: 20px;
+  }
+
+  .ac-item-icon {}
+
+  .ac-type-img {
+    width: 2.5rem;
+    height: 2.5rem;
+    background-color: slategray;
+    border: 1px solid gray;
+  }
+
+  .ac-type-img:hover {
+    background: rgb(147, 161, 175);
+  }
+
+  .ac-dropdown-holder {}
+
+  .ac-item-text {
+    text-wrap-mode: nowrap;
+    margin: 0px;
+    font-size: 20px;
+    color: black;
+  }
+
+  .ac-attack-type-button {
+    width: 5rem;
+    height: 2.5rem;stats
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    justify-items: middle;
+    display: flex;
+    padding: 2%;
+    font-size: 16px;
+    font-weight: bold;
+  }
+
+  .ac-type-container {
+    display: flex;
+    gap: 1rem;
+    align-content: center;
+    align-items: center;
+    justify-items: center;
+    margin: auto;
+  }
+
+  .ac-dropdownIcon {
+    margin: 0px !important;
+    padding: 10% !important;
+  }
+
+  .ac-resource-button {
+    background-color: slategray;
+    border: 1px solid gray;
+    text-align: center;
+  }
+
+  .ac-resource-button:hover {
+    background: rgb(147, 161, 175);
+  }
+
+  .ac-clashDescription {
+    overflow-y: scroll;
+    width: 100%;
+    padding: 2% 2% !important;
+    text-wrap-mode: wrap;
+    display: block !important;
+  }
+
+  .ac-statblock-container {
+    padding: 2% !important;
+    columns: 2;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .ac-rollInfo {
+    height: 9rem;
+    width: 14rem;
+    padding: 0% !important;
+    columns: 1;
+    display: flex !important;
+    gap: 0rem !important;
+  }
+
+  .ac-resource {
+    background-color: cadetblue;
+    border: 2px solid black;23
+    border-radius: 1px;
+    display: flex;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 4rem;
+    padding: 5% 2%;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .ac-resource-input {
+    background-color: slategray;
+    border: 1px solid silver;
+    text-align: center;
+    width: 4rem;
+  }
+
+  .ac-nop {
+    pointer-events: none;
+  }
+
+  .ac-resource-content {
+    display: flexbox;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    grid: 1 / span 3;
+    gap: 0;this.actor.
+    margin: auto;
+  }
+
+  .ac-resource-divider {
+    text-align: center;
+  }
+
+  .ac-resource-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: none;
+    margin: auto;
+    padding: 10%;
+  }
+
+  .ac-resources-holder {
+    background-color: #1d1b22;
+    border: 2px solid slategray;
+    padding: 2%;
+    align-items: center;
+    justify-content: center;
+    display: grid;
+    margin: 0 !important;
+  }
+
+  .ac-padding-t2 {
+    padding-top: 2%;
+    padding-bottom: 2%;
+  }
+
+  .ac-padding-0 {
+    padding: 0;
+  }
+
+  .ac-dropbtn {
+    background-color: #1d1b22;
+    border: 1px solid white !important;
+    color: white;
+    padding: 16px;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    justify-content: center;
+    width: 9rem;
+    height: 2rem;
+    line-height: 0;
+    text-wrap-mode: nowrap;
+  }
+
+  .ac-dropbtn-small {
+    width: 3rem;
+    height: 2rem;
+    line-height: 0;
+  }
+
+  .ac-dropbtn:hover,
+  .ac-dropbtn:focus {
+    background-color: slategray;
+  }
+
+  .ac-dropdown {
+    position: relative;
+    display: inline-block;
+  }
+
+  .ac-dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f6f6f6;
+    border: 1px solid #ddd;
+    z-index: 1;
+    max-height: 15rem;
+    overflow-y: scroll;
+    scrollbar-width: none;
+  }
+
+  .ac-dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+    width: 8rem;
+  }
+
+  .ac-dropdown-content a:hover {
+    background-color: #f1f1f1;
+  }
+
+  .ac-show {
+    display: block !important;
+  }
+</style>

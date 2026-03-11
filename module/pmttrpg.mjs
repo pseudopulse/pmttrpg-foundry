@@ -6,16 +6,9 @@ import { PTItemSheet } from "./sheets/item.mjs";
 import { handler, sendNetworkMessage, registerMessages } from "./core/helpers/netmsg.mjs";
 import { roundChange, turnChange, updateCombatant } from "./core/combat/combatState.mjs";
 import { getEffectsArray } from "./core/effects/effectHelpers.mjs";
+import { RollContext } from "./core/combat/rollContext.mjs";
+import { enrichClashData } from "./core/helpers/clash.mjs";
 // import Hooks from "@client/helpers/hooks.mjs";
-
-game.wipeAllDbg = () => {
-  console.log("wiping all");
-  for (const token of canvas.tokens.placeables) {
-    const obj = token.actor.system.toObject(false);
-    obj.mostRecentRoll = null;
-    token.actor.update({ obj }, { render: true, diff: false });
-  }
-}
 
 Hooks.once("init", () => {
   // debug
@@ -84,7 +77,9 @@ Hooks.once("init", () => {
       return null;
     },
     rctx(item) {
-      return getRollContextFromData(item);
+      let ctx = getRollContextFromData(item);
+      ctx.item = item;
+      return ctx;
     },
     drctx(item, type) {
       return getRollContextFromData(item, true, type);
@@ -129,17 +124,25 @@ Hooks.once("init", () => {
       return text.replace("_", " ");
     },
     checkCosts(actor, costs, light = 0) {
-      console.log(costs);
       for (const cost of costs) {
         if (actor.getStatusCount(cost.status) < cost.cost) {
-          console.log("iterating over");
-          console.log(cost);
-          console.log(actor.getStatusCount(cost.status));
           return false;
         }
 
         return true;
       }
+    },
+    recycleable(actor) {
+      return actor.system.recycleAction != null;
+    },
+    getRecycleContext(action) {
+      let ctx = fixRollContext(action.context);
+      return {
+        context: ctx,
+        item: action.source,
+        type: action.type,
+        description: enrichClashData(ctx.getDescription())
+      };
     }
   });
 
@@ -151,6 +154,13 @@ Hooks.once("init", () => {
   Handlebars.registerPartial('ptConditionalCosts', '{{> systems/pmttrpg/templates/item/parts/conditional-costs.hbs}}')
   return preloadHandlebarsTemplates();
 });
+
+export function fixRollContext(context) {
+  let ctx = new RollContext();
+  Object.assign(ctx, context);
+  ctx.fix();
+  return ctx;
+}
 
 Hooks.on(`createChatMessage`, (message, action, id) => {
   if (message.title == "NETMSGFLAG") {
@@ -281,6 +291,7 @@ const preloadHandlebarsTemplates = async function () {
     'systems/pmttrpg/templates/actor/parts/actor-outfits.hbs',
     'systems/pmttrpg/templates/actor/parts/actor-skills.hbs',
     'systems/pmttrpg/templates/actor/parts/actor-status.hbs',
+    'systems/pmttrpg/templates/actor/parts/actor-combat.hbs',
     //
     'systems/pmttrpg/templates/item/parts/effect.hbs',
     'systems/pmttrpg/templates/item/parts/resist-type.hbs',

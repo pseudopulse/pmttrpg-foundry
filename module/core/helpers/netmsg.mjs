@@ -38,9 +38,7 @@ export function registerMessages() {
         const attacker = searchByObject(data.attacker);
 
         if (game.user.isGM) {
-            console.log("we are gm");
             attacker.prepareData();
-            console.log(attacker);
             await attacker.sendAttackRoll();
         }
     }

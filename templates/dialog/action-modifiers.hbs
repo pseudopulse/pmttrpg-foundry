@@ -30,13 +30,26 @@
                 <div id="amw-skills">
                     {{#each skills as |item id|}}
                     <li class='item flexrow' data-item-id='{{item._id}}'>
-                        <div class="amw-resource">
-                            <div class='amw-item-name'>
-                                <input class="amw-skill-input skill-toggle" type="checkbox" />
-                                <h4 class="amw-item-text">{{item.name}}</h4>
+                        {{#with (rctx item) as |ctx|}}
+                            {{#if (checkCosts ../../actor ctx.costs ctx.item.light)}}
+                            <div class="amw-resource">
+                                <div class='amw-item-name'>
+                                    <input class="amw-skill-input skill-toggle" type="checkbox" />
+                                    <h4 class="amw-item-text">{{ctx.item.name}}</h4>
+                                </div>
+                                {{> ptSkillCosts ctx.item context=ctx}}
                             </div>
-                            {{> ptSkillCosts item context=(rctx item)}}
-                        </div>
+                            {{else}}
+                            <div class="amw-resource am-disabled">
+                                <div class='amw-item-name'>
+                                    <input class="amw-skill-input skill-toggle" type="checkbox" />
+                                    <h4 class="amw-item-text">{{ctx.item.name}}</h4>
+                                </div>
+                                {{> ptSkillCosts ctx.item context=ctx}}
+                                <h4 class="amw-item-text am-disabled-text">Can't Afford!</h4>
+                            </div>
+                            {{/if}}
+                        {{/with}}
                     </li>
                     {{/each}}
                 </div>
@@ -374,7 +387,7 @@
         grid-template-columns: auto 1fr;
         align-items: center;
         justify-content: flex-start;
-        gap: 8rem;
+        gap: 5rem;
         padding: 0.5% 2%;
     }
 

@@ -55,7 +55,16 @@
       },
       "mostRecentRoll": null,
       "currentOutfitId": "",
-      "statusEffects": []
+      "statusEffects": [],
+      "disposition": "None",
+      "emotion": 0,
+      "clashesWon": 0,
+      "clashesLost": 0,
+      "chargeSpent": 0,
+      "bloodfeastConsumed": 0,
+      "damageDealt": 0,
+      "damageTaken": 0,
+      "recycleAction": null
     }
   },
   "Item": {
