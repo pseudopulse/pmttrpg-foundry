@@ -8,15 +8,13 @@
     </header>
 
     <section class="sheet-body">
-        {{> ptSkillBlock this}}
-
         {{#each item.system.effects as |effect effect|}}
         <div>
-            {{> ptEffect effect effectsList=../effectsList pref="a"}}
+            {{> ptEffect effect effectsList=../effectsList pref="w"}}
         </div>
         {{/each}}
 
-        <div class="iw-resource-content">
+        <div class="ia-resource-content">
             <button class="dropbtn dropbtn-small effect-add-button">+</button>
         </div>
     </section>
@@ -38,27 +36,27 @@
 </script>
 
 <style>
-    .iw-clashDescription {
+    .ia-clashDescription {
         overflow-y: scroll;
         width: 100%;
         padding: 0 2% !important;
         text-wrap-mode: wrap;
     }
 
-    .iw-statblock-container {
+    .ia-statblock-container {
         padding: 2% !important;
         columns: 2;
         display: flex;
         gap: 0.5rem;
     }
 
-    .iw-rollInfo {
+    .ia-rollInfo {
         height: 9rem;
         width: 8rem;
         padding: 2% !important;
     }
 
-    .iw-resource {
+    .ia-resource {
         background-color: cadetblue;
         border: 2px solid black;
         border-radius: 1px;
@@ -71,18 +69,18 @@
         padding-bottom: 0;
     }
 
-    .iw-resource-input {
+    .ia-resource-input {
         background-color: slategray;
         border: 1px solid silver;
         text-align: center;
         width: 4rem;
     }
 
-    .iw-nop {
+    .ia-nop {
         pointer-events: none;
     }
 
-    .iw-resource-content {
+    .ia-resource-content {
         display: flexbox;
         justify-content: center;
         align-items: center;
@@ -92,11 +90,11 @@
         margin: auto;
     }
 
-    .iw-resource-divider {
+    .ia-resource-divider {
         text-align: center;
     }
 
-    .iw-resource-icon {
+    .ia-resource-icon {
         width: 50px;
         height: 50px;
         border: none;
@@ -104,7 +102,7 @@
         padding: 10%;
     }
 
-    .iw-resources-holder {
+    .ia-resources-holder {
         background-color: #1d1b22;
         border: 2px solid slategray;
         padding: 2%;
@@ -112,12 +110,12 @@
         padding-bottom: 0;
     }
 
-    .iw-padding-t2 {
+    .ia-padding-t2 {
         padding-top: 2%;
         padding-bottom: 2%;
     }
 
-    .iw-padding-0 {
+    .ia-padding-0 {
         padding: 0;
     }
 </style>

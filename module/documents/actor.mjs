@@ -59,6 +59,12 @@ export class PTActor extends Actor {
         if (systemData.emotion == null || Object.is(Number(systemData.emotion), NaN)) {
             systemData.emotion = 0;
         }
+
+        if (systemData.augment == null) {
+            systemData.augment = {
+                effects: []
+            }
+        }
     }
 
     async resetCombatData() {
@@ -151,8 +157,6 @@ export class PTActor extends Actor {
         const stats = systemData.abilities;
 
         if (alertClashResolved) {
-            this.queueRoll(null, true);
-
             const ctx1 = new RollContext();
             Object.assign(ctx1, systemData.mostRecentRoll.context);
             ctx1.fix();
@@ -194,14 +198,17 @@ export class PTActor extends Actor {
         }
 
         if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
-            createEffectsMessage(ctx1.actor.name, ctx1.resolveTriggers(["On Use", "Clash Win"]), true);
-            createEffectsMessage(ctx2.actor.name, ctx2.resolveTriggers(["On Use", "Clash Lose"]), true);
+            createEffectsMessage(ctx1.actor.name, await ctx1.resolveTriggers(["On Use", "Clash Win"]), true);
+            createEffectsMessage(ctx2.actor.name, await ctx2.resolveTriggers(["On Use", "Clash Lose"]), true);
         }
 
         if (pending[ctx2.actor.name] != null) {
             createEffectsMessage(pending[ctx2.actor.name].subject, pending[ctx2.actor.name].effect);
             pending[ctx2.actor.name] = null;
         }
+
+        await ctx1.actor.queueRoll(null, true);
+        await ctx2.actor.queueRoll(null, true);
     }
 
     /**
@@ -216,8 +223,6 @@ export class PTActor extends Actor {
         const stats = systemData.abilities;
 
         let damage = context.result;
-
-        this.queueRoll(null, true);
 
         if (systemData.mostRecentRoll != null && systemData.mostRecentRoll.type != "None" && canRespond) {
             const respCtx = new RollContext();
@@ -356,7 +361,7 @@ export class PTActor extends Actor {
     /**
     * @param {RollContext} context 
     */
-    queueRoll(context, reset = false) {
+    async queueRoll(context, reset = false) {
         const system = this.toObject(false).system;
         if (reset) {
             system.mostRecentRoll = null;
@@ -372,7 +377,7 @@ export class PTActor extends Actor {
             };
         }
 
-        this.update({ system }, { diff: false });
+        await this.update({ system }, { diff: false });
     }
 
     fixRollType(type) {
@@ -474,6 +479,12 @@ export class PTActor extends Actor {
 
         if (status == "Charge") {
             system.chargeSpent = Number(system.chargeSpent) + count;
+            if (Number(system.chargeSpent) >= 10) {
+                let count = Number(system.chargeSpent) % 10;
+                system.chargeSpent = Number(system.chargeSpent) - (count * 10);
+                await this.applyStatus("Overcharge", count);
+                createEffectsMessage(this.name, `Gained ${count} [/status/Overcharge] Overcharge from spent [/status/Charge] Charge!`);
+            }
         }
 
         await this.update({ system }, { diff: false, render: true });
@@ -535,8 +546,12 @@ export class PTActor extends Actor {
     async assignRecycleableAction(context, type, source) {
         const system = this.toObject(false).system;
 
+        let ctx = new RollContext();
+        Object.assign(ctx, context);
+        ctx.prepareForSerialization();
+
         system.recycleAction = {
-            context: context,
+            context: ctx,
             type: type,
             source: source
         };

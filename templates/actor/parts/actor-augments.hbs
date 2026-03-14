@@ -1,0 +1,252 @@
+<ol class='items-list'>
+  <li class='item flexrow items-header'>
+    <div class='item-controls'>
+      <a style="text-wrap-mode: nowrap;" class='item-control item-create' title='Create Augment' data-type='augment'>
+        <i class='fas fa-plus'></i>
+        New Augment
+      </a>
+    </div>
+  </li>
+  {{#each augments as |item id|}}
+  <li class='item flexrow' data-item-id='{{item._id}}'>
+    <div class="aa-resource">
+      <div class='aa-item-name'>
+        <h4 class="aa-item-text">{{item.name}}</h4>
+      </div>
+      <div>
+      <div class='item-controls aa-controls'>
+        <a class='item-control item-edit' title='{{localize "DOCUMENT.Update" type=' Item'}}'>
+          <i class='fas fa-edit aa-font-button'></i>
+        </a>
+        <a class='item-control item-delete' title='{{localize "DOCUMENT.Delete" type=' Item'}}'>
+          <i class='fas fa-trash aa-font-button'></i>
+        </a>
+      </div>
+    </div>
+  </li>
+  {{/each}}
+</ol>
+
+<style>
+  .aa-item-name {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    justify-items: center;
+    gap: 2rem;
+    margin: 0px;
+    padding: 2%;
+  }
+
+  .aa-controls {
+    position: absolute;
+    right: 3%;
+    bottom: 25%;
+  }
+
+  .aa-font-button {
+    font-size: 20px;
+  }
+
+  .aa-item-icon {}
+
+  .aa-type-img {
+    width: 2.5rem;
+    height: 2.5rem;
+    background-color: slategray;
+    border: 1px solid gray;
+  }
+
+  .aa-type-img:hover {
+    background: rgb(147, 161, 175);
+  }
+
+  .aa-dropdown-holder {}
+
+  .aa-item-text {
+    text-wrap-mode: nowrap;
+    margin: 0px;
+    font-size: 20px;
+    color: black;
+  }
+
+  .aa-attack-type-button {
+    width: 5rem;
+    height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    justify-items: middle;
+    display: flex;
+    padding: 2%;
+    font-size: 16px;
+    font-weight: bold;
+  }
+
+  .aa-type-container {
+    display: flex;
+    gap: 1rem;
+    align-content: center;
+    align-items: center;
+    justify-items: center;
+    margin: auto;
+  }
+
+  .aa-dropdownIcon {
+    margin: 0px !important;
+    padding: 10% !important;
+  }
+
+  .aa-resource-button {
+    background-color: slategray;
+    border: 1px solid gray;
+    text-align: center;
+  }
+
+  .aa-resource-button:hover {
+    background: rgb(147, 161, 175);
+  }
+
+  .aa-clashDescription {
+    overflow-y: scroll;
+    width: 100%;
+    padding: 2% 2% !important;
+    text-wrap-mode: wrap;
+    display: block !important;
+  }
+
+  .aa-statblock-container {
+    padding: 2% !important;
+    columns: 2;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .aa-rollInfo {
+    height: 9rem;
+    width: 14rem;
+    padding: 0% !important;
+    columns: 1;
+    display: flex !important;
+    gap: 0rem !important;
+  }
+
+  .aa-resource {
+    background-color: cadetblue;
+    border: 2px solid black;23
+    border-radius: 1px;
+    display: flex;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 4rem;
+    padding: 5% 2%;
+    padding-top: 0;
+    padding-bottom: 0;
+    position: relative;
+  }
+
+  .aa-resource-input {
+    background-color: slategray;
+    border: 1px solid silver;
+    text-align: center;
+    width: 4rem;
+  }
+
+  .aa-nop {
+    pointer-events: none;
+  }
+
+  .aa-resource-content {
+    display: flexbox;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    grid: 1 / span 3;
+    gap: 0;
+    margin: auto;
+  }
+
+  .aa-resource-divider {
+    text-align: center;
+  }
+
+  .aa-resource-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: none;
+    margin: auto;
+    padding: 10%;
+  }
+
+  .aa-resources-holder {
+    background-color: #1d1b22;
+    border: 2px solid slategray;
+    padding: 2%;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .aa-padding-t2 {
+    padding-top: 2%;
+    padding-bottom: 2%;
+  }
+
+  .aa-padding-0 {
+    padding: 0;
+  }
+
+  .aa-dropbtn {
+    background-color: cadetblue;
+    color: white;
+    padding: 16px;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    justify-content: center;
+    width: 9rem;
+    height: 2rem;
+    line-height: 0;
+    text-wrap-mode: nowrap;
+  }
+
+  .aa-dropbtn-small {
+    width: 3rem;
+    height: 2rem;
+    line-height: 0;
+  }
+
+  .aa-dropbtn:hover,
+  .aa-dropbtn:focus {
+    background-color: slategray;
+  }
+
+  .aa-dropdown {
+    position: relative;
+    display: inline-block;
+  }
+
+  .aa-dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f6f6f6;
+    border: 1px solid #ddd;
+    z-index: 1;
+    max-height: 20rem;
+  }
+
+  .aa-dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+  }
+
+  .aa-dropdown-content a:hover {
+    background-color: #f1f1f1;
+  }
+
+  .aa-show {
+    display: block;
+  }
+</style>

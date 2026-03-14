@@ -134,7 +134,7 @@ export async function getActionModifiers(actor, context) {
                 html.on('click', '.conditional-toggle', (event) => {
                     if (event.currentTarget.checked) {
                         const itemId = event.currentTarget.closest('.item').dataset.itemId;
-                        data.activeConditionals.push(context.conditionals.find(x => x.name == itemId));
+                        data.activeConditionals.push(itemId);
 
                         html.find('input').each((x, input) => {
                             if (input.classList.contains('conditional-toggle') && input != event.currentTarget) {
@@ -146,7 +146,7 @@ export async function getActionModifiers(actor, context) {
                     }
                     else {
                         const itemId = event.currentTarget.closest('.item').dataset.itemId;
-                        data.activeConditionals = data.activeConditionals.filter(x => x.name != itemId);
+                        data.activeConditionals = data.activeConditionals.filter(x => x != itemId);
                     }
                 })
 

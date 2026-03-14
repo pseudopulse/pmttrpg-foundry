@@ -1,21 +1,17 @@
 {
   "id": "pmttrpg",
   "title": "PMTTRPG",
-  "description": "The PMTTRPG system for FoundryVTT!",
+  "description": "A port of the PMTTRPG CR ruleset to Foundry.",
   "authors": [
     {
-      "name": "Asacolips",
-      "discord": "asacolips"
-    },
-    {
-      "name": "Lee Talman",
-      "discord": ".pizzaWizard"
+      "name": "pseudopulse",
+      "discord": "pseudopulse"
     }
   ],
-  "url": "Replace this with a link to your public repository",
+  "url": "https://github.com/pseudopulse/pmttrpg-foundry",
   "license": "LICENSE.txt",
   "readme": "README.md",
-  "bugs": "Replace this with a link to file issues or tickets",
+  "bugs": "https://github.com/pseudopulse/pmttrpg-foundry/issues",
   "changelog": "CHANGELOG.md",
   "media": [
     {
@@ -44,8 +40,8 @@
   "manifest": "Replace this with a link to the /latest release system.json so people can receive updates after they've installed the system",
   "download": "This must link to a .zip file of the current version",
   "background": "systems/pmttrpg/assets/anvil-impact.png",
-  "gridDistance": 5,
-  "gridUnits": "ft",
+  "gridDistance": 1,
+  "gridUnits": "SQR",
   "primaryTokenAttribute": "health",
-  "secondaryTokenAttribute": "power"
+  "secondaryTokenAttribute": "stagger"
 }

@@ -147,11 +147,13 @@ export class PTItem extends Item {
             Object.assign(tmpCtx, JSON.parse(JSON.stringify(rollContext)));
             tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
             tmpCtx.fix();
+            console.log("p1");
             tmpCtx.processEffects();
             rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
         }
 
         rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
+        console.log("p2");
         rollContext.processEffects();
         return rollContext;
     }

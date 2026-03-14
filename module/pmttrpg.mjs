@@ -292,6 +292,7 @@ const preloadHandlebarsTemplates = async function () {
     'systems/pmttrpg/templates/actor/parts/actor-skills.hbs',
     'systems/pmttrpg/templates/actor/parts/actor-status.hbs',
     'systems/pmttrpg/templates/actor/parts/actor-combat.hbs',
+    'systems/pmttrpg/templates/actor/parts/actor-augments.hbs',
     //
     'systems/pmttrpg/templates/item/parts/effect.hbs',
     'systems/pmttrpg/templates/item/parts/resist-type.hbs',

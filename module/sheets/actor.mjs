@@ -1,5 +1,6 @@
 import { roughSizeOfObject } from "../pmttrpg.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
+import { validate, handleEffectAddButton, handleEffectCounterChange, handleEffectRemoveButton, handleEffectTriggerChange, handleEffectTypeChange, getEffectsArray } from "../core/effects/effectHelpers.mjs";
 
 //
 export class PTActorSheet extends ActorSheet {
@@ -38,6 +39,7 @@ export class PTActorSheet extends ActorSheet {
         const weapons = [];
         const outfits = [];
         const skills = [];
+        const augments = [];
 
         for (let i of context.items) {
             if (i.type === 'weapon') {
@@ -49,11 +51,15 @@ export class PTActorSheet extends ActorSheet {
             else if (i.type === 'skill') {
                 skills.push(i);
             }
+            else if (i.type === 'augment') {
+                augments.push(i);
+            }
         }
 
         context.weapons = weapons;
         context.outfits = outfits;
         context.skills = skills;
+        context.augments = augments;
     }
 
     activateListeners(html) {

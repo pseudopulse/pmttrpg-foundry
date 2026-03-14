@@ -25,6 +25,7 @@ export class RollContext {
         this.light = 0;
         this.messages = [];
         this.conditionals = [];
+        this.activeConditionals = [];
         this.mustDeserialize = false;
         this.ignoreClashEffects = false;
         this.forcedAdvState = 0;
@@ -62,15 +63,16 @@ export class RollContext {
         }
     }
 
-    resolveTriggers(triggers) {
+    async resolveTriggers(triggers) {
         let lines = [];
+        for (const costs of this.costs) {
+            for (const cost of costs) {
+                let status = cost.status;
+                let prev = this.actor.getStatusCount(status);
 
-        for (const cost of this.costs) {
-            let status = cost.status;
-            let prev = this.actor.getStatusCount(status);
-
-            this.actor.reduceStatus(status, cost.cost);
-            lines.push(`Lose ${cost.cost} [/status/${status}] ${status} (${prev} -> ${prev - cost.cost})`);
+                await this.actor.reduceStatus(status, cost.cost);
+                lines.push(`Lose ${cost.cost} [/status/${status}] ${status} (${prev} -> ${prev - cost.cost})`);
+            }
         }
 
         for (const trigger of triggers) {
@@ -123,6 +125,12 @@ export class RollContext {
 
         for (const effect of this.effects) {
             effect.effect.apply(this, effect.count, effect.trigger);
+        }
+        
+        for (const conditional of this.activeConditionals) {
+            let def = this.conditionals.find(x => x.name == conditional);
+            def.onUse(this);
+            this.costs.push(def.costs);
         }
     }
 
@@ -227,14 +235,9 @@ export class RollContext {
                     });
                 }
             }
-
-            if (this.modifiers.activeConditionals != null) {
-                for (let conditional of this.modifiers.activeConditionals) {
-                    conditional.onUse(this);
-                    for (let cost of conditional.costs) {
-                        this.costs.push(cost);
-                    }
-                }
+            
+            for (const conditional of this.modifiers.activeConditionals) {
+                this.activeConditionals.push(conditional);
             }
 
             this.ignoreClashEffects = this.modifiers.ignoreClashEffects;

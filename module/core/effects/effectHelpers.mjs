@@ -1,6 +1,7 @@
 import { outfitEffects } from "./outfitEffects.mjs";
 import { weaponEffects } from "./weaponEffects.mjs";
 import { skillEffects } from "./skillEffects.mjs";
+import { augmentEffects } from "./augmentEffects.mjs";
 
 export function handleEffectRemoveButton(event, effects) {
     let index = event.currentTarget.id.split("-")[1];
@@ -19,6 +20,9 @@ export function getEffectsArray(type) {
             return skillEffects;
         case "outfit":
             return outfitEffects;
+        case "augment":
+        case "augments":
+            return augmentEffects;
         default:
             return null;
     }

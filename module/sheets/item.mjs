@@ -18,13 +18,9 @@ export class PTItemSheet extends ItemSheet {
 
     /** @override */
     get template() {
+        console.log(`systems/pmttrpg/templates/item/item-${this.item.type}.hbs`)
         return `systems/pmttrpg/templates/item/item-${this.item.type}.hbs`;
     }
-
-    /*
-    -- add weapon conditionals
-        - make them appear under the conditionals tab
-    */
 
     async getData() {
         const context = super.getData();

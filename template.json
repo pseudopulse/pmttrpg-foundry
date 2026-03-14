@@ -64,11 +64,12 @@
       "bloodfeastConsumed": 0,
       "damageDealt": 0,
       "damageTaken": 0,
-      "recycleAction": null
+      "recycleAction": null,
+      "augment": null
     }
   },
   "Item": {
-    "types": ["weapon", "tool", "skill", "outfit"],
+    "types": ["weapon", "tool", "skill", "outfit", "augment"],
     "weapon": {
       "diceMax": 10,
       "dicePower": 1,
@@ -90,6 +91,9 @@
       "effects": [],
       "type": "Attack",
       "light": 0
+    },
+    "augment": {
+      "effects": []
     },
     "outfit": {
       "diceMaxBlo": 10,
