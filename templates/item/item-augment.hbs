@@ -8,9 +8,14 @@
     </header>
 
     <section class="sheet-body">
+        <div>
+            <div class="ia-clashDescription ia-resource">
+            {{{enrichedClashData}}}
+            </div>
+        </div>
         {{#each item.system.effects as |effect effect|}}
         <div>
-            {{> ptEffect effect effectsList=../effectsList pref="w"}}
+            {{> ptEffect effect effectsList=../effectsList pref="w" id=../item.id type="augment"}}
         </div>
         {{/each}}
 
@@ -39,7 +44,16 @@
     .ia-clashDescription {
         overflow-y: scroll;
         width: 100%;
-        padding: 0 2% !important;
+        padding: 2% 2% !important;
+        text-wrap-mode: wrap;
+        display: block !important;
+        height: 9.5rem;
+    }
+
+    .ia-clashDescription {
+        overflow-y: scroll;
+        width: 100%;
+        padding: 1% 2% !important;
         text-wrap-mode: wrap;
     }
 

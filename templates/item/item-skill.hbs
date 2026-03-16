@@ -12,7 +12,7 @@
 
         {{#each item.system.effects as |effect effect|}}
         <div>
-            {{> ptEffect effect effectsList=../effectsList pref="a"}}
+            {{> ptEffect effect effectsList=../effectsList pref="a" id=../item.id type="skill"}}
         </div>
         {{/each}}
 

@@ -5,7 +5,7 @@ export const statusList = [
         await actor.takeDamageStatus(actor.getStatusCount("Burn"), "Burn", "HP", "[/status/Burn] Burned for %DMG% HP damage! (%PHP% -> %HP%)")
     }, (count) => { return count / 2 }),
     new StatusEffect("Frostbite", Triggers.END, async (actor) => {
-        await actor.takeDamageStatus(actor.getStatusCount("Frostbite"), "Frostbite", "ST", "[/status/Frostbite] Froze for %DMG% ST damage! (%PST% -> %SP%)")
+        await actor.takeDamageStatus(actor.getStatusCount("Frostbite"), "Frostbite", "ST", "[/status/Frostbite] Froze for %DMG% ST damage! (%PST% -> %ST%)")
     }, (count) => { return count / 2 }),
     new StatusEffect("Bleed", Triggers.ACTION, async (actor) => {
         await actor.takeDamageStatus(actor.getStatusCount("Bleed"), "Bleed", "HP", "[/status/Bleed] Bled for %DMG% HP damage! (%PHP% -> %HP%)")

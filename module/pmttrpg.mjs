@@ -4,7 +4,7 @@ import { getRollContextFromData, PTItem } from "./documents/item.mjs";
 import { PTActorSheet } from "./sheets/actor.mjs";
 import { PTItemSheet } from "./sheets/item.mjs";
 import { handler, sendNetworkMessage, registerMessages } from "./core/helpers/netmsg.mjs";
-import { roundChange, turnChange, updateCombatant } from "./core/combat/combatState.mjs";
+import { currentRound, currentTurn, roundChange, setRound, turnChange, updateCombatant } from "./core/combat/combatState.mjs";
 import { getEffectsArray } from "./core/effects/effectHelpers.mjs";
 import { RollContext } from "./core/combat/rollContext.mjs";
 import { enrichClashData } from "./core/helpers/clash.mjs";
@@ -44,7 +44,7 @@ Hooks.once("init", () => {
   Items.unregisterSheet('core', ItemSheet);
   Items.registerSheet('pmttrpg', PTItemSheet,
     {
-      types: ["weapon", "tool", "skill", "outfit"],
+      types: ["weapon", "tool", "skill", "outfit", "augment"],
       makeDefault: true,
       label: 'PMTTRPG.SheetLabels.Item'
     }
@@ -190,6 +190,14 @@ Hooks.on(`updateCombatant`, async (combatant, data, options, id) => {
   await updateCombatant(combatant, data, id);
 });
 
+Hooks.once('ready', () => {
+  setRound(game.combat.round, game.combat.turn);
+});
+
+
+export function scale(distance) {
+  return Math.floor(distance / canvas.grid.distance);
+}
 
 /**
  * @param {HTMLElement} html

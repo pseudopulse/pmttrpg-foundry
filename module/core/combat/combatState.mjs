@@ -3,6 +3,11 @@ import { searchForActor } from "../../pmttrpg.mjs";
 export let currentRound = 0;
 export let currentTurn = 0;
 
+export function setRound(round, turn) {
+    currentRound = round;
+    currentTurn = turn;
+}
+
 export async function roundChange(combat, round, turn) {
     currentRound = round;
 

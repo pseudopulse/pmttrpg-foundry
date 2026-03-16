@@ -2,10 +2,12 @@ import { searchByObject, searchForActor } from "../../pmttrpg.mjs";
 import { weaponEffects } from "../effects/weaponEffects.mjs";
 import { outfitEffects } from "../effects/outfitEffects.mjs";
 import { getEffectsArray } from "../effects/effectHelpers.mjs";
+import { currentRound } from "./combatState.mjs";
 
 export class RollContext {
     constructor() {
         const triggerTypes = ["Clash Win", "Clash Lose", "On Use", "Always Active"];
+        const eventTypes = ["Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst"];
         this.diceMax = 10;
         this.dicePower = 0;
         this.enemyPowerMod = 0;
@@ -29,9 +31,22 @@ export class RollContext {
         this.mustDeserialize = false;
         this.ignoreClashEffects = false;
         this.forcedAdvState = 0;
+        this.events = {};
 
         for (const trigger of triggerTypes) {
             this.triggers[trigger] = new TriggerEvents();
+        }
+
+        for (const event of eventTypes) {
+            this.events[event] = [];
+        }
+    }
+
+    async fireEvent(event) {
+        console.log(this.events[event]);
+        for (const ev of this.events[event]) {
+            console.log(ev);
+            await ev(this);
         }
     }
 
@@ -84,13 +99,13 @@ export class RollContext {
 
                 if (cur < 0) {
                     let prev = infliction.nextRound ? Number(this.actor.getStatusCountNext(status)) : Number(this.actor.getStatusCount(status));
-                    this.actor.applyStatus(status, infliction.nextRound ? 0 : Math.abs(cur), infliction.nextRound ? Math.abs(cur) : 0);
+                    await this.actor.applyStatus(status, infliction.nextRound ? 0 : Math.abs(cur), infliction.nextRound ? Math.abs(cur) : 0);
                     lines.push(`Gain ${Math.abs(cur)} [/status/${status}] ${status}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + Math.abs(cur)})`);
                 }
                 else {
                     if (this.target != null) {
                         let prev = infliction.nextRound ? Number(this.target.getStatusCountNext(status)) : Number(this.target.getStatusCount(status));
-                        this.target.applyStatus(status, infliction.nextRound ? 0 : cur, infliction.nextRound ? cur : 0);
+                        await this.target.applyStatus(status, infliction.nextRound ? 0 : cur, infliction.nextRound ? cur : 0);
                         lines.push(`Inflict ${cur} [/status/${status}] ${status}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + cur})`);
                     }
                 }
@@ -134,22 +149,35 @@ export class RollContext {
         }
     }
 
-    getDescription(validTriggers = ["On Use", "Clash Win", "Clash Lose"], postClash = false) {
+    getDescription(validTriggers = ["On Use", "Clash Win", "Clash Lose"], postClash = false, fakeFirstRound = false) {
         let desc = "";
         let triggers = {};
         triggers["Clash Win"] = [];
         triggers["Clash Lose"] = [];
         triggers["On Use"] = [];
+        triggers["Always Active"] = [];
+        triggers["Augment Passive"] = [];
+        triggers["Combat Start"] = [];
+        triggers["Round Start"] = [];
         let valid = ["Clash Win", "Clash Lose", "On Use"]
+        if (fakeFirstRound) {
+            valid.push("Combat Start");
+            valid.push("Round Start");
+        }
+
         for (const effect of this.effects) {
             if (this.ignoreClashEffects) {
                 continue;
             }
+
             
             if (valid.find(x => x == effect.trigger) != null && effect.effect.description != null) {
-                triggers[effect.trigger].push(
-                    this.format(`<span style="color: ${this.getColor(effect.trigger)} !important;">[${effect.trigger}]</span>`, effect.effect.description(effect.count), !postClash)
-                );
+                let description = effect.effect.description(effect.count);
+                if (description != null && (!(description.includes("first round") && currentRound > 1) || fakeFirstRound)) {
+                    triggers[effect.trigger].push(
+                        this.format(`<span style="color: ${this.getColor(effect.trigger)} !important;">[${effect.trigger}]</span>`, effect.effect.description(effect.count), !postClash)
+                    );
+                }
             }
             else {
                 if (effect.effect.dontFormat) {
@@ -157,10 +185,16 @@ export class RollContext {
                     if (desc[0] != null) triggers["On Use"].push(this.format(`<span style="color: ${this.getColor("On Use")} !important;">[On Use]</span>`, desc[0], !postClash));
                     if (desc[1] != null) triggers["Clash Win"].push(this.format(`<span style="color: ${this.getColor("Clash Win")} !important;">Clash Win</span>`, desc[0], !postClash));
                     if (desc[2] != null) triggers["Clash Lose"].push(this.format(`<span style="color: ${this.getColor("Clash Lose")} !important;">Clash Lose</span>`, desc[0], !postClash));
+                    if (desc[3] != null) triggers["Always Active"].push(this.format("", desc[3], false));
+                    if (desc[4] != null && fakeFirstRound) triggers["Augment Passive"].push(this.format("", desc[4], false));
                 }
             }
         }
-
+        
+        this.append(desc, triggers["Augment Passive"]);
+        this.append(desc, triggers["Always Active"]);
+        if (valid.includes("Combat Start")) desc = this.append(desc, triggers["Combat Start"]);
+        if (valid.includes("Round Start")) desc = this.append(desc, triggers["Round Start"]);
         if (validTriggers.includes("On Use")) desc = this.append(desc, triggers["On Use"]);
         if (validTriggers.includes("Clash Win")) desc = this.append(desc, triggers["Clash Win"]);
         if (validTriggers.includes("Clash Lose")) desc = this.append(desc, triggers["Clash Lose"]);
@@ -173,8 +207,16 @@ export class RollContext {
     }
 
     fix() {
+        const eventTypes = ["Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst"];
+        for (const event of eventTypes) {
+            this.events[event] = [];
+        }
+
         for (const effect of this.effects) {
             effect.effect = getEffectsArray(effect.source).find(x => x.name == effect.name);
+            if (effect.effect.reapply) {
+                effect.effect.apply(this, effect.count, effect.trigger);
+            }
         }
 
         if (this.mustDeserialize) {
@@ -198,6 +240,10 @@ export class RollContext {
     }
 
     getColor(trigger) {
+        if (trigger == "On Use") {
+            trigger = "On Use";
+        }
+
         switch (trigger) {
             case "On Use":
                 return "#4aff68ff";
@@ -205,6 +251,10 @@ export class RollContext {
                 return "#f5c950ff";
             case "Clash Lose":
                 return "#c00000ff";
+            case "Combat Start":
+                return "#ffa450ff";
+            case "Round Start":
+                return "#fff350ff";
         }
 
         return "#000000";
@@ -242,6 +292,18 @@ export class RollContext {
 
             this.ignoreClashEffects = this.modifiers.ignoreClashEffects;
             this.forcedAdvState = this.modifiers.forcedAdvState;
+        }
+
+        if (this.actor != null && this.actor.augment != null) {
+            for (const effect of this.actor.augment.system.effects) {
+                this.effects.push({
+                    effect: getEffectsArray("augment").find(x => x.name == effect.name),
+                    count: effect.count,
+                    trigger: effect.trigger,
+                    source: "augment",
+                    name: effect.name
+                });
+            }
         }
     }
 }

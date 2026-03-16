@@ -55,6 +55,7 @@
       },
       "mostRecentRoll": null,
       "currentOutfitId": "",
+      "currentAugmentId": "",
       "statusEffects": [],
       "disposition": "None",
       "emotion": 0,

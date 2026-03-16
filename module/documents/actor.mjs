@@ -5,6 +5,7 @@ import { statusList } from "../core/status/statusEffects.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
 import { searchByObject } from "../pmttrpg.mjs";
 import { currentRound } from "../core/combat/combatState.mjs";
+import { getRollContextFromData } from "./item.mjs";
 
 let pending = {};
 
@@ -49,6 +50,18 @@ export class PTActor extends Actor {
             this.outfit = this.items.find(x => x._id == systemData.currentOutfitId);
         }
 
+        // augment management
+        if (systemData.currentAugmentId == "") {
+            const augments = this.items.filter(x => x.type == "augment");
+            if (augments.length > 0) {
+                systemData.currentAugmentId = augments[0]._id;
+                this.augment = augments[0];
+            }
+        }
+        else {
+            this.augment = this.items.find(x => x._id == systemData.currentAugmentId);
+        }
+
         let light = 3 + attr.rank.value;
         if (this.outfit != null && this.outfit.form == "Balanced") {
             light += 1;
@@ -65,6 +78,22 @@ export class PTActor extends Actor {
                 effects: []
             }
         }
+    }
+
+    getOutfitContext() {
+        if (this.outfit != null) {
+            return getRollContextFromData(this.outfit, true, "Block");
+        }
+
+        return new RollContext();
+    }
+
+    getAugmentContext() {
+        if (this.augment != null) {
+            return getRollContextFromData(this.augment, false);
+        }
+
+        return new RollContext();
     }
 
     async resetCombatData() {
@@ -164,6 +193,7 @@ export class PTActor extends Actor {
             const ctx2 = new RollContext();
             if (ctx1.target != null && ctx1.target.system.mostRecentRoll != null) {
                 Object.assign(ctx2, ctx1.target.system.mostRecentRoll.context);
+                ctx2.fix();
             }
             else {
                 ctx2.result = "X";
@@ -195,6 +225,29 @@ export class PTActor extends Actor {
         }
         else {
             return;
+        }
+
+        let ruin = ctx2.actor.getStatusCount("Ruin");
+        let devastation = ctx2.actor.getStatusCount("Devastation");
+
+        if (ruin > 0) {
+            let tmp = new Roll(`1d10`);
+            await tmp.evaluate();
+            let roll = tmp.total;
+
+            if (roll <= ruin) {
+                tmp = new Roll(`${devastation}d8`);
+                await tmp.evaluate();
+                let damage = tmp.total;
+                console.log(ctx2.actor);
+                await ctx2.actor.setStatus("Ruin", 0);
+                await ctx2.actor.setStatus("Devastation", 0);
+                await ctx2.actor.takeDamageStatus(damage, "Ruin", null, `Received a [/status/Devastation] Devastating hit for %DMG% HP damage! (%PHP% -> %HP%)`);
+                await ctx1.fireEvent("Devastating Hit");
+            }
+            else {
+                createEffectsMessage(ctx1.actor.name, `Rolled ${roll}, failed [/status/Ruin] Ruin check!`);
+            }
         }
 
         if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
@@ -410,6 +463,9 @@ export class PTActor extends Actor {
         system.pendingStatusEffects = [];
 
         await this.update({ system }, { diff: false });
+
+        this.getAugmentContext().fireEvent("Combat Start");
+        this.getOutfitContext().fireEvent("Combat Start");
     }
 
     async handleNextRound() {
@@ -423,6 +479,9 @@ export class PTActor extends Actor {
         }
 
         await this.update({ system }, { diff: false, render: true });
+
+        await this.getAugmentContext().fireEvent("Round Start");
+        await this.getOutfitContext().fireEvent("Round Start");
     }
 
     getStatusCount(status) {

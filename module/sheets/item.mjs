@@ -18,7 +18,6 @@ export class PTItemSheet extends ItemSheet {
 
     /** @override */
     get template() {
-        console.log(`systems/pmttrpg/templates/item/item-${this.item.type}.hbs`)
         return `systems/pmttrpg/templates/item/item-${this.item.type}.hbs`;
     }
 
@@ -44,7 +43,7 @@ export class PTItemSheet extends ItemSheet {
         context.rollContext.addEffectsList(context.system.effects, this.capitalizeFirstLetter(this.item.type));
         context.rollContext.processEffects();
 
-        context.enrichedClashData = enrichClashData(context.rollContext.getDescription());
+        context.enrichedClashData = enrichClashData(context.rollContext.getDescription(["Clash Win", "Clash Lose", "On Use"], false, true));
 
         return context;
     }
@@ -76,7 +75,7 @@ export class PTItemSheet extends ItemSheet {
 
         html.on('click', '.effect-type', (event) => {
             const system = this.document.toObject(false).system;
-            handleEffectTypeChange(event, system.effects);
+            handleEffectTypeChange(event, system.effects, this.item.type);
             this.item.update({ system }, { render: true, diff: false });
         });
 

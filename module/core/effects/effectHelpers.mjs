@@ -4,7 +4,7 @@ import { skillEffects } from "./skillEffects.mjs";
 import { augmentEffects } from "./augmentEffects.mjs";
 
 export function handleEffectRemoveButton(event, effects) {
-    let index = event.currentTarget.id.split("-")[1];
+    let index = event.currentTarget.id.split("-")[2];
     effects.splice(index, 1);
 
     for (let i = 0; i < effects.length; i++) {
@@ -38,13 +38,13 @@ export function handleEffectAddButton(event, effects, type) {
 }
 
 export function handleEffectCounterChange(event, effects, category = "Weapon") {
-    let index = event.currentTarget.id.split("-")[1];
+    let index = event.currentTarget.id.split("-")[2];
     effects[index].count = event.currentTarget.value;
     validate(effects, category);
 }
 
 export function handleEffectTypeChange(event, effects, category = "Weapon") {
-    let index = event.currentTarget.id.split("-")[1];
+    let index = event.currentTarget.id.split("-")[2];
     effects[index].name = event.currentTarget.textContent;
     validate(effects, category);
 }

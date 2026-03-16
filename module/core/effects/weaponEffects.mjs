@@ -94,7 +94,7 @@ export const weaponEffects = [
             context.triggers["Clash Lose"].applyInfliction("Bleed", -2, true);
         },
         (count) => {
-            return [null, "Inflict 2 [/status/Bleed] Bleed", "Gain 2 Bleed"];
+            return [null, "Inflict 2 [/status/Bleed] Bleed", "Gain 2 Bleed", null, null];
         },
         ["Always Active"],
         false,
@@ -132,14 +132,19 @@ export const weaponEffects = [
     new Effect(
         `Extension Grip`,
         (context, count, trigger) => {
-            
+            context.conditionals.push(new Conditional("Extension Grip [C]", `Spend 4 Charge to increase range by 1 SQR.`, (context) => {
+            }, [{ cost: 4, status: "Charge"}], "Extension Grip [O]"));
+
+            context.conditionals.push(new Conditional("Extension Grip [O]", `Spend 1 Overcharge to increase range by 2 SQR.`, (context) => {
+            }, [{ cost: 1, status: "Overcharge"}], "Extension Grip [C]"));
         },
         (count) => {
-            return "May spend 4 [/status/Charge] Charge to increase range by 1 SQR."
+            return [null, null, null, "May spend 4 [/status/Charge] Charge to increase range by 1 SQR, or 1 [/status/Overcharge] Overcharge to increase by 2 SQR.", null];
         },
-        ["On Use"],
+        ["Always Active"],
         false,
-        1
+        1,
+        true
     ),
     new Effect(
         `Extra DMG Type`,
@@ -217,6 +222,12 @@ export const weaponEffects = [
                 context.dicePower = Number(context.dicePower) + 2;
             }, [{ cost: 1, status: "Overcharge"}], "Power Engine [C]"));
         },
+        (count) => {
+            return [null, null, null, "May spend 8 [/status/Charge] Charge to gain 1 Dice Power, or 1 [/status/Overcharge] to gain 2 Dice Power.", null];
+        },
+        ["Always Active"],
+        false,
+        1,
     )
 ]
 

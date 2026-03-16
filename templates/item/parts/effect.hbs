@@ -1,24 +1,24 @@
 <div class="ef-resources-holder flexcol">
     <div class="ef-resources">
         <div class="ef-resource-content">
-            <button onclick="toggleEF('effect{{index}}')" class="ef-dropbtn ef-large-dropdown">
+            <button onclick="toggleEF('{{id}}-effect{{index}}')" class="ef-dropbtn ef-large-dropdown">
                 {{name}}
             </button>
-            <div id="effect{{index}}" class="ef-dropdown-content">
-                <input type="text" placeholder="Search.." id="effectInput{{index}}"
-                    onkeyup="filterFunction('effectInput{{index}}', 'effect{{index}}')">
+            <div id="{{id}}-effect{{index}}" class="ef-dropdown-content">
+                <input type="text" placeholder="Search.." id="{{id}}-effectInput{{index}}"
+                    onkeyup="filterFunction('{{id}}-effectInput{{index}}', '{{id}}-effect{{index}}')">
                 {{#each effectsList as |effect effect|}}
-                <a class="effect-type" id="effectType-{{../index}}">{{effect.name}}</a>
+                <a class="effect-type" id="{{id}}-effectType-{{../index}}">{{effect.name}}</a>
                 {{/each}}
             </div>
         </div>
 
         <div class="ef-resource-content">
-            <button onclick="toggleEF('type{{index}}')" class="ef-dropbtn ef-small-dropdown">
+            <button onclick="toggleEF('{{id}}-type{{index}}')" class="ef-dropbtn ef-small-dropdown">
                 {{trigger}}
             </button>
-            {{#with (effect name 'Weapon') as |effectData|}}
-            <div id="type{{../index}}" class="ef-dropdown-content">
+            {{#with (effect name type) as |effectData|}}
+            <div id="{{../id}}-type{{../index}}" class="ef-dropdown-content">
                 {{#each effectData.validTriggers}}
                 <a class="effect-trigger" id="effectTrigger-{{../../index}}">{{this}}</a>
                 {{/each}}
@@ -28,11 +28,11 @@
 
         <div class="ef-resource-content">
             <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="ef-resource-input effect-counter"
-                id="effectCounter-{{index}}" type="number" min="-10" max="10" value="{{count}}" data-dtype="Number" />
+                id="{{id}}-effectCounter-{{index}}" type="number" min="-10" max="10" value="{{count}}" data-dtype="Number" />
         </div>
 
         <div class="ef-resource-content">
-            <button class="ef-dropbtn ef-dropbtn-small effect-remove-button" id="removeEffect-{{index}}">-</button>
+            <button class="ef-dropbtn ef-dropbtn-small effect-remove-button" id="{{id}}-removeEffect-{{index}}">-</button>
         </div>
     </div>
 </div>
