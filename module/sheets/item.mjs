@@ -36,11 +36,12 @@ export class PTItemSheet extends ItemSheet {
         context.effectsList = getEffectsArray(this.item.type);
 
         context.rollContext = new RollContext();
-        if (this.type == "weapon") {
+        if (this.item.type == "weapon") {
             context.rollContext.damageType = context.system.damageType;
+            context.rollContext.attackType = context.system.attackType;
         }
 
-        context.rollContext.addEffectsList(context.system.effects, this.capitalizeFirstLetter(this.item.type));
+        context.rollContext.addEffectsList(context.system.effects, this.item.type);
         context.rollContext.processEffects();
 
         context.enrichedClashData = enrichClashData(context.rollContext.getDescription(["Clash Win", "Clash Lose", "On Use"], false, true));
@@ -99,12 +100,13 @@ export class PTItemSheet extends ItemSheet {
 
         html.on('click', '.wb-attack-type-button', (event) => {
             const system = this.document.toObject(false).system;
-            if (system.type == "Melee") {
-                system.type = "Ranged";
+            if (system.attackType == "Melee") {
+                system.attackType = "Ranged";
             }
             else {
-                system.type = "Melee";
+                system.attackType = "Melee";
             }
+
             this.item.update({ system }, { render: true, diff: false });
         });
 

@@ -4,7 +4,7 @@
         <div class="wb-type-container">
             {{#if editable}}
             <div class="wb-dropdown-holder">
-                <img class="wb-resource-icon wb-resource-button" onclick="toggle('weaponDMGDrp')"
+                <img class="wb-resource-icon wb-resource-button" onclick="toggleWP('weaponDMGDrp')"
                     src='systems/pmttrpg/assets/damageTypes/{{rollContext.damageType}}.png' width='24' height='24' />
                 <div id="weaponDMGDrp" class="wb-dropdown-content">
                     {{#if (ne rollContext.damageType 'Slash' )}}
@@ -36,7 +36,7 @@
 </div>
 
 <script>
-    function toggle(element) {
+    function toggleWP(element) {
         document.getElementById(element).classList.toggle("wb-show");
     }
 </script>

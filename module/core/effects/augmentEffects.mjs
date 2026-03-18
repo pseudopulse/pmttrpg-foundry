@@ -3,6 +3,8 @@ import { handleNegativeText } from "../../core/effects/effectHelpers.mjs";
 import { currentRound } from "../combat/combatState.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
 import { scale } from "../../pmttrpg.mjs";
+import { Conditional } from "../combat/rollContext.mjs";
+import { pollUserInputText } from "../helpers/dialog.mjs";
 
 export const augmentEffects = [
     // augment bonus effects
@@ -60,7 +62,31 @@ export const augmentEffects = [
         false,
         5, false, true
     ),
-    // - constant barrier
+    new Effect(
+        "Constant Barrier",
+        (context, count, trigger) => {
+            context.events["Round Start"].push(async (context) => {
+                let max = Math.min(count * 3, Number(context.actor.getStatusCount("Charge")));
+                let amount = await pollUserInputText("Constant Barrier: Spend intervals of 3 [/status/Charge] Charge to gain [/status/Charge_Barrier] Charge Barrier", "Charge Amount", "number", max);
+                amount = Number(amount);
+                amount = Math.clamp(amount, 0, max);
+
+                if (amount > 0) {
+                    await context.actor.reduceStatus("Charge", Number(amount));
+                    let gain = Math.floor(Number(amount) / 3);
+
+                    if (gain > 0) {
+                        await context.actor.applyStatus("Charge_Barrier", gain, 0);
+                        createEffectsMessage(context.actor.name, `Spent ${amount} [/status/Charge] Charge to gain ${gain} [/status/Charge_Barrier] Charge Barrier`);
+                    }
+                }
+            });
+        },
+        (count) => {
+            return `Spend up to ${Number(count) * 3} [/status/Charge] Charge; Gain 1 [/status/Charge_Barrier] Charge Barrier for every 3 spent`
+        },
+        ["Round Start"], false, 5, false, true
+    ),
     markerEffect("Blood Cycler"),
     new Effect(
         "Wasting Curse",
@@ -122,6 +148,274 @@ export const augmentEffects = [
     augmentThresholdEffect("Caged Haste", "SP", 1, ["Haste"], ["Feeble"]),
     augmentThresholdEffect("Caged Protection", "SP", 1, ["Protection", "Stagger_Protection"], ["Fragile", "Stagger_Fragile"]),
     //
+    new Effect(
+        "Lone Fighter",
+        (context, count, trigger) => {
+            context.conditionals.push(new Conditional("Lone Fighter", `Increase Dice Power by ${count} if the target has not had action taken against them by an ally in 2 rounds.`, (context) => {
+                context.dicePower = Number(context.dicePower) + count;
+            }, [], null));
+        },
+        null,
+        ["Always Active"],
+        false,
+        3
+    ),
+    markerEffect("Overcharged Drive [S]"),
+    markerEffect("Overcharged Drive [E]"),
+    new Effect(
+        "Remembrance [S]",
+        (context, count, trigger) => {
+            context.events["Round Start"].push(async (context) => {
+                let dispo = canvas.tokens.placeables.find(x => x.actor == context.actor).document.disposition;
+                let anyDead = false;
+                for (const token of canvas.tokens.placeables.filter(x => (x.actor != context.actor) && x.document.disposition == dispo)) {
+                    if (token.actor.system.attributes.health.value <= 0) {
+                        anyDead = true;
+                    }
+                }
+
+                if (anyDead) {
+                    if (count < 0) {
+                        await context.actor.applyStatus("Feeble", 2, 0);
+                        createEffectsMessage(context.actor.name, "Gains 2 [/status/Feeble] Feeble from Remembrance!");
+                    }
+                    else {
+                        await context.actor.applyStatus("Strength", 2, 0);
+                        createEffectsMessage(context.actor.name, "Gains 2 [/status/Strength] Strength from Remembrance!");
+                    }
+                }
+            });
+        },
+        (count) => {
+            if (count < 0) {
+                return "Gain 2 [/status/Feeble] if any allies are defeated."
+            }
+
+            return "Gain 2 [/status/Strength] if any allies are defeated."
+        }, ["Round Start"], true, 1, false, true
+    ),
+    new Effect(
+        "Remembrance [E]",
+        (context, count, trigger) => {
+            context.events["Round Start"].push(async (context) => {
+                let dispo = canvas.tokens.placeables.find(x => x.actor == context.actor).document.disposition;
+                let anyDead = false;
+                for (const token of canvas.tokens.placeables.filter(x => (x.actor != context.actor) && x.document.disposition == dispo)) {
+                    if (token.actor.system.attributes.health.value <= 0) {
+                        anyDead = true;
+                    }
+                }
+
+                if (anyDead) {
+                    if (count < 0) {
+                        await context.actor.applyStatus("Feeble", 2, 0);
+                        createEffectsMessage(context.actor.name, "Gains 2 [/status/Feeble] Feeble from Remembrance!");
+                    }
+                    else {
+                        await context.actor.applyStatus("Endurance", 2, 0);
+                        createEffectsMessage(context.actor.name, "Gains 2 [/status/Endurance] Endurance from Remembrance!");
+                    }
+                }
+            });
+        },
+        (count) => {
+            if (count < 0) {
+                return "Gain 2 [/status/Feeble] if any allies are defeated."
+            }
+
+            return "Gain 2 [/status/Endurance] if any allies are defeated."
+        }, ["Round Start"], true, 1, false, true
+    ),
+    new Effect(
+        "Momentum",
+        (context, count, trigger) => {
+            if (context.attackType == "Melee") {
+                context.conditionals.push(new Conditional("Momentum", "Deal HP damage equal to SQRs moved before melee attack.", async (context) => { }, [], null));
+
+                context.events["Clash Win"].push(async (context) => {
+                    if (!context.activeConditionals.includes("Momentum")) return;
+
+                    let sqr = await pollUserInputText("Momentum: Deal HP damage based on SQRs moved in a straight line.", "SQRs moved", "number");
+                    sqr = Number(sqr);
+
+                    if (sqr > 3) {
+                        sqr = sqr - 3;
+                        let prev = context.target.system.attributes.health.value;
+                        await context.target.takeDamage(0, context, Math.min(sqr, 20), 0, 0, true);
+                        let hp = context.target.system.attributes.health.value;
+                        createEffectsMessage(context.target.name, `Received ${Math.min(sqr, 20)} HP damage from Momentum! (${prev} -> ${hp})`);
+                    }
+                });
+            }
+        },
+        null,
+        ["Always Active"],
+        false,
+        1, false, true
+    ),
+    new Effect(
+        "Cavalry Charge",
+        (context, count, trigger) => {
+            context.conditionals.push(new Conditional("Cavalry Charge", "When moving 3+ SQR before attack, enemy clash has disadvantage.", (context) => {
+                context.enemyAdvState = -1;
+                context.enemyModifierText.push("Rolled with [/status/Paralysis] Disadvantage from Cavalry Charge!");
+            }, [], null));
+        },
+        null,
+        ["Always Active"],
+        false,
+        1
+    ),
+    // - kinetic storage
+    // - status barrier
+    markerEffect("Split Second", false, 1),
+    //
+    markerEffect("Burn Resistance", true, 5),
+    markerEffect("Frostbite Resistance", true, 5),
+    markerEffect("Bleed Resistance", true, 5),
+    markerEffect("Rupture Resistance", true, 5),
+    markerEffect("Tremor Resistance", true, 5),
+    markerEffect("Sinking Resistance", true, 5),
+    markerEffect("Damage Resistance", true, 3),
+    // - steady
+    //
+    markerEffect("Additional Reaction", true, 1),
+    markerEffect("Throwing Master", false, 1),
+    // - concentrated overcharge
+    // - desperate struggle
+    new Effect(
+        "Terrorize",
+        (context, count, trigger) => {
+            context.events["Kill"].push(async (context) => {
+                applyInAoe(context.target, 1, async (actor) => {
+                    if (actor != context.target) {
+                        await actor.takeDamage(0, context, 0, 0, 5, true);
+                        createEffectsMessage(actor.name, "[/status/Panic] Took 5 SP damage from Terrorize!");
+                    }
+                }, context.actor);
+            });
+        },
+        null,
+        ["Always Active"],
+        false, 1, false, true
+    ),
+    new Effect(
+        "Regen HP",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                let hp = context.actor.system.attributes.health.value;
+                if (hp <= 0) return;
+
+                if (count >= 0) {
+                    await context.actor.heal(count, 0, 0);
+                    createEffectsMessage(context.actor.name, `Recovered ${Math.abs(count)} HP! (${hp} -> ${context.actor.system.attributes.health.value})`);
+                }
+                else {
+                    await context.actor.takeDamage(0, context, Math.abs(count), 0, 0, true);
+                    createEffectsMessage(context.actor.name, `Took ${Math.abs(count)} HP damage! (${hp} -> ${context.actor.system.attributes.health.value})`);
+                }
+            });
+        },
+        (count) => {
+            if (count >= 0) {
+                return `Recover ${count} HP`;
+            }
+            else {
+                return `Lose ${count} HP`
+            }
+        },
+        ["Clash Win", "Clash Lose"],
+        true, 5, false, true
+    ),
+    new Effect(
+        "Regen ST",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                let hp = context.actor.system.attributes.stagger.value;
+                if (hp <= 0) return;
+
+                if (count >= 0) {
+                    await context.actor.heal(0, count, 0);
+                    createEffectsMessage(context.actor.name, `Recovered ${Math.abs(count)} ST! (${hp} -> ${context.actor.system.attributes.stagger.value})`);
+                }
+                else {
+                    await context.actor.takeDamage(0, context, 0, Math.abs(count), 0, true);
+                    createEffectsMessage(context.actor.name, `Took ${Math.abs(count)} ST damage! (${hp} -> ${context.actor.system.attributes.stagger.value})`);
+                }
+            });
+        },
+        (count) => {
+            if (count >= 0) {
+                return `Recover ${count} ST`;
+            }
+            else {
+                return `Lose ${count} ST`
+            }
+        },
+        ["Clash Win", "Clash Lose"],
+        true, 5, false, true
+    ),
+    markerEffect("Regeneration Versatility", false, 1),
+    markerEffect("Regeneration Storage", false, 1),
+    new Effect(
+        "Passive Lucidity",
+        (context, trigger, count) => {
+            context.events["Round Start"].push(async (context) => {
+                let sp = context.actor.system.attributes.sanity.value;
+
+                if (sp > 0) {
+                    await context.actor.heal(0, 0, 2);
+                    createEffectsMessage(context.actor.name, `Recovered 2 SP from Passive Lucidity! (${sp} -> ${context.actor.system.attributes.sanity.value})`);
+                }
+            });
+        },
+        (count) => {
+            return "Recover 2 SP"
+        },
+        ["Round Start"], false, 1, false, true
+    ),
+    // absorb
+    // indomitable
+    // unstoppable
+    // redundant systems
+    markerEffect("Turbulence"),
+    // - mark shit
+    markerEffect("Striker Stance", false, 1),
+    markerEffect("Slayer Stance", false, 1),
+    markerEffect("Slasher Stance", false, 1),
+    //
+    markerEffect("Impassioned", true, 1),
+    markerEffect("Multifaceted", false, 1),
+    // - fervor
+    markerEffect("Meditation", false, 1),
+    //
+    markerEffect("Cursed", false, 5),
+    markerEffect("Paranoid", false, 1),
+    new Effect(
+        "Squeamish",
+        (context, trigger, count) => {
+            context.events["Kill"].push(async (context) => {
+                await context.actor.applyStatus("Feeble", 0, count);
+                createEffectsMessage(context.actor.name, `Gains ${count} Feeble next round from Squeamish!`);
+            });
+        },
+        null,
+        ["Always Active"],
+        false, 3, false, true
+    ),
+    new Effect(
+        "Slow Start",
+        (context, trigger, count) => {
+            if (currentRound <= 1) {
+                context.dicePower = Number(context.dicePower) - count;
+            }
+        },
+        (count) => {
+            return `Lose ${count} Dice Power during the first round of combat.`
+        },
+        ["On Use"],
+        false, 5, false, false
+    ),
 ]
 
 function augmentThresholdEffect(name, bar, mult, status, negativeStatus = []) {

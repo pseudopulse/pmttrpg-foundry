@@ -3,11 +3,12 @@ import { createClashMessage, createEffectsMessage, createResultMessage } from ".
 import { createClashResponse } from "../core/helpers/dialog.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
-import { searchByObject } from "../pmttrpg.mjs";
+import { playSound, searchByObject } from "../pmttrpg.mjs";
 import { currentRound } from "../core/combat/combatState.mjs";
 import { getRollContextFromData } from "./item.mjs";
 
 let pending = {};
+let targetHP = {};
 
 //
 export class PTActor extends Actor {
@@ -209,7 +210,10 @@ export class PTActor extends Actor {
             Object.assign(respCtx, systemData.mostRecentRoll.context);
             respCtx.fix();
 
+            targetHP[respCtx.target.id] = respCtx.target.system.attributes.health.value;
+
             await respCtx.target.receiveAttackRoll(respCtx);
+            playSound("clash");
         }
     }
 
@@ -258,6 +262,15 @@ export class PTActor extends Actor {
         if (pending[ctx2.actor.name] != null) {
             createEffectsMessage(pending[ctx2.actor.name].subject, pending[ctx2.actor.name].effect);
             pending[ctx2.actor.name] = null;
+        }
+
+        if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
+            await ctx1.fireEvent("Clash Win");
+            await ctx2.fireEvent("Clash Lose");
+
+            if (ctx2.actor.system.attributes.health.value == 0 && targetHP[ctx2.actor.id] > 0) {
+                await ctx1.fireEvent("Kill");
+            }
         }
 
         await ctx1.actor.queueRoll(null, true);
@@ -323,6 +336,21 @@ export class PTActor extends Actor {
         let st = this.system.attributes.stagger.value;
         let sp = this.system.attributes.sanity.value;
 
+        let resist = this.augmentEffectCount(`${status} Resistance`) + this.outfitEffectCount(`${status} Resistance`);
+        let resText = "";
+
+        if (resist != 0) {
+            damage -= resist;
+            damage = Math.max(damage, 0);
+
+            if (resist > 0) {
+                resText = ` (Resisted: ${resist})`;
+            }
+            else {
+                resText = ` (Increased: ${Math.abs(resist)})`;
+            }
+        }
+
         let prevHP = hp;
         let prevST = st;
         let prevSP = sp;
@@ -349,7 +377,7 @@ export class PTActor extends Actor {
             .replace("%HP%", hp).replace("%PHP%", prevHP)
             .replace("%ST%", st).replace("%PST%", prevST)
             .replace("%SP%", sp).replace("%PSP%", prevSP)
-            .replace("%DMG%", damage)
+            .replace("%DMG%", `${damage}${resText}`)
         );
 
         await this.update({"system.attributes.health.value": hp}, {diff: false});
@@ -357,7 +385,25 @@ export class PTActor extends Actor {
         await this.update({"system.attributes.sanity.value": sp}, {diff: false});
     }
 
-    async takeDamage(damage, context, flatHP = 0, flatST = 0, flatSP = 0) {
+    async heal(fhp = 0, fst = 0, fsp = 0) {
+        let hp = this.system.attributes.health.value;
+        let st = this.system.attributes.stagger.value;
+        let sp = this.system.attributes.sanity.value;
+
+        hp += fhp;
+        st += fst;
+        sp += fsp;
+
+        hp = Math.clamp(hp, 0, this.system.attributes.health.max);
+        st = Math.clamp(st, 0, this.system.attributes.stagger.max);
+        sp = Math.clamp(sp, 0, this.system.attributes.sanity.max);
+
+        await this.update({"system.attributes.health.value": hp}, {diff: false});
+        await this.update({"system.attributes.stagger.value": st}, {diff: false});
+        await this.update({"system.attributes.sanity.value": sp}, {diff: false});
+    }
+
+    async takeDamage(damage, context, flatHP = 0, flatST = 0, flatSP = 0, silent = false) {
         let hp = this.system.attributes.health.value;
         let st = this.system.attributes.stagger.value;
         let sp = this.system.attributes.sanity.value;
@@ -368,13 +414,28 @@ export class PTActor extends Actor {
         let protTextHP = [];
         let protTextST = [];
 
+        let resist = this.augmentEffectCount(`Damage Resistance`) + this.outfitEffectCount(`Damage Resistance`);
+        let resText = "";
+
+        if (resist != 0) {
+            damage -= resist;
+            damage = Math.max(damage, 0);
+
+            if (resist > 0) {
+                resText = ` (Resisted: ${resist})`;
+            }
+            else {
+                resText = ` (Increased: ${Math.abs(resist)})`;
+            }
+        }
+
         if (damage != 0) {
             let hpDmg = this.getModifiedDamage(context, damage, null);
             let stDmg = this.getModifiedDamage(context, damage, "ST");
             let hpP = this.handleProt(context, "", false);
             let hpPT = this.handleProt(context, "", true);
             let stP = this.handleProt(context, "ST", false);
-
+            
             
             hp -= Math.max(hpDmg + (hpP.damage + hpPT.damage), 0);
             st -= Math.max(stDmg + stP.damage, 0);
@@ -384,24 +445,30 @@ export class PTActor extends Actor {
             protTextST.push(stP.text);
         }
 
+        hp -= flatHP;
+        st -= flatST;
+        sp -= flatSP;
+
         hp = Math.clamp(hp, 0, this.system.attributes.health.max);
         st = Math.clamp(st, 0, this.system.attributes.stagger.max);
         await this.update({"system.attributes.health.value": hp}, {diff: false});
         await this.update({"system.attributes.stagger.value": st}, {diff: false});
 
         
-        pending[this.name] = 
-        {
-            subject: this.name,
-            effect:
-            this.removeLinesWithString(`
-            ${damage} x ${this.findResistance(context.damageType, null)} = ${this.getModifiedDamage(context, damage, null)} HP damage taken. (${prevHP} -> ${hp})
-            (${protTextHP[0] != null ? protTextHP[0] : ""})
-            (${protTextHP[1] != null ? protTextHP[1] : ""})
+        if (!silent) {
+            pending[this.name] = 
+            {
+                subject: this.name,
+                effect:
+                this.removeLinesWithString(`
+                ${damage}${resText} x ${this.findResistance(context.damageType, null)} = ${this.getModifiedDamage(context, damage, null)} HP damage taken. (${prevHP} -> ${hp})
+                (${protTextHP[0] != null ? protTextHP[0] : ""})
+                (${protTextHP[1] != null ? protTextHP[1] : ""})
 
-            ${damage} x ${this.findResistance(context.damageType, "ST")} = ${this.getModifiedDamage(context, damage, "ST")} ST damage taken. (${prevST} -> ${st})
-            (${protTextST[0] != null ? protTextST[0] : ""})
-            `, "()")
+                ${damage}${resText} x ${this.findResistance(context.damageType, "ST")} = ${this.getModifiedDamage(context, damage, "ST")} ST damage taken. (${prevST} -> ${st})
+                (${protTextST[0] != null ? protTextST[0] : ""})
+                `, "()")
+            }
         }
     }
 
@@ -533,8 +600,13 @@ export class PTActor extends Actor {
         let type = system.statusEffects.find(x => x.name == status);
 
         if (type != null) {
-            type.count = Number(type.count) - count;
+            type.count = Math.max(Number(type.count) - count, 0);
         }
+
+        await this.update({ system }, { diff: false, render: true });
+
+        // askdjajfjghashghgdsgas
+        // this isnt working !!
 
         if (status == "Charge") {
             system.chargeSpent = Number(system.chargeSpent) + count;
@@ -545,8 +617,6 @@ export class PTActor extends Actor {
                 createEffectsMessage(this.name, `Gained ${count} [/status/Overcharge] Overcharge from spent [/status/Charge] Charge!`);
             }
         }
-
-        await this.update({ system }, { diff: false, render: true });
     }
 
     async setStatus(status, count) {
@@ -591,6 +661,10 @@ export class PTActor extends Actor {
     async fireStatusEffects(trigger) {
         for (const status of this.system.statusEffects) {
             let def = statusList.find(x => x.name == status.name);
+            if (def == null) {
+                continue;
+            }
+
             if (def.triggerType == trigger && status.count > 0) {
                 await def.activation(this);
                 await this.setStatus(status.name, def.decay(status.count));
@@ -616,5 +690,29 @@ export class PTActor extends Actor {
         };
 
         await this.update({ system }, { diff: false, render: true });
+    }
+
+    augmentEffectCount(name) {
+        if (this.augment != null) {
+            let effect = this.getAugmentContext().effects.find(x => x.name == name);
+
+            if (effect != null) {
+                return Number(effect.count);
+            }
+        }
+
+        return 0;
+    }
+
+    outfitEffectCount(name) {
+        if (this.outfit != null) {
+            let effect = this.getOutfitContext().effects.find(x => x.name == name);
+
+            if (effect != null) {
+                return Number(effect.count);
+            }
+        }
+
+        return 0;
     }
 }

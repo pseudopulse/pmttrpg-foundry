@@ -179,6 +179,133 @@ export async function getActionModifiers(actor, context) {
     });
 }
 
+export async function pollUserInputOptions(prompt, options, defaultIndex = 0) {
+    const content = await renderTemplate("systems/pmttrpg/templates/dialog/input-dropdown.hbs", {
+        prompt: enrichClashData(prompt.replace("\n", "<br>")),
+        options: options
+    });
+    let allowClose = true;
+    let value = "";
+
+    return new Promise((resolve, reject) => {
+        let option = options[defaultIndex];
+
+        const dialog = new Dialog({
+            title: "",
+            content: content,
+            buttons: {
+                submit: {
+                    label: "Confirm",
+                    callback: () => {
+                        if (allowClose) {
+                            dialog.close();
+                        }
+                    }
+                }
+            },
+            close: () => {
+                if (!allowClose) {
+                    throw new Error();
+                }
+                else {
+                    resolve(option.name);
+                }
+            },
+            render: (html) => {
+                let setOption = (option) => {
+                    if (option.icon == null) {
+                        $("#idrp-button").find(".idrp-img").hide()
+                    }
+                    else {
+                        $("#idrp-button").find(".idrp-img").show();
+                        document.getElementById("idrp-button").querySelector("img").src = `systems/pmttrpg/assets/${option.icon}`;
+                    }
+
+                    $("#idrp-button").find(".id-drp-option").text(option.name);
+                };
+
+                setOption(option);
+
+                html.on('click', '.id-drp-selection', (ev) => {
+                    let text = ev.currentTarget.querySelector(".id-drp-option").textContent;
+
+                    option = options.find(x => x.name == text);
+                    setOption(option);
+                });
+
+                html.on('submit', '.it-text-field', (ev) => {
+                    if (allowClose) {
+                        dialog.close();
+                    }
+                });
+            },
+            default: "submit"
+        }, {
+            width: 500,
+            height: 320
+        }).render(true);
+    });
+}
+
+
+export async function pollUserInputText(prompt, placeholder, mode = "latin", max = 999) {
+    const content = await renderTemplate("systems/pmttrpg/templates/dialog/input-text.hbs", {
+        prompt: enrichClashData(prompt.replace("\n", "<br>")),
+        placeholder: placeholder,
+        mode: mode,
+        max: max
+    });
+    let allowClose = false;
+    let value = "";
+
+    return new Promise((resolve, reject) => {
+        const dialog = new Dialog({
+            title: "",
+            content: content,
+            buttons: {
+                submit: {
+                    label: "Confirm",
+                    callback: () => {
+                        if (allowClose) {
+                            dialog.close();
+                        }
+                    }
+                }
+            },
+            close: () => {
+                if (!allowClose) {
+                    throw new Error();
+                }
+                else {
+                    resolve(value);
+                }
+            },
+            render: (html) => {
+                html.on('change', '.it-text-field', (ev) => {
+                    if (ev.currentTarget.value == "") {
+                        allowClose = false;
+                    }
+                    else {
+                        allowClose = true;
+                    }
+
+                    value = ev.currentTarget.value;
+                });
+
+                html.on('submit', '.it-text-field', (ev) => {
+                    if (allowClose) {
+                        dialog.close();
+                    }
+                });
+            },
+            default: "submit"
+        }, {
+            width: 500,
+            height: 320
+        }).render(true);
+    });
+}
+
 /**
     * @param {RollContext} context 
     */
@@ -222,7 +349,7 @@ export async function createClashResponse(actor, context) {
 
                 const itemId = element.closest('.item').dataset.itemId;
                 const item = actor.items.get(itemId);
-                item.roll(false).then(() => {
+                item.roll(false, null, context).then(() => {
                     allowClose = true;
 
                     sendNetworkMessage("RESOLVE_CLASH", {

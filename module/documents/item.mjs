@@ -3,7 +3,7 @@
 // import { ChatMessage } from "@client/config.mjs";
 import { RollContext } from "../core/combat/rollContext.mjs";
 import { createClashMessage } from "../core/helpers/clash.mjs";
-import { createAlertBox, getActionModifiers } from "../core/helpers/dialog.mjs";
+import { createAlertBox, getActionModifiers, pollUserInputOptions } from "../core/helpers/dialog.mjs";
 import { sendNetworkMessage } from "../core/helpers/netmsg.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
 import { findItemOwner } from "../pmttrpg.mjs";
@@ -20,20 +20,20 @@ export class PTItem extends Item {
         const systemData = itemData.system;
     }
 
-    async roll(initiator = true, defType = "Block") {
+    async roll(initiator = true, defType = "Block", enemyCtx = null) {
         switch (this.type) {
             case "weapon":
-                await this.handleUsageWeapon(initiator);
+                await this.handleUsageWeapon(initiator, enemyCtx);
                 break;
             case "outfit":
-                await this.handleUsageOutfit(defType);
+                await this.handleUsageOutfit(defType, enemyCtx);
                 break;
             default:
                 break;
         }
     }
 
-    async handleUsageOutfit(defType) {
+    async handleUsageOutfit(defType, enemyCtx = null) {
         const item = this;
 
         const speaker = ChatMessage.getSpeaker({ actor: this.actor });
@@ -50,6 +50,11 @@ export class PTItem extends Item {
 
         const roll = new Roll(`1d${context.diceMax}+${context.dicePower}`, "");
         let result = await roll.evaluate();
+
+        if (enemyCtx != null) {
+            context.forcedAdvState += enemyCtx.enemyAdvState;
+            context.modifierText = enemyCtx.enemyModifierText;
+        }
 
         if (context.forcedAdvState != 0 || this.actor.getStatusCount("Paralysis") > 0) {
             const reroll = await new Roll(`1d${context.diceMax}+${context.dicePower}`, "").evaluate();
@@ -75,7 +80,7 @@ export class PTItem extends Item {
         await this.actor.assignRecycleableAction(context, defType, item);
     }
 
-    async handleUsageWeapon(initiator) {
+    async handleUsageWeapon(initiator, enemyCtx = null) {
         const item = this;
 
         const speaker = ChatMessage.getSpeaker({ actor: this.actor });
@@ -96,6 +101,11 @@ export class PTItem extends Item {
 
         const roll = new Roll(`1d${context.diceMax}+${context.dicePower}`, "");
         let result = await roll.evaluate();
+
+        if (enemyCtx != null) {
+            context.forcedAdvState += enemyCtx.enemyAdvState;
+            context.modifierText = enemyCtx.enemyModifierText;
+        }
 
         if (context.forcedAdvState != 0 || this.actor.getStatusCount("Paralysis") > 0) {
             const reroll = await new Roll(`1d${context.diceMax}+${context.dicePower}`, "").evaluate();
@@ -140,21 +150,38 @@ export class PTItem extends Item {
         rollContext.name = this.name;
         rollContext.actor = this.actor;
         rollContext.target = target;
-        rollContext.type = systemData.type;
+        rollContext.type = systemData.attackType;
+        rollContext.attackType = systemData.attackType;
 
         if (rollSkill) {
             const tmpCtx = new RollContext();
             Object.assign(tmpCtx, JSON.parse(JSON.stringify(rollContext)));
-            tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
             tmpCtx.fix();
-            console.log("p1");
-            tmpCtx.processEffects();
+            tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
+            await tmpCtx.processEffects();
             rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
         }
 
         rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
-        console.log("p2");
-        rollContext.processEffects();
+        await rollContext.processEffects();
+
+        if (rollContext.hasEffect("Extra DMG Type") || (rollContext.attackType == "Ranged" && !rollContext.hasEffect("Charge Ammo"))) {
+            rollContext.damageType = await pollUserInputOptions("Select Damage Type", [
+                {
+                    name: "Slash",
+                    icon: "/damageTypes/Slash.png"
+                },
+                {
+                    name: "Pierce",
+                    icon: "/damageTypes/Pierce.png"
+                },
+                {
+                    name: "Blunt",
+                    icon: "/damageTypes/Blunt.png"
+                },
+            ], ["Slash", "Pierce", "Blunt"].indexOf(rollContext.damageType));
+        }
+
         return rollContext;
     }
 
@@ -171,14 +198,14 @@ export class PTItem extends Item {
         if (rollSkill) {
             const tmpCtx = new RollContext();
             Object.assign(tmpCtx, JSON.parse(JSON.stringify(rollContext)));
-            tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
             tmpCtx.fix();
-            tmpCtx.processEffects();
+            tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
+            await tmpCtx.processEffects();
             rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
         }
 
         rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
-        rollContext.processEffects();
+        await rollContext.processEffects();
         return rollContext;
     }
 
@@ -195,14 +222,14 @@ export class PTItem extends Item {
         if (rollSkill) {
             const tmpCtx = new RollContext();
             Object.assign(tmpCtx, JSON.parse(JSON.stringify(rollContext)));
-            tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
             tmpCtx.fix();
-            tmpCtx.processEffects();
+            tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
+            await tmpCtx.processEffects();
             rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
         }
 
         rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
-        rollContext.processEffects();
+        await rollContext.processEffects();
         return rollContext;
     }
 }

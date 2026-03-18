@@ -4,10 +4,13 @@ import { outfitEffects } from "../effects/outfitEffects.mjs";
 import { getEffectsArray } from "../effects/effectHelpers.mjs";
 import { currentRound } from "./combatState.mjs";
 
+const triggerTypes = ["Clash Win", "Clash Lose", "On Use", "Always Active"];
+const eventTypes = ["Kill", "Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Clash Win", "Clash Lose"];
+const statusPlusValid = ["Burn", "Bleed", "Frostbite", "Sinking", "Tremor", "Rupture", "Poise", "Ruin"];
+
+
 export class RollContext {
     constructor() {
-        const triggerTypes = ["Clash Win", "Clash Lose", "On Use", "Always Active"];
-        const eventTypes = ["Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst"];
         this.diceMax = 10;
         this.dicePower = 0;
         this.enemyPowerMod = 0;
@@ -32,6 +35,10 @@ export class RollContext {
         this.ignoreClashEffects = false;
         this.forcedAdvState = 0;
         this.events = {};
+        this.enemyAdvState = 0;
+        this.enemyModifierText = [];
+        this.modifierText = [];
+        this.flags = [];
 
         for (const trigger of triggerTypes) {
             this.triggers[trigger] = new TriggerEvents();
@@ -43,9 +50,11 @@ export class RollContext {
     }
 
     async fireEvent(event) {
-        console.log(this.events[event]);
         for (const ev of this.events[event]) {
-            console.log(ev);
+            if (ev == null) {
+                continue;
+            }
+
             await ev(this);
         }
     }
@@ -69,13 +78,15 @@ export class RollContext {
     }
 
     fixTriggers() {
-        const triggerTypes = ["Clash Win", "Clash Lose", "On Use", "Always Active"];
-        
         for (let trigger of triggerTypes) {
             let data = this.triggers[trigger];
             this.triggers[trigger] = new TriggerEvents();
             Object.assign(this.triggers[trigger], data);
         }
+    }
+
+    hasEffect(name) {
+        return this.effects.find(x => x.name == name) != null;
     }
 
     async resolveTriggers(triggers) {
@@ -93,20 +104,32 @@ export class RollContext {
         for (const trigger of triggers) {
             let data = this.triggers[trigger];
 
+            for (const func of data.modify) {
+                await func(this, data);
+            }
+
             for (const infliction of data.inflictions) {
                 let status = infliction.key;
                 let cur = Number(infliction.count);
 
+                if (this.flags.includes("Refractor-C") && statusPlusValid.includes(status)) {
+                    cur += 1;
+                }
+
+                if (this.flags.includes("Refractor-O") && statusPlusValid.includes(status)) {
+                    cur += 3;
+                }
+
                 if (cur < 0) {
                     let prev = infliction.nextRound ? Number(this.actor.getStatusCountNext(status)) : Number(this.actor.getStatusCount(status));
                     await this.actor.applyStatus(status, infliction.nextRound ? 0 : Math.abs(cur), infliction.nextRound ? Math.abs(cur) : 0);
-                    lines.push(`Gain ${Math.abs(cur)} [/status/${status}] ${status}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + Math.abs(cur)})`);
+                    lines.push(`Gain ${Math.abs(cur)} [/status/${status}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + Math.abs(cur)})`);
                 }
                 else {
                     if (this.target != null) {
                         let prev = infliction.nextRound ? Number(this.target.getStatusCountNext(status)) : Number(this.target.getStatusCount(status));
                         await this.target.applyStatus(status, infliction.nextRound ? 0 : cur, infliction.nextRound ? cur : 0);
-                        lines.push(`Inflict ${cur} [/status/${status}] ${status}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + cur})`);
+                        lines.push(`Inflict ${cur} [/status/${status}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + cur})`);
                     }
                 }
             }
@@ -115,7 +138,7 @@ export class RollContext {
         return this.append("", lines);
     }
 
-    processEffects() {
+    async processEffects() {
         if (this.actor != null) {
             this.actor.prepareData();
 
@@ -137,14 +160,14 @@ export class RollContext {
         if (this.damageType == "Evade") {
             this.diceMax += 2;
         }
-
+        
         for (const effect of this.effects) {
             effect.effect.apply(this, effect.count, effect.trigger);
         }
         
         for (const conditional of this.activeConditionals) {
             let def = this.conditionals.find(x => x.name == conditional);
-            def.onUse(this);
+            await def.onUse(this);
             this.costs.push(def.costs);
         }
     }
@@ -171,7 +194,7 @@ export class RollContext {
             }
 
             
-            if (valid.find(x => x == effect.trigger) != null && effect.effect.description != null) {
+            if (valid.find(x => x == effect.trigger) != null && effect.effect.description != null && !effect.effect.dontFormat) {
                 let description = effect.effect.description(effect.count);
                 if (description != null && (!(description.includes("first round") && currentRound > 1) || fakeFirstRound)) {
                     triggers[effect.trigger].push(
@@ -190,9 +213,13 @@ export class RollContext {
                 }
             }
         }
+
+        console.log("generating desc");
+        console.log(this.modifierText);
         
-        this.append(desc, triggers["Augment Passive"]);
-        this.append(desc, triggers["Always Active"]);
+        desc = this.append(desc, triggers["Augment Passive"]);
+        desc = this.append(desc, triggers["Always Active"]);
+        desc = this.append(desc, this.modifierText);
         if (valid.includes("Combat Start")) desc = this.append(desc, triggers["Combat Start"]);
         if (valid.includes("Round Start")) desc = this.append(desc, triggers["Round Start"]);
         if (validTriggers.includes("On Use")) desc = this.append(desc, triggers["On Use"]);
@@ -207,7 +234,16 @@ export class RollContext {
     }
 
     fix() {
-        const eventTypes = ["Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst"];
+        if (this.mustDeserialize) {
+            this.prepareForDeserialization();
+        }
+        else {
+            this.target = searchByObject(this.target);
+            this.actor = searchByObject(this.actor);
+        }
+
+        this.fixTriggers();
+
         for (const event of eventTypes) {
             this.events[event] = [];
         }
@@ -218,16 +254,6 @@ export class RollContext {
                 effect.effect.apply(this, effect.count, effect.trigger);
             }
         }
-
-        if (this.mustDeserialize) {
-            this.prepareForDeserialization();
-        }
-        else {
-            this.target = searchByObject(this.target);
-            this.actor = searchByObject(this.actor);
-        }
-
-        this.fixTriggers();
     }
 
 
@@ -296,6 +322,7 @@ export class RollContext {
 
         if (this.actor != null && this.actor.augment != null) {
             for (const effect of this.actor.augment.system.effects) {
+                console.log("mirroring " + effect.name + " to list");
                 this.effects.push({
                     effect: getEffectsArray("augment").find(x => x.name == effect.name),
                     count: effect.count,
@@ -321,6 +348,7 @@ export class Conditional {
 export class TriggerEvents {
     constructor() {
         this.inflictions = [];
+        this.modify = [];
     }
 
     mergeInflictions() {

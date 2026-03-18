@@ -13,7 +13,7 @@ export function handleEffectRemoveButton(event, effects) {
 }
 
 export function getEffectsArray(type) {
-    switch (type.toLowerCase()) {
+    switch (String(type).toLowerCase()) {
         case "weapon":
             return weaponEffects;
         case "skill":

@@ -128,9 +128,9 @@ Hooks.once("init", () => {
         if (actor.getStatusCount(cost.status) < cost.cost) {
           return false;
         }
-
-        return true;
       }
+
+      return true;
     },
     recycleable(actor) {
       return actor.system.recycleAction != null;
@@ -160,6 +160,16 @@ export function fixRollContext(context) {
   Object.assign(ctx, context);
   ctx.fix();
   return ctx;
+}
+
+export function playSound(key, global = true) {
+  let path = `systems/pmttrpg/assets/audio/${key}.mp3`;
+  if (global) {
+    foundry.audio.AudioHelper.play({ src: path }, true);
+  }
+  else {
+    game.audio.play(path);
+  }
 }
 
 Hooks.on(`createChatMessage`, (message, action, id) => {
@@ -311,6 +321,8 @@ const preloadHandlebarsTemplates = async function () {
     'systems/pmttrpg/templates/dialog/clash-message.hbs',
     'systems/pmttrpg/templates/dialog/clash-result.hbs',
     'systems/pmttrpg/templates/dialog/clash-effects.hbs',
+    //
+    'systems/pmttrpg/templates/dialog/input-text.hbs',
     //
     'systems/pmttrpg/templates/item/parts/weapon-block.hbs',
     'systems/pmttrpg/templates/item/parts/skill-block.hbs',
