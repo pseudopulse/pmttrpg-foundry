@@ -72,7 +72,11 @@
       "recycleAction": null,
       "augment": null,
       "chargeBarrierHP": 0,
-      "overchargeActive": false
+      "overchargeActive": false,
+      "initiativeModifier": 0,
+      "movement": 0,
+      "staggered": false,
+      "staggerRounds": 0
     }
   },
   "Item": {

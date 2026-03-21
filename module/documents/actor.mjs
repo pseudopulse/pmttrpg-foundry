@@ -1,13 +1,15 @@
 import { RollContext } from "../core/combat/rollContext.mjs";
 import { createClashMessage, createEffectsMessage, createResultMessage } from "../core/helpers/clash.mjs";
-import { createClashResponse } from "../core/helpers/dialog.mjs";
+import { createClashResponse, pollUserInputConfirm } from "../core/helpers/dialog.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
 import { playSound, searchByObject } from "../pmttrpg.mjs";
 import { currentRound } from "../core/combat/combatState.mjs";
 import { getRollContextFromData } from "./item.mjs";
+import { registerEffectMacro } from "../core/combat/macros.mjs";
 
 let pending = {};
+let pendingStagger = {};
 let targetHP = {};
 
 //
@@ -68,6 +70,13 @@ export class PTActor extends Actor {
             light += 1;
         }
 
+        if (Number(attr.light) <= 0 || Number(attr.light) >= 0) {
+            attr.light = {
+                max: 0,
+                value: 0
+            }
+        }
+
         attr.light.max = light;
 
         if (systemData.emotion == null || Object.is(Number(systemData.emotion), NaN)) {
@@ -77,6 +86,14 @@ export class PTActor extends Actor {
         if (systemData.augment == null) {
             systemData.augment = {
                 effects: []
+            }
+        }
+
+        if (this.outfit != null) {
+            let effect = this.outfit.effects.find(x => x.name == "Comfy Clothes");
+
+            if (effect != null) {
+                systemData.initiativeModifier = effect.count;
             }
         }
     }
@@ -115,6 +132,10 @@ export class PTActor extends Actor {
         system.mostRecentRoll = null;
         system.recycleAction = null;
         system.chargeBarrierHP = 0;
+        system.movement = 0;
+        system.nextRoundMovement = 0;
+        system.staggerRounds = 0;
+        system.staggered = false;
 
         await this.update({ system }, { diff: false, render: true });
     }
@@ -168,7 +189,7 @@ export class PTActor extends Actor {
     }
 
     findResistance(type, cat) {
-        if (this.outfit == null) {
+        if (this.outfit == null || this.system.staggered) {
             return 2;
         }
 
@@ -249,8 +270,6 @@ export class PTActor extends Actor {
             if (roll <= ruin) {
                 tmp = new Roll(`${devastation}d8`);
                 await tmp.evaluate();
-                let damage = tmp.total;
-                console.log(ctx2.actor);
                 await ctx2.actor.setStatus("Ruin", 0);
                 await ctx2.actor.setStatus("Devastation", 0);
                 await ctx2.actor.takeDamageStatus(damage, "Ruin", null, `Received a [/status/Devastation] Devastating hit for %DMG% HP damage! (%PHP% -> %HP%)`);
@@ -266,9 +285,46 @@ export class PTActor extends Actor {
             createEffectsMessage(ctx2.actor.name, await ctx2.resolveTriggers(["On Use", "Clash Lose"]), true);
         }
 
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
         if (pending[ctx2.actor.name] != null) {
             createEffectsMessage(pending[ctx2.actor.name].subject, pending[ctx2.actor.name].effect);
             pending[ctx2.actor.name] = null;
+
+            let kinetic = ctx2.actor.outfitEffectCount("Kinetic Inductor");
+
+            if (kinetic != 0) {
+                if (kinetic > 0) {
+                    await ctx2.actor.applyStatus("Charge", kinetic);
+                    createEffectsMessage(ctx2.actor.name, `Gains ${kinetic} [/status/Charge] Charge from Kinetic Inductor!`);
+                }
+                else {
+                    kinetic = Math.abs(kinetic);
+                    let count = Math.min(ctx2.actor.getStatusCount("Charge"), kinetic);
+                    let hp = 2 * (kinetic - count);
+                    await ctx2.actor.reduceStatus("Charge", count);
+                    if (hp > 0) {
+                        await ctx2.actor.takeDamage(0, null, hp, 0, 0, true);
+                    }
+
+                    if (hp > 0 && count <= 0) {
+                        createEffectsMessage(ctx2.actor.name, `Takes ${hp} HP damage from Kinetic Inductor!`);
+                    }
+                    else if (count > 0 && hp <= 0) {
+                        createEffectsMessage(ctx2.actor.name, `Loses ${count} [/status/Charge] Charge from Kinetic Inductor!`);
+                    }
+                    else {
+                        createEffectsMessage(ctx2.actor.name, `Takes ${hp} HP damage and loses ${count} [/status/Charge] Charge from Kinetic Inductor!`);
+                    }
+                }
+            }
+        }
+
+        if (pendingStagger[ctx2.actor.name] != null) {
+            if (pendingStagger[ctx2.actor.name]) {
+                await ctx2.actor.stagger();
+                pendingStagger[ctx2.actor.name] = false;
+            }
         }
 
         if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
@@ -349,6 +405,10 @@ export class PTActor extends Actor {
         let sp = this.system.attributes.sanity.value;
 
         let resist = this.augmentEffectCount(`${status} Resistance`) + this.outfitEffectCount(`${status} Resistance`);
+        if (status == "Ruin" || status == "Poise") {
+            resist += (this.augmentEffectCount("Vital Protections") * 2) + (this.outfitEffectCount("Vital Protections") * 2);
+        }
+
         let resText = "";
 
         if (resist != 0) {
@@ -439,9 +499,17 @@ export class PTActor extends Actor {
         );
 
         await this.update({ "system.damageTaken": Number(this.system.damageTaken) + (prevHP - hp)});
+
+        if (this.system.attributes.stagger.value <= 0 && !this.system.staggered) {
+            await this.stagger();
+        }
     }
 
     async heal(fhp = 0, fst = 0, fsp = 0) {
+        if (this.system.staggered) {
+            fst = 0;
+        }
+
         let hp = this.system.attributes.health.value;
         let st = this.system.attributes.stagger.value;
         let sp = this.system.attributes.sanity.value;
@@ -487,6 +555,16 @@ export class PTActor extends Actor {
 
         let resist = this.augmentEffectCount(`Damage Resistance`) + this.outfitEffectCount(`Damage Resistance`);
         let resText = "";
+
+        if (!silent) {
+            if (this.outfitEffectCount("Charged Hull") > 0 && this.getStatusCount("Overcharge") > 0) {
+                if (await pollUserInputConfirm(this, "Spend 1 [/status/Overcharge] Overcharge to reduce incoming damage by 3?")) {
+                    resist += 3;
+                    createEffectsMessage(this.name, `Spends 1 [/status/Overcharge] Overcharge to reduce incoming damage by 3!`);
+                    await this.reduceStatus("Overcharge", 1);
+                }
+            }
+        }
 
         if (resist != 0) {
             damage -= resist;
@@ -593,6 +671,15 @@ export class PTActor extends Actor {
                 `, "()")
             }
         }
+
+        if (this.system.attributes.stagger.value <= 0 && !this.system.staggered) {
+            if (!silent) {
+                pendingStagger[this.name] = true;
+            }
+            else {
+                await this.stagger();
+            }
+        }
     }
 
     removeLinesWithString(inputText, targetString) {
@@ -667,6 +754,18 @@ export class PTActor extends Actor {
 
         const system = this.toObject(false).system;
 
+        if (system.staggered) {
+            system.staggerRounds = Number(system.staggerRounds) - 1;
+
+            if (system.staggerRounds <= 0) {
+                system.staggered = false;
+                system.attributes.stagger.value = system.attributes.stagger.max;
+                system.attributes.stagger.temp = Number(system.attributes.stagger.temp) + 10;
+
+                createEffectsMessage(this.name, `${this.name} has recovered from stagger!`);
+            }
+        }
+
         for (const status of system.statusEffects) {
             status.count = Number(status.count) + Number(status.nextRoundCount);
             status.nextRoundCount = 0;
@@ -686,12 +785,16 @@ export class PTActor extends Actor {
         let cbStack = this.getStatusCount("Charge_Barrier");
         if (cbStack > 0) {
             let shield = cbStack * 3;
-            console.log("thp prior " + this.system.attributes.health.temp);
             await this.update({ "system.attributes.health.temp": this.system.attributes.health.temp + shield }, { diff: false });
-            console.log("thp after " + this.system.attributes.health.temp);
             await this.update({ "system.chargeBarrierHP": shield }, { diff: false });
             createEffectsMessage(this.name, `Gains ${shield} Temporary HP from [/status/Charge_Barrier] Charge Barrier!`);
         }
+
+        let speed = this.getStatusCount("Haste") + this.getStatusCount("Bind");
+        speed += this.system.nextRoundMovement;
+
+        await this.update({ "system.movement": 6 + speed }, { diff: false });
+        await this.update({ "system.nextRoundMovement": 0 }, { diff: false });
     }
 
     getStatusCount(status) {
@@ -712,6 +815,22 @@ export class PTActor extends Actor {
         }
 
         return 0;
+    }
+
+    async stagger() {
+        const system = this.toObject(false).system;
+        system.attributes.stagger.value = 0;
+        system.attributes.stagger.temp = 0;
+        system.staggerRounds = 2;
+        system.staggered = true;
+        system.attributes.light = Math.min(Number(system.attributes.light.max), Number(system.attributes.light.value) + 1);
+
+        playSound("stagger", true);
+
+        createEffectsMessage(this.name, `${this.name} has been staggered!`);
+
+        await this.update({ system }, { diff: false, render: true });
+        await this.takeDamage(0, null, 0, 0, 5, true);
     }
 
     async applyStatus(status, count = 0, nextRoundCount = 0) {
@@ -801,9 +920,25 @@ export class PTActor extends Actor {
 
     async fireStatusEffect(status) {
         let def = statusList.find(x => x.name == status);
-        let count = this.getStatusCount(def);
+        let count = this.getStatusCount(status);
 
         await def.activation(this);
+        
+        if (status == "Bleed" && this.getStatusCount("Hemorrhage") > 0) {
+            await this.reduceStatus("Hemorrhage", 1);
+            return;
+        }
+
+        if (status == "Burn" && this.getStatusCount("Renewed_Blaze") > 0) {
+            await this.reduceStatus("Renewed_Blaze", 1);
+            return;
+        }
+
+        if (status == "Frostbite" && this.getStatusCount("Deep_Chill") > 0) {
+            await this.reduceStatus("Deep_Chill", 1);
+            return;
+        }
+
         await this.setStatus(status, def.decay(count));
     }
 
@@ -815,8 +950,7 @@ export class PTActor extends Actor {
             }
 
             if (def.triggerType == trigger && status.count > 0) {
-                await def.activation(this);
-                await this.setStatus(status.name, def.decay(status.count));
+                await this.fireStatusEffect(status.name);
             }
         }
     }
@@ -863,5 +997,53 @@ export class PTActor extends Actor {
         }
 
         return 0;
+    }
+
+    async refreshMacroBar() {
+        console.log("refreshing macro bar for: " + this.name);
+        let oCtx = this.getOutfitContext();
+        let aCtx = this.getAugmentContext();
+
+        for (let i = 1; i <= 50; i++) {
+            await game.user.assignHotbarMacro(null, i);
+        }
+
+        await registerEffectMacro("Dash", async (actor) => {
+            let movement = Number(actor.system.movement);
+            let extraMovement = 3 + actor.system.abilities.Justice.value + this.outfitEffectCount("Light Material");
+            await actor.update({ "system.movement": movement + extraMovement });
+            createEffectsMessage(actor.name, `Gains ${extraMovement} extra movement from dashing! (${movement} -> ${movement + extraMovement})`);
+        }, "icons/Dash.png")
+
+        if (this.augmentEffectCount("Concentrated Overcharge") > 0 || this.augmentEffectCount("Meditation") > 0) {
+            console.log("registering effect macro for Controlled Stagger");
+            await registerEffectMacro("Controlled Stagger", async (actor) => {
+                if (actor.system.staggered) {
+                    ui.notifications.notify("You are already staggered!");
+                    return;
+                }
+
+                await actor.stagger();
+
+                if (actor.augmentEffectCount("Concentrated Overcharge") > 0) {
+                    await actor.applyStatus("Overcharge", 2);
+                    createEffectsMessage(actor.name, "Gains 2 [/status/Overcharge] Overcharge from Concentrated Overcharge!");
+                }
+
+                if (actor.augmentEffectCount("Meditation") > 0) {
+                    let emotion = Number(actor.system.emotion);
+                    await actor.update({ "system.emotion": emotion + 8 }, { diff: false });
+                    createEffectsMessage(actor.name, `Gains 8 [/resources/EmotionIcon] Emotion from Meditation! (${emotion} -> ${emotion + 8})`);
+                }
+            }, "icons/Controlled_Stagger.png");
+        }
+
+        for (const macro of oCtx.macros) {
+            await registerEffectMacro(macro.name, macro.callback, macro.img);
+        }
+
+        for (const macro of aCtx.macros) {
+            await registerEffectMacro(macro.name, macro.callback, macro.img);
+        }
     }
 }

@@ -8,11 +8,18 @@ import { currentRound, currentTurn, roundChange, setRound, turnChange, updateCom
 import { getEffectsArray } from "./core/effects/effectHelpers.mjs";
 import { RollContext } from "./core/combat/rollContext.mjs";
 import { enrichClashData } from "./core/helpers/clash.mjs";
+import { createAlertBox } from "./core/helpers/dialog.mjs";
+import { PTTokenRuler } from "./documents/tokenRuler.mjs";
+import { macroList } from "./core/combat/macros.mjs";
 // import Hooks from "@client/helpers/hooks.mjs";
 
 Hooks.once("init", () => {
   // debug
   // CONFIG.debug.hooks = true;
+
+  game.pmttrpg = {
+    macroList: macroList
+  };
 
   //
   registerMessages();
@@ -52,10 +59,12 @@ Hooks.once("init", () => {
 
   // combat
   CONFIG.Combat.initiative = {
-    formula: '1d6 + @abilities.Justice.value',
+    formula: '1d6 + @abilities.Justice.value + @initiativeModifier',
     decimals: 2
   };
   CONFIG.ActiveEffect.legacyTransferral = false;
+
+  CONFIG.Token.rulerClass = PTTokenRuler;
 
   // handlebar utils
   Handlebars.registerHelper({
@@ -181,6 +190,12 @@ Hooks.on(`createChatMessage`, (message, action, id) => {
   }
 });
 
+Hooks.on(`controlToken`, async (token, data) => {
+  if (canvas.tokens.controlled[0] == token) {
+    await token.actor.refreshMacroBar();
+  }
+});
+
 Hooks.on(`renderChatMessageHTML`, (message, html, context) => {
   if (message.title == "NETMSGFLAG") {
     hideChatMessage(html);
@@ -207,6 +222,32 @@ Hooks.once('ready', () => {
   setRound(game.combat.round, game.combat.turn);
 });
 
+Hooks.on('preMoveToken', (token, data, action, user) => {
+  let distScale = 100;
+  let origin = data.origin;
+  let dest = data.destination;
+  let dist = distanceBetween(origin, dest);
+  let sqr = Math.floor(dist / distScale);
+
+  if (sqr > token.actor.system.movement) {
+    ui.notifications.notify(`You cant move that far! You attempted to move ${sqr} SQR, while only having ${token.actor.system.movement} SQR remaining!`);
+    return false;
+  }
+});
+
+Hooks.on('moveToken', (token, data, action, user) => {
+  let distScale = 100;
+  let origin = data.origin;
+  let dest = data.destination;
+  let dist = distanceBetween(origin, dest);
+  let sqr = Math.floor(dist / distScale);
+
+  token.actor.update({ "system.movement": Math.max(Number(token.actor.system.movement) - sqr, 0) }, { diff: false });
+});
+
+function distanceBetween(v1, v2) {
+  return Math.hypot(v2.x - v1.x, v2.y - v1.y);
+}
 
 export function scale(distance) {
   return Math.floor(distance / canvas.grid.distance);
@@ -326,6 +367,7 @@ const preloadHandlebarsTemplates = async function () {
     'systems/pmttrpg/templates/dialog/clash-effects.hbs',
     //
     'systems/pmttrpg/templates/dialog/input-text.hbs',
+    'systems/pmttrpg/templates/dialog/input-confirm.hbs',
     //
     'systems/pmttrpg/templates/item/parts/weapon-block.hbs',
     'systems/pmttrpg/templates/item/parts/skill-block.hbs',

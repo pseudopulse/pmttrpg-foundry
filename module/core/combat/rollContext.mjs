@@ -39,6 +39,8 @@ export class RollContext {
         this.enemyModifierText = [];
         this.modifierText = [];
         this.flags = [];
+        this.recycled = false;
+        this.macros = [];
 
         for (const trigger of triggerTypes) {
             this.triggers[trigger] = new TriggerEvents();

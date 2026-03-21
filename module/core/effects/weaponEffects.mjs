@@ -63,7 +63,7 @@ export const weaponEffects = [
         "Inflict [Type] Fragile",
         (context, count, trigger) => {
             context.triggers[trigger].modify.push(async (ctx, data) => {
-                let type = await pollUserInputOptions("Choose [Type] Fragility to inflict.", [
+                let type = await pollUserInputOptions(ctx.actor, "Choose [Type] Fragility to inflict.", [
                     {
                         name: "Slash Fragility",
                         icon: "/status/Slash_Fragility.png"
@@ -288,7 +288,7 @@ export const weaponEffects = [
         `Galvanic Pulse`,
         (context, count, trigger) => {
             context.conditionals.push(new Conditional("Galvanic Pulse [C]", `Spend 10 Charge to inflict 1 Feeble or 1 Disarm.`, async (context) => {
-                let status = await pollUserInputOptions("Choose Galvanic Pulse status effect!", [
+                let status = await pollUserInputOptions(context.actor, "Choose Galvanic Pulse status effect!", [
                     {
                         name: "Feeble",
                         icon: "/status/Feeble.png"

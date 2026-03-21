@@ -67,7 +67,7 @@ export const augmentEffects = [
         (context, count, trigger) => {
             context.events["Round Start"].push(async (context) => {
                 let max = Math.min(count * 3, Number(context.actor.getStatusCount("Charge")));
-                let amount = await pollUserInputText("Constant Barrier: Spend intervals of 3 [/status/Charge] Charge to gain [/status/Charge_Barrier] Charge Barrier", "Charge Amount", "number", max);
+                let amount = await pollUserInputText(context.actor, "Constant Barrier: Spend intervals of 3 [/status/Charge] Charge to gain [/status/Charge_Barrier] Charge Barrier", "Charge Amount", "number", max);
                 amount = Number(amount);
                 amount = Math.clamp(amount, 0, max);
 
@@ -235,7 +235,7 @@ export const augmentEffects = [
                 context.events["Clash Win"].push(async (context) => {
                     if (!context.activeConditionals.includes("Momentum")) return;
 
-                    let sqr = await pollUserInputText("Momentum: Deal HP damage based on SQRs moved in a straight line.", "SQRs moved", "number");
+                    let sqr = await pollUserInputText(context.actor, "Momentum: Deal HP damage based on SQRs moved in a straight line.", "SQRs moved", "number");
                     sqr = Number(sqr);
 
                     if (sqr > 3) {
@@ -277,11 +277,10 @@ export const augmentEffects = [
     markerEffect("Tremor Resistance", true, 5),
     markerEffect("Sinking Resistance", true, 5),
     markerEffect("Damage Resistance", true, 3),
-    // - steady
     //
     markerEffect("Additional Reaction", true, 1),
     markerEffect("Throwing Master", false, 1),
-    // - concentrated overcharge
+    markerEffect("Concentrated Overcharge", false, 1),
     // - desperate struggle
     new Effect(
         "Terrorize",

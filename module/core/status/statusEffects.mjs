@@ -58,7 +58,10 @@ export const statusList = [
     }, (count) => { return count; }),
     new StatusEffect("Nails", Triggers.NONE, async (actor) => {
         
-    }, (count) => { return count; })
+    }, (count) => { return count; }),
+    new StatusEffect("Hemorrhage", Triggers.NONE, async (actor) => {}, (count) => { return 0; }),
+    new StatusEffect("Renewed_Blaze", Triggers.NONE, async (actor) => {}, (count) => { return 0; }),
+    new StatusEffect("Deep_Chill", Triggers.NONE, async (actor) => {}, (count) => { return 0; }),
 ];
 
 export function findStatusDef(name) {

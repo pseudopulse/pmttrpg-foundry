@@ -2,6 +2,7 @@
 
 import { searchByObject } from "../../pmttrpg.mjs";
 import { RollContext } from "../combat/rollContext.mjs";
+import { pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "./dialog.mjs";
 
 export function sendNetworkMessage(type, data) {
     ChatMessage.create({
@@ -42,7 +43,24 @@ export function registerMessages() {
             await attacker.sendAttackRoll();
         }
     }
+
+    CONFIG.queries["pmttrpg.pollUserInputOptions"] = wrapperPollUserInputOptions;
+    CONFIG.queries["pmttrpg.pollUserInputText"] = wrapperPollUserInputText;
+    CONFIG.queries["pmttrpg.pollUserInputConfirm"] = wrapperPollUserInputConfirm;
 }
+
+export async function wrapperPollUserInputOptions(data) {
+    return await pollUserInputOptions(game.user, data.prompt, data.options, data.defaultIndex);
+}
+
+export async function wrapperPollUserInputText(data) {
+    return await pollUserInputText(game.user, data.prompt, data.placeholder, data.mode, data.max);
+}
+
+export async function wrapperPollUserInputConfirm(data) {
+    return await pollUserInputConfirm(game.user, data.prompt);
+}
+
 
 function existsInTokensList(actor) {
     for (let token of canvas.tokens.placeables.filter(x => x.actor && testPermission(x.actor))) {
@@ -52,6 +70,34 @@ function existsInTokensList(actor) {
     }
 
     return false;
+}
+
+export function getActorUser(actor) {
+    for (const user of game.users) {
+        if (testUserPermission(actor, user)) {
+            return user;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * 
+ * @param {Actor} actor 
+ */
+function testUserPermission(actor, user) {
+    if (!user.isGM) {
+        return actor.testUserPermission(user, "OWNER");
+    }
+
+    for (const id in actor.ownership) {
+        if (id != user.id && actor.ownership[id] >= 3) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 /**

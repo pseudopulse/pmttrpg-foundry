@@ -166,7 +166,7 @@ export class PTItem extends Item {
         await rollContext.processEffects();
 
         if (rollContext.hasEffect("Extra DMG Type") || (rollContext.attackType == "Ranged" && !rollContext.hasEffect("Charge Ammo"))) {
-            rollContext.damageType = await pollUserInputOptions("Select Damage Type", [
+            rollContext.damageType = await pollUserInputOptions(game.user, "Select Damage Type", [
                 {
                     name: "Slash",
                     icon: "/damageTypes/Slash.png"

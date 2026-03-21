@@ -1,6 +1,6 @@
 import { RollContext } from "../combat/rollContext.mjs";
 import { enrichClashData } from "../helpers/clash.mjs";
-import { sendNetworkMessage } from "./netmsg.mjs";
+import { getActorUser, sendNetworkMessage } from "./netmsg.mjs";
 
 export function createAlertBox(alert) {
     const dialog = new Dialog({
@@ -179,7 +179,15 @@ export async function getActionModifiers(actor, context) {
     });
 }
 
-export async function pollUserInputOptions(prompt, options, defaultIndex = 0) {
+export async function pollUserInputOptions(user, prompt, options, defaultIndex = 0) {
+    if (user != game.user) {
+        return await getActorUser(user).query("pmttrpg.pollUserInputOptions", {
+            prompt: prompt,
+            options: options,
+            defaultIndex: defaultIndex
+        });
+    }
+
     const content = await renderTemplate("systems/pmttrpg/templates/dialog/input-dropdown.hbs", {
         prompt: enrichClashData(prompt.replace("\n", "<br>")),
         options: options
@@ -247,8 +255,64 @@ export async function pollUserInputOptions(prompt, options, defaultIndex = 0) {
     });
 }
 
+export async function pollUserInputConfirm(user, prompt) {
+    if (user != game.user) {
+        return await getActorUser(user).query("pmttrpg.pollUserInputConfirm", {
+            prompt: prompt,
+        });
+    }
 
-export async function pollUserInputText(prompt, placeholder, mode = "latin", max = 999) {
+    const content = await renderTemplate("systems/pmttrpg/templates/dialog/input-confirm.hbs", {
+        prompt: enrichClashData(prompt.replace("\n", "<br>")),
+    });
+
+    return new Promise((resolve, reject) => {
+        let resolved = false;
+        const dialog = new Dialog({
+            title: "",
+            content: content,
+            buttons: {
+                submit: {
+                    label: "Yes",
+                    callback: () => {
+                        resolve(true);
+                        resolved = true;
+                        dialog.close();
+                    }
+                },
+                dont: {
+                    label: "No",
+                    callback: () => {
+                        resolve(false);
+                        resolved = true;
+                        dialog.close();
+                    }
+                }
+            },
+            close: () => {
+                if (!resolved) {
+                    resolve(false);
+                }
+            },
+            default: "yes"
+        }, {
+            width: 500,
+            height: 320
+        }).render(true);
+    });
+}
+
+
+export async function pollUserInputText(user, prompt, placeholder, mode = "latin", max = 999) {
+    if (user != game.user) {
+        return await getActorUser(user).query("pmttrpg.pollUserInputText", {
+            prompt: prompt,
+            placeholder: placeholder,
+            mode: mode,
+            max: max
+        });
+    }
+
     const content = await renderTemplate("systems/pmttrpg/templates/dialog/input-text.hbs", {
         prompt: enrichClashData(prompt.replace("\n", "<br>")),
         placeholder: placeholder,
@@ -257,6 +321,11 @@ export async function pollUserInputText(prompt, placeholder, mode = "latin", max
     });
     let allowClose = false;
     let value = "";
+
+    if (mode == "number") {
+        value = 0;
+        allowClose = true;
+    };
 
     return new Promise((resolve, reject) => {
         const dialog = new Dialog({
