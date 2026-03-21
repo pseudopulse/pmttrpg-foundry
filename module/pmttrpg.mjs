@@ -143,6 +143,9 @@ Hooks.once("init", () => {
         type: action.type,
         description: enrichClashData(ctx.getDescription())
       };
+    },
+    hasAugment(actor, name) {
+      return searchByObject(actor).augmentEffectCount(name) != 0;
     }
   });
 

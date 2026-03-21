@@ -1,3 +1,4 @@
+import { createEffectsMessage } from "../helpers/clash.mjs";
 import { StatusEffect, Triggers } from "./statusEffect.mjs";
 
 export const statusList = [
@@ -46,11 +47,13 @@ export const statusList = [
     new StatusEffect("Charge", Triggers.NONE, async (actor) => {}, (count) => { return 0; }),
     new StatusEffect("Charge_Barrier", Triggers.END, async (actor) => {
         await actor.applyStatus("Charge", actor.getStatusCount("Charge_Barrier"), 0);
+        createEffectsMessage(actor.name, `Gains ${actor.getStatusCount("Charge_Barrier")} [/status/Charge] Charge from decaying [/status/Charge_Barrier] Charge Barrier!`);
     }, (count) => { return 0; }),
     new StatusEffect("Overcharge", Triggers.END, async (actor) => {
         let charge = actor.getStatusCount("Charge");
         if (charge > 15) {
-            await actor.reduceStatus(3 * (Math.floor(charge / 15)));
+            await actor.reduceStatus("Charge", 3 * (Math.floor(charge / 15)));
+            createEffectsMessage(actor.name, `Loses ${3 * (Math.floor(charge / 15))} [/status/Charge] Charge from overload!`);
         }
     }, (count) => { return count; }),
     new StatusEffect("Nails", Triggers.NONE, async (actor) => {

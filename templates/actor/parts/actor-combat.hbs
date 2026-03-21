@@ -32,11 +32,35 @@
             </div>
         </div>
       </div>
+
+      {{#if (hasAugment actor "Multifaceted")}}
+      <div class="ac-resource" style="height: 3.5rem; gap: 1rem; width: 16rem;">
+        <label class="ac-item-name">Multifaceted:</label>
+        <div class="ac-resource-content">
+            <button onclick="toggleDP2(event)" class="ac-dropbtn ac-small-dropdown" style="width: 8rem;">
+                {{system.secondaryDisposition}}
+            </button>
+            <div id="dispodrp2" class="ac-dropdown-content">
+                <a class="dispo-entry-2">None</a>
+                <a class="dispo-entry-2">Anxious</a>
+                <a class="dispo-entry-2">Focused</a>
+                <a class="dispo-entry-2">Generous</a>
+                <a class="dispo-entry-2">Gloomy</a>
+                <a class="dispo-entry-2">Masochistic</a>
+                <a class="dispo-entry-2">Possessive</a>
+                <a class="dispo-entry-2">Protective</a>
+                <a class="dispo-entry-2">Tenacious</a>
+                <a class="dispo-entry-2">Wrathful</a>
+                <a class="dispo-entry-2">Vengeful</a>
+            </div>
+        </div>
+      </div>
+      {{/if}}
     </div>
 
     {{!-- Statistics --}}
     <div class="ac-resources-holder grid-2col ac-grid-object" style="width: 17.5rem; padding: 3%;">
-      <div class="ac-resource ac-stat-holder">
+      <div class="ac-resource ac-stat-holder" title="Temp HP: {{system.attributes.health.temp}}">
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/HPIcon.webp" width="24" height="24" />
         <div class="ac-resource-xp">
           <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
@@ -44,7 +68,7 @@
             data-dtype="Number" />
         </div>
       </div>
-      <div class="ac-resource ac-stat-holder" >
+      <div class="ac-resource ac-stat-holder" title="Temp ST: {{system.attributes.stagger.temp}}">
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/StaggerIcon.webp" width="24" height="24" />
         <div class="ac-resource-xp">
           <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
@@ -52,7 +76,7 @@
             data-dtype="Number" />
         </div>
       </div>
-      <div class="ac-resource ac-stat-holder" >
+      <div class="ac-resource ac-stat-holder" title="Temp SP: {{system.attributes.sanity.temp}}">
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/PanicBlue.png" width="24" height="24" />
         <div class="ac-resource-xp">
           <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
@@ -88,6 +112,7 @@
             data-dtype="Number" />
         </div>
       </div>
+      {{#if system.overchargeDeclared}}
       <div class="ac-resource ac-stat-holder" title="Charge Spent">
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/status/Charge.png" width="24" height="24" />
         <div class="ac-resource-xp">
@@ -96,6 +121,14 @@
             data-dtype="Number" />
         </div>
       </div>
+      {{else}}
+      <div class="ac-resource ac-stat-holder" title="Declare Overcharge">
+        <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/status/Overcharge.png" width="24" height="24" />
+        <div class="ac-resource-xp">
+          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-ocDeclare" type="checkbox" />
+        </div>
+      </div>
+      {{/if}}
       <div class="ac-resource ac-stat-holder" title="Consumed Bloodfeast">
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/Bloodfeast.png" width="24" height="24" />
         <div class="ac-resource-xp">
@@ -155,6 +188,11 @@
     function toggleDP(event) {
       event.preventDefault();
       document.getElementById('dispodrp').classList.toggle("ac-show");
+    }
+
+    function toggleDP2(event) {
+      event.preventDefault();
+      document.getElementById('dispodrp2').classList.toggle("ac-show");
     }
 
     function preventDefault(event) {

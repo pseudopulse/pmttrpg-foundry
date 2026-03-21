@@ -24,6 +24,7 @@ export class PTActorSheet extends ActorSheet {
         const actorData = this.document.toObject(false);
         context.system = actorData.system;
         context.flags = actorData.flags;
+        context.actor = this.document;
 
         context.statusList = statusList;
 
@@ -96,6 +97,18 @@ export class PTActorSheet extends ActorSheet {
         html.on('click', '.dispo-entry', (ev) => {
             const system = this.actor.toObject(false).system;
             system.disposition = ev.currentTarget.textContent;
+            this.actor.update({ system }, { diff: false, render: true });
+        });
+
+        html.on('click', '.ac-ocDeclare', (ev) => {
+            const system = this.actor.toObject(false).system;
+            system.overchargeDeclared = true;
+            this.actor.update({ system }, { diff: false, render: true });
+        });
+
+        html.on('click', '.dispo-entry-2', (ev) => {
+            const system = this.actor.toObject(false).system;
+            system.secondaryDisposition = ev.currentTarget.textContent;
             this.actor.update({ system }, { diff: false, render: true });
         });
 

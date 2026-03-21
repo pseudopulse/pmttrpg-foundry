@@ -23,12 +23,12 @@ export class PTActor extends Actor {
 
         const attr = systemData.attributes;
         const stats = systemData.abilities;
-        
+
         // rank
 
         attr.level.value = Math.floor(attr.xp.value / 8);
         attr.rank.value = 1 + Math.floor(attr.level.value / 3);
-        
+
         // stat formulas
         attr.health.max = Math.floor(64 + (stats.Fortitude.value * 8) + (attr.rank.value * 32));
         attr.stagger.max = Math.floor(20 + (stats.Charm.value * 4) + (attr.rank.value * 4));
@@ -100,7 +100,7 @@ export class PTActor extends Actor {
     async resetCombatData() {
         const actorData = this;
         const system = actorData.toObject(false).system;
-        
+
         system.emotion = 0;
         system.damageDealt = 0;
         system.damageTaken = 0;
@@ -108,6 +108,13 @@ export class PTActor extends Actor {
         system.bloodfeastConsumed = 0;
         system.clashesWon = 0;
         system.clashesLost = 0;
+        system.overchargeDeclared = false;
+        system.attributes.health.temp = 0;
+        system.attributes.stagger.temp = 0;
+        system.attributes.sanity.temp = 0;
+        system.mostRecentRoll = null;
+        system.recycleAction = null;
+        system.chargeBarrierHP = 0;
 
         await this.update({ system }, { diff: false, render: true });
     }
@@ -145,7 +152,7 @@ export class PTActor extends Actor {
             performProt("Protection", "Fragile");
         }
 
-        return { damage: dmg, text: text};
+        return { damage: dmg, text: text };
     }
 
     async performContextRoll(context) {
@@ -190,7 +197,7 @@ export class PTActor extends Actor {
             const ctx1 = new RollContext();
             Object.assign(ctx1, systemData.mostRecentRoll.context);
             ctx1.fix();
-                
+
             const ctx2 = new RollContext();
             if (ctx1.target != null && ctx1.target.system.mostRecentRoll != null) {
                 Object.assign(ctx2, ctx1.target.system.mostRecentRoll.context);
@@ -220,7 +227,7 @@ export class PTActor extends Actor {
     async processClashResolution(ctx1, ctx2) {
         createResultMessage(ctx1, ctx2);
         if (ctx1.result > ctx2.result || ctx2.result == "X") {
-            
+
         }
         else if (ctx2.result > ctx1.result || ctx1.result == "X") {
             let tmp = ctx1;
@@ -275,6 +282,11 @@ export class PTActor extends Actor {
 
         await ctx1.actor.queueRoll(null, true);
         await ctx2.actor.queueRoll(null, true);
+
+        await ctx1.actor.update({ "system.clashesWon": Number(ctx1.actor.system.clashesWon) + 1 }, { diff: false });
+        if (ctx2.result != "X") {
+            await ctx2.actor.update({ "system.clashesLost": Number(ctx2.actor.system.clashesLost) + 1 }, { diff: false });
+        }
     }
 
     /**
@@ -354,24 +366,70 @@ export class PTActor extends Actor {
         let prevHP = hp;
         let prevST = st;
         let prevSP = sp;
-        
+
         if (damage != 0) {
             switch (cat) {
                 case "HP":
                     hp -= damage;
+                    if (hp >= this.system.attributes.health.value) {
+                        let lost = prevHP - hp;
+                        await this.update({ "system.attributes.health.temp": this.system.attributes.health.temp - lost }, { diff: false });
+
+                        let barrier = Number(this.system.chargeBarrierHP);
+                        if (barrier > 0) {
+                            barrier = Math.clamp(barrier - lost, 0, barrier);
+                            let count = Math.floor(lost / 3);
+                            await this.reduceStatus("Charge_Barrier", Math.clamp(this.getStatusCount("Charge_Barrier"), 0, count));
+                            await this.update({ "system.chargeBarrierHP": barrier }, { diff: false });
+                        }
+
+                        if (this.system.attributes.health.temp < 0) {
+                            await this.update({ "system.attributes.health.temp": 0 }, { diff: false });
+                            await this.update({ "system.attributes.health.value": this.system.attributes.health.value - Math.abs(lost) }, { diff: false });
+                        }
+                    }
+                    else {
+                        hp = Math.clamp(hp, 0, this.system.attributes.health.value);
+                        await this.update({ "system.attributes.health.temp": 0 }, { diff: false });
+                        await this.update({ "system.attributes.health.value": hp }, { diff: false });
+                    }
                     break;
                 case "ST":
                     st -= damage;
+                    if (st >= this.system.attributes.stagger.value) {
+                        let lost = prevST - st;
+                        await this.update({ "system.attributes.stagger.temp": this.system.attributes.stagger.temp - lost }, { diff: false });
+
+                        if (this.system.attributes.stagger.temp < 0) {
+                            await this.update({ "system.attributes.stagger.temp": 0 }, { diff: false });
+                            await this.update({ "system.attributes.stagger.value": this.system.attributes.stagger.value - Math.abs(lost) }, { diff: false });
+                        }
+                    }
+                    else {
+                        st = Math.clamp(st, 0, this.system.attributes.stagger.max);
+                        await this.update({ "system.attributes.stagger.temp": 0 }, { diff: false });
+                        await this.update({ "system.attributes.stagger.value": st }, { diff: false });
+                    }
                     break;
                 case "SP":
                     sp -= damage;
+                    if (sp >= this.system.attributes.sanity.value) {
+                        let lost = prevSP - sp;
+                        await this.update({ "system.attributes.sanity.temp": this.system.attributes.sanity.temp - lost }, { diff: false });
+
+                        if (this.system.attributes.sanity.temp < 0) {
+                            await this.update({ "system.attributes.sanity.temp": 0 }, { diff: false });
+                            await this.update({ "system.attributes.sanity.value": this.system.attributes.sanity.value - Math.abs(lost) }, { diff: false });
+                        }
+                    }
+                    else {
+                        sp = Math.clamp(sp, 0, this.system.attributes.sanity.max);
+                        await this.update({ "system.attributes.sanity.temp": 0 }, { diff: false });
+                        await this.update({ "system.attributes.sanity.value": sp }, { diff: false });
+                    }
                     break;
             }
         }
-
-        hp = Math.clamp(hp, 0, this.system.attributes.health.max);
-        st = Math.clamp(st, 0, this.system.attributes.stagger.max);
-        sp = Math.clamp(sp, 0, this.system.attributes.sanity.max);
 
         createEffectsMessage(this.name, string
             .replace("%HP%", hp).replace("%PHP%", prevHP)
@@ -380,9 +438,7 @@ export class PTActor extends Actor {
             .replace("%DMG%", `${damage}${resText}`)
         );
 
-        await this.update({"system.attributes.health.value": hp}, {diff: false});
-        await this.update({"system.attributes.stagger.value": st}, {diff: false});
-        await this.update({"system.attributes.sanity.value": sp}, {diff: false});
+        await this.update({ "system.damageTaken": Number(this.system.damageTaken) + (prevHP - hp)});
     }
 
     async heal(fhp = 0, fst = 0, fsp = 0) {
@@ -398,19 +454,34 @@ export class PTActor extends Actor {
         st = Math.clamp(st, 0, this.system.attributes.stagger.max);
         sp = Math.clamp(sp, 0, this.system.attributes.sanity.max);
 
-        await this.update({"system.attributes.health.value": hp}, {diff: false});
-        await this.update({"system.attributes.stagger.value": st}, {diff: false});
-        await this.update({"system.attributes.sanity.value": sp}, {diff: false});
+        await this.update({ "system.attributes.health.value": hp }, { diff: false });
+        await this.update({ "system.attributes.stagger.value": st }, { diff: false });
+        await this.update({ "system.attributes.sanity.value": sp }, { diff: false });
+    }
+
+    async healTemp(fhp = 0, fst = 0, fsp = 0) {
+        let hp = this.system.attributes.health.temp;
+        let st = this.system.attributes.stagger.temp;
+        let sp = this.system.attributes.sanity.temp;
+
+        hp += fhp;
+        st += fst;
+        sp += fsp;
+
+        await this.update({ "system.attributes.health.temp": hp }, { diff: false });
+        await this.update({ "system.attributes.stagger.temp": st }, { diff: false });
+        await this.update({ "system.attributes.sanity.temp": sp }, { diff: false });
     }
 
     async takeDamage(damage, context, flatHP = 0, flatST = 0, flatSP = 0, silent = false) {
-        let hp = this.system.attributes.health.value;
-        let st = this.system.attributes.stagger.value;
-        let sp = this.system.attributes.sanity.value;
+        let hp = this.system.attributes.health.value + this.system.attributes.health.temp;
+        let st = this.system.attributes.stagger.value + this.system.attributes.stagger.temp;
+        let sp = this.system.attributes.sanity.value + this.system.attributes.sanity.temp;
 
         let prevHP = hp;
         let prevST = st;
-        
+        let prevSP = sp;
+
         let protTextHP = [];
         let protTextST = [];
 
@@ -435,11 +506,11 @@ export class PTActor extends Actor {
             let hpP = this.handleProt(context, "", false);
             let hpPT = this.handleProt(context, "", true);
             let stP = this.handleProt(context, "ST", false);
-            
-            
+
+
             hp -= Math.max(hpDmg + (hpP.damage + hpPT.damage), 0);
             st -= Math.max(stDmg + stP.damage, 0);
-            
+
             protTextHP.push(hpP.text);
             protTextHP.push(hpPT.text);
             protTextST.push(stP.text);
@@ -449,18 +520,70 @@ export class PTActor extends Actor {
         st -= flatST;
         sp -= flatSP;
 
-        hp = Math.clamp(hp, 0, this.system.attributes.health.max);
-        st = Math.clamp(st, 0, this.system.attributes.stagger.max);
-        await this.update({"system.attributes.health.value": hp}, {diff: false});
-        await this.update({"system.attributes.stagger.value": st}, {diff: false});
+        if (hp >= this.system.attributes.health.value) {
+            let lost = prevHP - hp;
+            await this.update({ "system.attributes.health.temp": this.system.attributes.health.temp - lost }, { diff: false });
 
-        
+            let barrier = Number(this.system.chargeBarrierHP);
+            if (barrier > 0) {
+                barrier = Math.clamp(barrier - lost, 0, barrier);
+                let count = Math.floor(lost / 3);
+                await this.reduceStatus("Charge_Barrier", Math.clamp(this.getStatusCount("Charge_Barrier"), 0, count));
+                await this.update({ "system.chargeBarrierHP": barrier }, { diff: false });
+            }
+
+            if (this.system.attributes.health.temp < 0) {
+                await this.update({ "system.attributes.health.temp": 0 }, { diff: false });
+                await this.update({ "system.attributes.health.value": this.system.attributes.health.value - Math.abs(lost) }, { diff: false });
+            }
+        }
+        else {
+            hp = Math.clamp(hp, 0, this.system.attributes.health.value);
+            await this.update({ "system.attributes.health.temp": 0 }, { diff: false });
+            await this.update({ "system.attributes.health.value": hp }, { diff: false });
+        }
+
+        if (st >= this.system.attributes.stagger.value) {
+            let lost = prevST - st;
+            await this.update({ "system.attributes.stagger.temp": this.system.attributes.stagger.temp - lost }, { diff: false });
+
+            if (this.system.attributes.stagger.temp < 0) {
+                await this.update({ "system.attributes.stagger.temp": 0 }, { diff: false });
+                await this.update({ "system.attributes.stagger.value": this.system.attributes.stagger.value - Math.abs(lost) }, { diff: false });
+            }
+        }
+        else {
+            st = Math.clamp(st, 0, this.system.attributes.stagger.max);
+            await this.update({ "system.attributes.stagger.temp": 0 }, { diff: false });
+            await this.update({ "system.attributes.stagger.value": st }, { diff: false });
+        }
+
+        if (sp >= this.system.attributes.sanity.value) {
+            let lost = prevSP - sp;
+            await this.update({ "system.attributes.sanity.temp": this.system.attributes.sanity.temp - lost }, { diff: false });
+
+            if (this.system.attributes.sanity.temp < 0) {
+                await this.update({ "system.attributes.sanity.temp": 0 }, { diff: false });
+                await this.update({ "system.attributes.sanity.value": this.system.attributes.sanity.value - Math.abs(lost) }, { diff: false });
+            }
+        }
+        else {
+            sp = Math.clamp(sp, 0, this.system.attributes.sanity.max);
+            await this.update({ "system.attributes.sanity.temp": 0 }, { diff: false });
+            await this.update({ "system.attributes.sanity.value": sp }, { diff: false });
+        }
+
+        await this.update({ "system.damageTaken": Number(this.system.damageTaken) + (prevHP - hp)}, { diff: false });
+        if (context != null && context.actor != null) {
+            await context.actor.update({ "system.damageDealt": Number(context.actor.system.damageDealt) + (prevHP - hp)}, { diff: false });
+        }
+
         if (!silent) {
-            pending[this.name] = 
+            pending[this.name] =
             {
                 subject: this.name,
                 effect:
-                this.removeLinesWithString(`
+                    this.removeLinesWithString(`
                 ${damage}${resText} x ${this.findResistance(context.damageType, null)} = ${this.getModifiedDamage(context, damage, null)} HP damage taken. (${prevHP} -> ${hp})
                 (${protTextHP[0] != null ? protTextHP[0] : ""})
                 (${protTextHP[1] != null ? protTextHP[1] : ""})
@@ -507,7 +630,7 @@ export class PTActor extends Actor {
 
         return type;
     }
-    
+
     /**
     * @param {RollContext} context 
     */
@@ -515,7 +638,7 @@ export class PTActor extends Actor {
     async handlePendingClash(context) {
         const actorData = this;
         const systemData = actorData.system;
-        
+
 
         canvas.tokens.placeables.find(x => x.actor._id == context.actor._id).setTarget(true, { releaseOthers: true });
         createClashResponse(this, context);
@@ -538,8 +661,12 @@ export class PTActor extends Actor {
     async handleNextRound() {
         await this.fireStatusEffects(Triggers.END);
 
+        if (this.system.overchargeDeclared) {
+            await this.fireStatusEffect("Overcharge");
+        }
+
         const system = this.toObject(false).system;
-        
+
         for (const status of system.statusEffects) {
             status.count = Number(status.count) + Number(status.nextRoundCount);
             status.nextRoundCount = 0;
@@ -549,6 +676,22 @@ export class PTActor extends Actor {
 
         await this.getAugmentContext().fireEvent("Round Start");
         await this.getOutfitContext().fireEvent("Round Start");
+
+        let barrier = Number(this.system.chargeBarrierHP);
+        if (barrier > 0) {
+            await this.update({ "system.attributes.health.temp": Math.max(this.system.attributes.health.temp - barrier, 0) }, { diff: false });
+            await this.update({ "system.chargeBarrierHP": 0 }, { diff: false });
+        }
+
+        let cbStack = this.getStatusCount("Charge_Barrier");
+        if (cbStack > 0) {
+            let shield = cbStack * 3;
+            console.log("thp prior " + this.system.attributes.health.temp);
+            await this.update({ "system.attributes.health.temp": this.system.attributes.health.temp + shield }, { diff: false });
+            console.log("thp after " + this.system.attributes.health.temp);
+            await this.update({ "system.chargeBarrierHP": shield }, { diff: false });
+            createEffectsMessage(this.name, `Gains ${shield} Temporary HP from [/status/Charge_Barrier] Charge Barrier!`);
+        }
     }
 
     getStatusCount(status) {
@@ -605,17 +748,15 @@ export class PTActor extends Actor {
 
         await this.update({ system }, { diff: false, render: true });
 
-        // askdjajfjghashghgdsgas
-        // this isnt working !!
-
         if (status == "Charge") {
-            system.chargeSpent = Number(system.chargeSpent) + count;
-            if (Number(system.chargeSpent) >= 10) {
-                let count = Number(system.chargeSpent) % 10;
-                system.chargeSpent = Number(system.chargeSpent) - (count * 10);
+            let chargeSpent = Number(system.chargeSpent) + count;
+            if (chargeSpent >= 10) {
+                let count = Math.floor(chargeSpent / 10);
+                chargeSpent -= count * 10;
                 await this.applyStatus("Overcharge", count);
                 createEffectsMessage(this.name, `Gained ${count} [/status/Overcharge] Overcharge from spent [/status/Charge] Charge!`);
             }
+            await this.update({ "system.chargeSpent": chargeSpent }, { diff: false });
         }
     }
 
@@ -656,6 +797,14 @@ export class PTActor extends Actor {
         }
 
         await this.update({ system }, { diff: false, render: true });
+    }
+
+    async fireStatusEffect(status) {
+        let def = statusList.find(x => x.name == status);
+        let count = this.getStatusCount(def);
+
+        await def.activation(this);
+        await this.setStatus(status, def.decay(count));
     }
 
     async fireStatusEffects(trigger) {

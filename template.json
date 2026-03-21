@@ -15,17 +15,20 @@
         "health": {
           "value": 10,
           "min": 0,
-          "max": 10
+          "max": 10,
+          "temp": 0
         },
         "stagger": {
           "value": 10,
           "min": 0,
-          "max": 10
+          "max": 10,
+          "temp": 0
         },
         "sanity": {
           "value": 10,
           "min": 0,
-          "max": 10
+          "max": 10,
+          "temp": 0
         },
         "light": {
           "value": 10,
@@ -58,6 +61,7 @@
       "currentAugmentId": "",
       "statusEffects": [],
       "disposition": "None",
+      "secondaryDisposition": "None",
       "emotion": 0,
       "clashesWon": 0,
       "clashesLost": 0,
@@ -66,7 +70,9 @@
       "damageDealt": 0,
       "damageTaken": 0,
       "recycleAction": null,
-      "augment": null
+      "augment": null,
+      "chargeBarrierHP": 0,
+      "overchargeActive": false
     }
   },
   "Item": {
