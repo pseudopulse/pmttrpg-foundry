@@ -3,7 +3,7 @@ import { PTActor } from "./documents/actor.mjs";
 import { getRollContextFromData, PTItem } from "./documents/item.mjs";
 import { PTActorSheet } from "./sheets/actor.mjs";
 import { PTItemSheet } from "./sheets/item.mjs";
-import { handler, sendNetworkMessage, registerMessages } from "./core/helpers/netmsg.mjs";
+import { handler, sendNetworkMessage, registerMessages, getActorUser } from "./core/helpers/netmsg.mjs";
 import { currentRound, currentTurn, roundChange, setRound, turnChange, updateCombatant } from "./core/combat/combatState.mjs";
 import { getEffectsArray } from "./core/effects/effectHelpers.mjs";
 import { RollContext } from "./core/combat/rollContext.mjs";
@@ -229,7 +229,7 @@ Hooks.on('preMoveToken', (token, data, action, user) => {
   let dist = distanceBetween(origin, dest);
   let sqr = Math.floor(dist / distScale);
 
-  if (sqr > token.actor.system.movement && (game.combat != null && game.combat.isActive)) {
+  if (sqr > token.actor.system.movement && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user) {
     ui.notifications.notify(`You cant move that far! You attempted to move ${sqr} SQR, while only having ${token.actor.system.movement} SQR remaining!`);
     return false;
   }
@@ -242,7 +242,7 @@ Hooks.on('moveToken', (token, data, action, user) => {
   let dist = distanceBetween(origin, dest);
   let sqr = Math.floor(dist / distScale);
 
-  if ((game.combat != null && game.combat.isActive)) {
+  if ((game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user) {
     token.actor.update({ "system.movement": Math.max(Number(token.actor.system.movement) - sqr, 0) }, { diff: false });
   }
 });
