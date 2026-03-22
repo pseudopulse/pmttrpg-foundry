@@ -229,7 +229,7 @@ Hooks.on('preMoveToken', (token, data, action, user) => {
   let dist = distanceBetween(origin, dest);
   let sqr = Math.floor(dist / distScale);
 
-  if (sqr > token.actor.system.movement) {
+  if (sqr > token.actor.system.movement && (game.combat != null && game.combat.isActive)) {
     ui.notifications.notify(`You cant move that far! You attempted to move ${sqr} SQR, while only having ${token.actor.system.movement} SQR remaining!`);
     return false;
   }
@@ -242,7 +242,9 @@ Hooks.on('moveToken', (token, data, action, user) => {
   let dist = distanceBetween(origin, dest);
   let sqr = Math.floor(dist / distScale);
 
-  token.actor.update({ "system.movement": Math.max(Number(token.actor.system.movement) - sqr, 0) }, { diff: false });
+  if ((game.combat != null && game.combat.isActive)) {
+    token.actor.update({ "system.movement": Math.max(Number(token.actor.system.movement) - sqr, 0) }, { diff: false });
+  }
 });
 
 function distanceBetween(v1, v2) {

@@ -2,7 +2,7 @@
 
 import { searchByObject } from "../../pmttrpg.mjs";
 import { RollContext } from "../combat/rollContext.mjs";
-import { pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "./dialog.mjs";
+import { pollUserInputConfirm, pollUserInputOptions, pollUserInputText, pollReduceStatus } from "./dialog.mjs";
 
 export function sendNetworkMessage(type, data) {
     ChatMessage.create({
@@ -47,6 +47,7 @@ export function registerMessages() {
     CONFIG.queries["pmttrpg.pollUserInputOptions"] = wrapperPollUserInputOptions;
     CONFIG.queries["pmttrpg.pollUserInputText"] = wrapperPollUserInputText;
     CONFIG.queries["pmttrpg.pollUserInputConfirm"] = wrapperPollUserInputConfirm;
+    CONFIG.queries["pmttrpg.pollReduceStatus"] = wrapperPollReduceStatus;
 }
 
 export async function wrapperPollUserInputOptions(data) {
@@ -59,6 +60,10 @@ export async function wrapperPollUserInputText(data) {
 
 export async function wrapperPollUserInputConfirm(data) {
     return await pollUserInputConfirm(game.user, data.prompt);
+}
+
+export async function wrapperPollReduceStatus(data) {
+    return await pollReduceStatus(game.user, data.source, data.count, data.statusEffects);
 }
 
 

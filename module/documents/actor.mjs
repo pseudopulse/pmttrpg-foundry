@@ -1,6 +1,6 @@
 import { RollContext } from "../core/combat/rollContext.mjs";
 import { createClashMessage, createEffectsMessage, createResultMessage } from "../core/helpers/clash.mjs";
-import { createClashResponse, pollUserInputConfirm } from "../core/helpers/dialog.mjs";
+import { createClashResponse, pollReduceStatus, pollUserInputConfirm } from "../core/helpers/dialog.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
 import { playSound, searchByObject } from "../pmttrpg.mjs";
@@ -999,8 +999,25 @@ export class PTActor extends Actor {
         return 0;
     }
 
+    async performReduceStatus(source, count) {
+        let data = await pollReduceStatus(this, source, count, this.system.statusEffects);
+        let text = "";
+
+        for (let status in data) {
+            if (Object.prototype.hasOwnProperty.call(data, status)) {
+                let count = data[status];
+                if (count <= 0) continue;
+
+                let prev = this.getStatusCount(status);
+                await this.reduceStatus(status, count);
+                text = text + `[/status/${status}] ${status.replace("_", " ")} reduced by ${count} (${prev} -> ${prev - count})` + "\n";
+            }
+        }
+
+        createEffectsMessage(this.name, text);
+    }
+
     async refreshMacroBar() {
-        console.log("refreshing macro bar for: " + this.name);
         let oCtx = this.getOutfitContext();
         let aCtx = this.getAugmentContext();
 
@@ -1015,8 +1032,11 @@ export class PTActor extends Actor {
             createEffectsMessage(actor.name, `Gains ${extraMovement} extra movement from dashing! (${movement} -> ${movement + extraMovement})`);
         }, "icons/Dash.png")
 
+        await registerEffectMacro("Reduce Status", async (actor) => {
+            await actor.performReduceStatus("Reduce Status", (Number(actor.system.abilities.Justice.value) + Number(actor.system.attributes.rank.value)) * 2);
+        }, "icons/Reduce_Status.png")
+
         if (this.augmentEffectCount("Concentrated Overcharge") > 0 || this.augmentEffectCount("Meditation") > 0) {
-            console.log("registering effect macro for Controlled Stagger");
             await registerEffectMacro("Controlled Stagger", async (actor) => {
                 if (actor.system.staggered) {
                     ui.notifications.notify("You are already staggered!");

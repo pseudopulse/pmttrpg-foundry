@@ -302,6 +302,112 @@ export async function pollUserInputConfirm(user, prompt) {
     });
 }
 
+export async function pollReduceStatus(user, source, maxStacks, statusEffects) {
+    if (user != game.user) {
+        return await getActorUser(user).query("pmttrpg.pollReduceStatus", {
+            source: source,
+            count: maxStacks,
+            statusEffects: statusEffects
+        });
+    }
+
+    const content = await renderTemplate("systems/pmttrpg/templates/dialog/reduce-status.hbs", {
+        source: source,
+        count: maxStacks
+    });
+
+    let reduction = {
+        "Burn": 0,
+        "Bleed": 0,
+        "Frostbite": 0,
+        "Smoke": 0,
+        "Deep_Chill": 0,
+        "Renewed_Blaze": 0,
+        "Hemorrhage": 0
+    };
+
+    let checkNoStandard = () => {
+        return reduction["Bleed"] <= 0 && reduction["Burn"] <= 0 && reduction["Frostbite"] <= 0 && reduction["Smoke"] <= 0;
+    }
+
+    let checkNoPause = () => {
+        return reduction["Hemorrhage"] <= 0 && reduction["Renewed_Blaze"] <= 0 && reduction["Deep_Chill"] <= 0;
+    }
+
+    let tallyAll = () => {
+        return (reduction["Bleed"] + reduction["Burn"] + reduction["Frostbite"] + reduction["Smoke"]) + 
+        ((reduction["Hemorrhage"] + reduction["Renewed_Blaze"] + reduction["Deep_Chill"]) * 2);
+    }
+
+    let update = (html) => {
+        html.find('.rs-statusInput').each((x, input) => {
+            let status = statusEffects.find(x => x.name == input.closest('.rs-statusInputHolder').dataset.status);
+            input.min = 0;
+            input.max = Number(input.value) + (Math.max(maxStacks - tallyAll(), 0));
+            if (status != null) {
+                input.max = Math.min(Number(input.max), Number(status.count));
+            }
+        });
+
+        if (!checkNoStandard()) {
+            $("#rs-pauseStatus").addClass("rs-nop");
+            $("#rs-pauseStatusBox").show();
+        }
+        else {
+            $("#rs-pauseStatus").removeClass("rs-nop");
+            $("#rs-pauseStatusBox").hide();
+        }
+
+        if (!checkNoPause()) {
+            $("#rs-standardStatus").addClass("rs-nop");
+            $("#rs-standardStatusBox").show();
+        }
+        else {
+            $("#rs-standardStatus").removeClass("rs-nop");
+            $("#rs-standardStatusBox").hide();
+        }
+    } 
+    
+    return new Promise((resolve, reject) => {
+        const dialog = new Dialog({
+            title: "",
+            content: content,
+            buttons: {
+                submit: {
+                    label: "Confirm",
+                    callback: () => {
+                        dialog.close();
+                    }
+                }
+            },
+            close: () => {
+                resolve(reduction);
+            },
+            render: (html) => {
+                update(html);
+
+                html.on('input', '.rs-statusInput', (ev) => {
+                    let val = Number(ev.currentTarget.value);
+                    let status = ev.currentTarget.closest('.rs-statusInputHolder').dataset.status;
+                    reduction[status] = val;
+
+                    update(html);
+                });
+
+                html.on('submit', '.it-text-field', (ev) => {
+                    if (allowClose) {
+                        dialog.close();
+                    }
+                });
+            },
+            default: "submit"
+        }, {
+            width: 600,
+            height: 400
+        }).render(true);
+    });
+}
+
 
 export async function pollUserInputText(user, prompt, placeholder, mode = "latin", max = 999) {
     if (user != game.user) {

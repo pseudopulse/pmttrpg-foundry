@@ -35,7 +35,7 @@ export class PTTokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
         
         let cost = Math.floor(this.distanceBetween(this.token.transform.position, waypoint) / 100);
 
-        if (cost > movement) {
+        if (cost > movement && (game.combat != null && game.combat.isActive)) {
             return 0xaa0000;
         }
         else {
