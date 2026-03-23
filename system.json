@@ -38,7 +38,7 @@
   "packFolders": [],
   "socket": false,
   "manifest": "https://github.com/pseudopulse/pmttrpg-foundry/blob/main/system.json",
-  "download": "This must link to a .zip file of the current version",
+  "download": "https://github.com/pseudopulse/pmttrpg-foundry/raw/refs/heads/main/pmttrpg.zip",
   "background": "systems/pmttrpg/assets/anvil-impact.png",
   "gridDistance": 1,
   "gridUnits": "SQR",
