@@ -1,6 +1,6 @@
 import { RollContext } from "../core/combat/rollContext.mjs";
 import { createClashMessage, createEffectsMessage, createResultMessage } from "../core/helpers/clash.mjs";
-import { createClashResponse, pollReduceStatus, pollUserInputConfirm } from "../core/helpers/dialog.mjs";
+import { createClashResponse, getAttackOptions, pollReduceStatus, pollUserInputConfirm, pollUserInputOptions } from "../core/helpers/dialog.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
 import { playSound, searchByObject } from "../pmttrpg.mjs";
@@ -259,6 +259,9 @@ export class PTActor extends Actor {
             return;
         }
 
+        await ctx1.fireEvent("On Use");
+        await ctx2.fireEvent("On Use");
+
         let ruin = ctx2.actor.getStatusCount("Ruin");
         let devastation = ctx2.actor.getStatusCount("Devastation");
 
@@ -270,6 +273,7 @@ export class PTActor extends Actor {
             if (roll <= ruin) {
                 tmp = new Roll(`${devastation}d8`);
                 await tmp.evaluate();
+                let damage = tmp.total;
                 await ctx2.actor.setStatus("Ruin", 0);
                 await ctx2.actor.setStatus("Devastation", 0);
                 await ctx2.actor.takeDamageStatus(damage, "Ruin", null, `Received a [/status/Devastation] Devastating hit for %DMG% HP damage! (%PHP% -> %HP%)`);
@@ -278,6 +282,45 @@ export class PTActor extends Actor {
             else {
                 createEffectsMessage(ctx1.actor.name, `Rolled ${roll}, failed [/status/Ruin] Ruin check!`);
             }
+        }
+
+        let poise = ctx1.actor.getStatusCount("Poise");
+        let critical = ctx1.actor.getStatusCount("Critical");
+
+        if (poise > 0) {
+            let tmp = new Roll(`1d10`);
+            await tmp.evaluate();
+            let roll = tmp.total;
+
+            if (roll <= poise) {
+                tmp = new Roll(`${critical}d10`);
+                await tmp.evaluate();
+                let damage = tmp.total;
+                await ctx1.actor.setStatus("Poise", 0);
+                await ctx1.actor.setStatus("Critical", 0);
+                await ctx2.actor.takeDamageStatus(damage, "Poise", null, `Received a [/status/Critical] Critical hit for %DMG% HP damage! (%PHP% -> %HP%)`);
+                await ctx1.fireEvent("Critical Hit");
+            }
+            else {
+                createEffectsMessage(ctx1.actor.name, `Rolled ${roll}, failed [/status/Poise] Poise check!`);
+            }
+        }
+
+        let smoke = ctx2.actor.getStatusCount("Smoke");
+
+        if (smoke > 0) {
+            let damage = Math.max(Math.floor(smoke / 2), 1);
+            await ctx2.actor.takeDamageStatus(damage, "Smoke", null, `Takes %DMG% extra HP damage from [/status/Smoke] Smoke! (%PHP% -> %HP%)`);
+            if (ctx1.actor.augmentEffectCount("Dizzying Smog") > 0) {
+                damage = Math.max(Math.floor(damage / 2), 1);
+                await ctx2.actor.takeDamageStatus(damage, "Smoke", "ST", `Takes %DMG% extra ST damage from [/status/Smoke] Smoke due to Dizzying Smog! (%PST% -> %ST%)`);
+            }
+        }
+
+        if (ctx1.actor.augmentEffectCount("Puffy Brume") > 0) {
+            let smoke = ctx1.actor.getStatusCount("Smoke");
+            let damage = Math.max(Math.floor(smoke / 2), 1);
+            await ctx2.actor.takeDamageStatus(damage, "Smoke", null, `Takes %DMG% extra HP damage from [/status/Smoke] Smoke due to Puffy Brume! (%PHP% -> %HP%)`);
         }
 
         if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
@@ -790,11 +833,22 @@ export class PTActor extends Actor {
             createEffectsMessage(this.name, `Gains ${shield} Temporary HP from [/status/Charge_Barrier] Charge Barrier!`);
         }
 
+        let kMovement = Math.max(this.system.movement - this.system.kineticStorageMovement, 0);
         let speed = this.getStatusCount("Haste") + this.getStatusCount("Bind");
         speed += this.system.nextRoundMovement;
+        if (this.augmentEffectCount("Kinetic Storage") > 0) {
+            speed += kMovement;
+        }
 
         await this.update({ "system.movement": 6 + speed }, { diff: false });
         await this.update({ "system.nextRoundMovement": 0 }, { diff: false });
+        await this.update({ "system.kineticStorageMovement": kMovement }, { diff: false });
+
+        let reactions = Number(this.system.attributes.rank.value) + this.augmentEffectCount("Additional Reaction") + this.outfitEffectCount("Additional Reaction");
+        await this.update({ "system.reactions": reactions }, { diff: false });
+
+        let actions = Math.max(Math.ceil(Number(this.system.attributes.rank.value) / 2), 1);
+        await this.update({ "system.actions": actions }, { diff: false });
     }
 
     getStatusCount(status) {
@@ -831,6 +885,15 @@ export class PTActor extends Actor {
 
         await this.update({ system }, { diff: false, render: true });
         await this.takeDamage(0, null, 0, 0, 5, true);
+
+        if (this.augmentEffectCount("Indomitable") > 0 && !this.system.indomitableSpent) {
+            const system2 = this.toObject(false).system;
+            system2.attributes.stagger.value = system2.attributes.stagger.max;
+            system2.staggerRounds = 0;
+            system2.staggered = false;
+            await this.update({ system2 }, { diff: false, render: true });
+            createEffectsMessage(this.name, `${this.name} is Indomitable! Recovered from stagger.`);
+        }
     }
 
     async applyStatus(status, count = 0, nextRoundCount = 0) {
@@ -853,6 +916,9 @@ export class PTActor extends Actor {
         }
 
         await this.update({ system }, { diff: false, render: true });
+
+        await this.verifyStatusRelation("Poise", "Critical");
+        await this.verifyStatusRelation("Ruin", "Devastation");
     }
 
     async reduceStatus(status, count = 0) {
@@ -877,6 +943,22 @@ export class PTActor extends Actor {
             }
             await this.update({ "system.chargeSpent": chargeSpent }, { diff: false });
         }
+
+        await this.verifyStatusRelation("Poise", "Critical");
+        await this.verifyStatusRelation("Ruin", "Devastation");
+    }
+
+    async verifyStatusRelation(mainStatus, correlatedStatus) {
+        let c1 = this.getStatusCount(mainStatus);
+        let c2 = this.getStatusCount(correlatedStatus);
+
+        if (c2 > 0 && c1 <= 0) {
+            await this.setStatus(correlatedStatus, 0);
+        }
+
+        if (c1 > 0 && c2 <= 0) {
+            await this.applyStatus(correlatedStatus, 1);
+        }
     }
 
     async setStatus(status, count) {
@@ -897,6 +979,9 @@ export class PTActor extends Actor {
         }
 
         await this.update({ system }, { diff: false, render: true });
+
+        await this.verifyStatusRelation("Poise", "Critical");
+        await this.verifyStatusRelation("Ruin", "Devastation");
     }
 
     async setStatusNext(status, count) {
@@ -955,8 +1040,13 @@ export class PTActor extends Actor {
         }
     }
 
-    async spendAction() {
-        await this.fireStatusEffects(Triggers.ACTION);
+    async spendAction(triggerBleed = true) {
+        let actions = Number(this.system.actions);
+        await this.update({ "system.actions": Math.max(actions - 1, 0)}, { diff: false });
+        createEffectsMessage(this.name, `Spends 1 Action! (${actions} -> ${Math.max(actions - 1, 0)})`)
+        if (triggerBleed) {
+            await this.fireStatusEffects(Triggers.ACTION);
+        }
     }
 
     async assignRecycleableAction(context, type, source) {
@@ -1025,16 +1115,42 @@ export class PTActor extends Actor {
             await game.user.assignHotbarMacro(null, i);
         }
 
-        await registerEffectMacro("Dash", async (actor) => {
-            let movement = Number(actor.system.movement);
-            let extraMovement = 3 + actor.system.abilities.Justice.value + this.outfitEffectCount("Light Material");
-            await actor.update({ "system.movement": movement + extraMovement });
-            createEffectsMessage(actor.name, `Gains ${extraMovement} extra movement from dashing! (${movement} -> ${movement + extraMovement})`);
-        }, "icons/Dash.png")
+        await registerEffectMacro("Take Action", async (actor) => {
+            let type = await pollUserInputOptions(actor, "What action do you want to take?", [
+                { name: "Attack", icon: "icons/Attack.png" },
+                { name: "Dash", icon: "icons/Dash.png" },
+                { name: "Reduce Status", icon: "icons/Reduce_Status.png" },
+                { name: "Spend Action", icon: "icons/Discard_Reaction.png" }
+            ]);
 
-        await registerEffectMacro("Reduce Status", async (actor) => {
-            await actor.performReduceStatus("Reduce Status", (Number(actor.system.abilities.Justice.value) + Number(actor.system.attributes.rank.value)) * 2);
-        }, "icons/Reduce_Status.png")
+            switch (type) {
+                case "Attack":
+                    let data = await getAttackOptions(actor);
+
+                    await actor.spendAction(true);
+                    break;
+                case "Dash":
+                    let movement = Number(actor.system.movement);
+                    let extraMovement = 3 + actor.system.abilities.Justice.value + this.outfitEffectCount("Light Material");
+                    await actor.update({ "system.movement": movement + extraMovement });
+                    createEffectsMessage(actor.name, `Gains ${extraMovement} extra movement from dashing! (${movement} -> ${movement + extraMovement})`);
+                    await actor.spendAction(false);
+                    break;
+                case "Reduce Status":
+                    await actor.performReduceStatus("Reduce Status", (Number(actor.system.abilities.Justice.value) + Number(actor.system.attributes.rank.value)) * 2);
+                    await actor.spendAction(false);
+                    break;
+                case "Spend Action":
+                    await actor.spendAction(true);
+                    break;
+            }
+        }, "icons/Take_Action.png");
+
+        await registerEffectMacro("Discard Reaction", async (actor) => {
+            let reactions = Number(actor.system.reactions);
+            await actor.update({ "system.reactions": Math.max(reactions - 1, 0) }, { diff: false });
+            createEffectsMessage(actor.name, `Spends 1 Reaction! (${reactions} -> ${Math.max(reactions - 1, 0)})`);
+        }, "icons/Discard_Reaction.png");
 
         if (this.augmentEffectCount("Concentrated Overcharge") > 0 || this.augmentEffectCount("Meditation") > 0) {
             await registerEffectMacro("Controlled Stagger", async (actor) => {

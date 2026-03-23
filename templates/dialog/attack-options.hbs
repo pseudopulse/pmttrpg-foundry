@@ -1,78 +1,73 @@
-<form class="flexcol cr-form" autocomplete="off" data-actor-id="{{actor._id}}">
+<form class="flexcol at-form" autocomplete="off" data-actor-id="{{actor._id}}">
     <section class="sheet-body resource-container flexcol">
         <div>
-            {{> ptWeaponBlock this editable=false}}
-
-            <div class="cr-resources-holder" id="cr-mainBlock">
-                <nav class="cr-resource cr-tab-bar" data-group="primary">
-                    <a class="item crw-tab-button">Weapons</a>
-                    <a class="item crw-tab-button">Outfits</a>
-                </nav>
-                <div class="cr-block-holder">
-                    <div id="crw-weapons">
-                        {{#each weapons as |item id|}}
-                        <li class='item flexrow' data-item-id='{{item._id}}'>
-                            <div class="crw-resource">
-                                <div class='crw-item-name'>
-                                    <div class='crw-item-icon'>
-                                        <a class='rollable' data-roll-type='item'>
-                                            <img class="crw-type-img"
-                                                src='systems/pmttrpg/assets/damageTypes/{{item.system.damageType}}.png'
-                                                title='Counter' width='24' height='24' />
-                                        </a>
-                                    </div>
-                                    <h4 class="crw-item-text">{{item.name}}</h4>
-                                </div>
-                                <div>
-                                    {{#with (rctx item) as |rollContext|}}
-                                    <h4 class="crw-item-text crw-rollText">
-                                        {{rollContext.diceCount}}d{{rollContext.diceMax}}+{{rollContext.dicePower}}</h4>
-                                    {{/with}}
-                                </div>
-                            </div>
-                        </li>
-                        {{/each}}
-                    </div>
-                    <div id="crw-outfits">
-                        {{#each outfits as |item id|}}
-                        <li class='item flexrow' data-item-id='{{item._id}}'>
-                            <div class="crw-resource">
-                                <h4 class="crw-item-text">{{item.name}}</h4>
-                                <div class="cr-def-roll">
-                                    {{#with (drctx item "Block") as |rollContext|}}
-                                    <a class='rollable' data-roll-type='block'>
-                                            <img class="crw-type-img"
-                                                src='systems/pmttrpg/assets/damageTypes/Block.png'
-                                                title='Block' width='24' height='24' />
-                                        </a>
-                                    <h4 class="crw-item-text crw-rollText">
-                                        {{rollContext.diceCount}}d{{rollContext.diceMax}}+{{rollContext.dicePower}}</h4>
-                                    {{/with}}
-                                </div>
-                                <div class="cr-def-roll">
-                                    {{#with (drctx item "Evade") as |rollContext|}}
-                                    <a class='rollable' data-roll-type='evade'>
-                                            <img class="crw-type-img"
-                                                src='systems/pmttrpg/assets/damageTypes/Evade.png'
-                                                title='Evade' width='24' height='24' />
-                                        </a>
-                                    <h4 class="crw-item-text crw-rollText">
-                                        {{rollContext.diceCount}}d{{rollContext.diceMax}}+{{rollContext.dicePower}}</h4>
-                                    {{/with}}
-                                </div>
-                            </div>
-                        </li>
-                        {{/each}}
+            <div class="at-resources-holder">
+                <div class="at-resource" style="height: 3.5rem; gap: 1.5rem; width: 100%;">
+                    <label class="at-item-name">Targeting:</label>
+                    <div class="at-resource-content">
+                        <button onclick="toggleAT('at-targetDrp')" class="atw-dropbtn atw-small-dropdown" style="width: 12rem;" id="at-targetButton">
+                            {{target}}
+                        </button>
+                        <div id="at-targetDrp" class="atw-dropdown-content" style="width: 12rem; text-align: center;">
+                            {{#each targets as |target|}}
+                                <a onclick="toggleAT('at-targetDrp')" class="at-target-entry" data-id="{{target.id}}">{{target.name}}</a>
+                            {{/each}}
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="cr-resources-holder" id="cr-altBlock">
-                <h4 class="cr-reactionText">You have no reactions!</h4>
+
+            <div class="at-resources-holder">
+                <div class="at-block-holder">
+                    <div id="atw-weapons">
+                        {{#each weapons as |item id|}}
+                        <li class='item flexrow' data-item-id='{{item._id}}'>
+                            <div class="atw-resource">
+                                <div class='atw-item-name'>
+                                    <div class='atw-item-icon'>
+                                        <a class='rollable' data-roll-type='item'>
+                                            <img class="atw-type-img"
+                                                src='systems/pmttrpg/assets/damageTypes/{{item.system.damageType}}.png'
+                                                title='Attack' width='24' height='24' />
+                                        </a>
+                                    </div>
+                                    <h4 class="atw-item-text">{{item.name}}</h4>
+                                </div>
+                                <div>
+                                    {{#with (rctx item) as |rollContext|}}
+                                    <h4 class="atw-item-text atw-rollText">
+                                        {{rollContext.diceCount}}d{{rollContext.diceMax}}+{{rollContext.dicePower}}</h4>
+                                    {{/with}}
+                                </div>
+                            </div>
+                        </li>
+                        {{/each}}
+                        {{#if useExtraRoll}}
+                            {{#with extraRoll as |roll|}}
+                            <li class='item flexrow' data-item-id='recycle'>
+                                <div class="atw-resource">
+                                    <div class='atw-item-name'>
+                                        <div class='atw-item-icon'>
+                                            <a class='rollable' data-roll-type='item'>
+                                                <img class="atw-type-img"
+                                                    src='systems/pmttrpg/assets/damageTypes/{{roll.damageType}}.png'
+                                                    title='Recycled' width='24' height='24' />
+                                            </a>
+                                        </div>
+                                        <h4 class="atw-item-text">{{roll.name}}</h4>
+                                    </div>
+                                    <div>
+                                    <h4 class="atw-item-text atw-rollText">{{roll.diceCount}}d{{roll.diceMax}}+{{roll.dicePower}} / {{roll.result}}</h4>
+                                    </div>
+                                </div>
+                            </li>
+                            {{/with}}
+                        {{/if}}
+                    </div>
+                </div>
             </div>
         </div>
         <div>
-            
-        </div>
     </section>
 </form>
 
@@ -89,21 +84,23 @@
             input.blur()
         }
     }
+
+    function toggleAT(element) {
+        document.getElementById(element).classList.toggle("atw-show");
+    }
 </script>
 
 <style>
-    #cr-weapons {
+    #at-weapons {}
 
-    }
-
-    .cr-reactionText {
+    .at-reactionText {
         color: red;
         font-weight: bold;
         align-self: center;
         justify-self: center;
     }
 
-    .cr-def-roll {
+    .at-def-roll {
         display: flex;
         gap: 0.5rem;
         height: 4rem;
@@ -112,12 +109,12 @@
         align-items: center;
     }
 
-    .cr-block-holder {
+    .at-block-holder {
         height: 15rem;
         overflow-y: scroll;
     }
 
-    .cr-tab-bar {
+    .at-tab-bar {
         display: flex !important;
         justify-content: space-around;
         height: 2.5rem;
@@ -126,7 +123,7 @@
         padding: 0% 0% 1% 0% !important;
     }
 
-    .crw-tab-button {
+    .atw-tab-button {
         padding: 1%;
         background: slategrey;
         width: 8rem;
@@ -140,27 +137,27 @@
         font-size: 15px;
     }
 
-    .cr-clashDescription {
+    .at-clashDescription {
         overflow-y: scroll;
         width: 100%;
         padding: 0 2% !important;
         text-wrap-mode: wrap;
     }
 
-    .cr-statblock-container {
+    .at-statblock-container {
         padding: 2% !important;
         columns: 2;
         display: flex;
         gap: 0.5rem;
     }
 
-    .cr-rollInfo {
+    .at-rollInfo {
         height: 9rem;
         width: 8rem;
         padding: 2% !important;
     }
 
-    .cr-resource {
+    .at-resource {
         background-color: cadetblue;
         border: 2px solid black;
         border-radius: 1px;
@@ -173,7 +170,7 @@
         padding-bottom: 0;
     }
 
-    .cr-item-holder {
+    .at-item-holder {
         display: flex;
         columns: 2;
         width: 10rem;
@@ -184,18 +181,18 @@
         align-content: center;
     }
 
-    .cr-resource-input {
+    .at-resource-input {
         background-color: slategray;
         border: 1px solid silver;
         text-align: center;
         width: 4rem;
     }
 
-    .cr-nop {
+    .at-nop {
         pointer-events: none;
     }
 
-    .cr-resource-content {
+    .at-resource-content {
         display: flexbox;
         justify-content: center;
         align-items: center;
@@ -205,11 +202,11 @@
         margin: auto;
     }
 
-    .cr-resource-divider {
+    .at-resource-divider {
         text-align: center;
     }
 
-    .cr-resource-icon {
+    .at-resource-icon {
         width: 2.5rem;
         height: 2.5rem;
         margin: auto;
@@ -218,33 +215,33 @@
         border: 1px solid silver;
     }
 
-    .cr-resource-icon:hover {
+    .at-resource-icon:hover {
         background: rgb(147, 161, 175);
     }
 
-    .cr-resources-holder {
+    .at-resources-holder {
         background-color: #1d1b22;
         border: 2px solid slategray;
         padding: 2%;
     }
 
-    .cr-padding-t2 {
+    .at-padding-t2 {
         padding-top: 2%;
         padding-bottom: 2%;
     }
 
-    .cr-padding-0 {
+    .at-padding-0 {
         padding: 0;
     }
 </style>
 
 <style>
-    .crw-rollText {
+    .atw-rollText {
         align-content: center;
         margin: 0 0 0 8rem;
     }
 
-    .crw-item-name {
+    .atw-item-name {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -255,31 +252,31 @@
         text-align: center;
     }
 
-    .crw-controls {
+    .atw-controls {
         position: absolute;
         right: 3%;
     }
 
-    .crw-font-button {
+    .atw-font-button {
         font-size: 20px;
     }
 
-    .crw-item-icon {}
+    .atw-item-icon {}
 
-    .crw-type-img {
+    .atw-type-img {
         width: 2.5rem;
         height: 2.5rem;
         background-color: slategray;
         border: 1px solid gray;
     }
 
-    .crw-type-img:hover {
+    .atw-type-img:hover {
         background: rgb(147, 161, 175);
     }
 
-    .crw-dropdown-holder {}
+    .atw-dropdown-holder {}
 
-    .crw-item-text {
+    .atw-item-text {
         text-wrap-mode: nowrap;
         margin: 0px;
         font-size: 20px;
@@ -287,7 +284,7 @@
         width: 5rem;
     }
 
-    .crw-attack-type-button {
+    .atw-attack-type-button {
         width: 5rem;
         height: 2.5rem;
         align-items: center;
@@ -300,7 +297,7 @@
         font-weight: bold;
     }
 
-    .crw-type-container {
+    .atw-type-container {
         display: flex;
         gap: 1rem;
         align-content: center;
@@ -309,22 +306,22 @@
         margin: auto;
     }
 
-    .crw-dropdownIcon {
+    .atw-dropdownIcon {
         margin: 0px !important;
         padding: 10% !important;
     }
 
-    .crw-resource-button {
+    .atw-resource-button {
         background-color: slategray;
         border: 1px solid gray;
         text-align: center;
     }
 
-    .crw-resource-button:hover {
+    .atw-resource-button:hover {
         background: rgb(147, 161, 175);
     }
 
-    .crw-clashDescription {
+    .atw-clashDescription {
         overflow-y: scroll;
         width: 100%;
         padding: 2% 2% !important;
@@ -332,14 +329,14 @@
         display: block !important;
     }
 
-    .crw-statblock-container {
+    .atw-statblock-container {
         padding: 2% !important;
         columns: 2;
         display: flex;
         gap: 0.5rem;
     }
 
-    .crw-rollInfo {
+    .atw-rollInfo {
         height: 9rem;
         width: 14rem;
         padding: 0% !important;
@@ -348,7 +345,7 @@
         gap: 0rem !important;
     }
 
-    .crw-resource {
+    .atw-resource {
         background-color: cadetblue;
         border: 2px solid black;
         23 border-radius: 1px;
@@ -361,18 +358,18 @@
         padding-bottom: 0;
     }
 
-    .crw-resource-input {
+    .atw-resource-input {
         background-color: slategray;
         border: 1px solid silver;
         text-align: center;
         width: 4rem;
     }
 
-    .crw-nop {
+    .atw-nop {
         pointer-events: none;
     }
 
-    .crw-resource-content {
+    .atw-resource-content {
         display: flexbox;
         justify-content: center;
         align-items: center;
@@ -382,11 +379,11 @@
         margin: auto;
     }
 
-    .crw-resource-divider {
+    .atw-resource-divider {
         text-align: center;
     }
 
-    .crw-resource-icon {
+    .atw-resource-icon {
         width: 2.5rem;
         height: 2.5rem;
         border: none;
@@ -394,7 +391,7 @@
         padding: 10%;
     }
 
-    .crw-resources-holder {
+    .atw-resources-holder {
         background-color: #1d1b22;
         border: 2px solid slategray;
         padding: 2%;
@@ -402,17 +399,17 @@
         padding-bottom: 0;
     }
 
-    .crw-padding-t2 {
+    .atw-padding-t2 {
         padding-top: 2%;
         padding-bottom: 2%;
     }
 
-    .crw-padding-0 {
+    .atw-padding-0 {
         padding: 0;
     }
 
-    .crw-dropbtn {
-        background-color: cadetblue;
+    .atw-dropbtn {
+        background-color: #3f3f3f;
         color: white;
         padding: 16px;
         font-size: 16px;
@@ -426,23 +423,23 @@
         text-wrap-mode: nowrap;
     }
 
-    .crw-dropbtn-small {
+    .atw-dropbtn-small {
         width: 3rem;
         height: 2rem;
         line-height: 0;
     }
 
-    .crw-dropbtn:hover,
-    .crw-dropbtn:focus {
+    .atw-dropbtn:hover,
+    .atw-dropbtn:focus {
         background-color: slategray;
     }
 
-    .crw-dropdown {
+    .atw-dropdown {
         position: relative;
         display: inline-block;
     }
 
-    .crw-dropdown-content {
+    .atw-dropdown-content {
         display: none;
         position: absolute;
         background-color: #f6f6f6;
@@ -451,18 +448,18 @@
         max-height: 20rem;
     }
 
-    .crw-dropdown-content a {
+    .atw-dropdown-content a {
         color: black;
         padding: 12px 16px;
         text-decoration: none;
         display: block;
     }
 
-    .crw-dropdown-content a:hover {
+    .atw-dropdown-content a:hover {
         background-color: #f1f1f1;
     }
 
-    .crw-show {
+    .atw-show {
         display: block;
     }
 </style>

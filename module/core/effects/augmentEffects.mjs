@@ -4,10 +4,9 @@ import { currentRound } from "../combat/combatState.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
 import { scale } from "../../pmttrpg.mjs";
 import { Conditional } from "../combat/rollContext.mjs";
-import { pollUserInputText } from "../helpers/dialog.mjs";
+import { pollReduceStatus, pollUserInputText } from "../helpers/dialog.mjs";
 
 export const augmentEffects = [
-    // augment bonus effects
     augmentBonusEffect("Burn", 2),
     augmentBonusEffect("Frostbite", 2),
     augmentBonusEffect("Bleed", 1),
@@ -18,14 +17,30 @@ export const augmentEffects = [
     augmentBonusEffect("Bind", 1),
     augmentBonusEffect("Poise", 4, true),
     augmentBonusEffect("Ruin", 4),
-    // augment vigor effects
     augmentVigorEffect("Burn", 3),
     augmentVigorEffect("Frostbite", 2),
     augmentVigorEffect("Bleed", 2),
     augmentVigorEffect("Haste", 2),
     // - smoke overflow
-    // - bloodthirst
-    // status augment effects
+    new Effect(
+        "Bloodthirst",
+        (context, count, trigger) => {
+            if (currentRound <= 1 && !context.flags.includes("Bloodthirst")) {
+                context.flags.push("Bloodthirst");
+                context.dicePower = Number(context.dicePower) + 3;
+            }
+
+            context.events["Kill"].push(async (context) => {
+                await context.actor.applyStatus("Strength", 0, count);
+                createEffectsMessage(context.actor.name, `Gains ${count} Strength next round from Bloodthirst!`);
+            });
+        },
+        (count) => {
+            return `Gain ${count} Dice Power during the first round of combat.`;
+        },
+        ["Clash Win"],
+        false, 3, false, true
+    ),
     simpleStatusEffect("Burn", false),
     simpleStatusEffect("Frostbite", false),
     simpleStatusEffect("Smoke", false),
@@ -35,18 +50,18 @@ export const augmentEffects = [
     simpleStatusEffect("Sinking", true),
     simpleStatusEffect("Poise", false, true),
     simpleStatusEffect("Ruin", false),
-    // - puffy brume
-    // - dizzying smog
+    markerEffect("Puffy Brume", false, 1),
+    markerEffect("Dizzying Smog", false, 1),
     flashEffect("Flash Fire", "Burn", true),
     flashEffect("Flash Freeze", "Frostbite", true),
     flashEffect("Quick Gashes", "Bleed", true),
     flashEffect("Rapid Fumes", "Smoke", false),
     flashEffect("Sudden Downpour", "Sinking", false),
-    // - pyromaniac
-    // - cryomaniac
-    // - hemomaniac
-    // - siphon luck
-    // - siphon curse
+    transferEffect("Pyromaniac", "Burn"),
+    transferEffect("Cyromaniac", "Frostbite"),
+    transferEffect("Hemomaniac", "Bleed"),
+    transferEffect("Siphon Luck", "Poise"),
+    transferEffect("Siphon Curse", "Ruin"),
     new Effect(
         "Systems Online",
         (context, count, trigger) => {
@@ -147,7 +162,6 @@ export const augmentEffects = [
     augmentThresholdEffect("Caged Endurance", "SP", 1, ["Endurance"]),
     augmentThresholdEffect("Caged Haste", "SP", 1, ["Haste"], ["Feeble"]),
     augmentThresholdEffect("Caged Protection", "SP", 1, ["Protection", "Stagger_Protection"], ["Fragile", "Stagger_Fragile"]),
-    //
     new Effect(
         "Lone Fighter",
         (context, count, trigger) => {
@@ -266,10 +280,24 @@ export const augmentEffects = [
         false,
         1
     ),
-    // - kinetic storage
-    // - status barrier
+    markerEffect("Kinetic Storage", false, 1),
+    new Effect(
+        "Status Barrier",
+        (context, trigger, count) => {
+            context.events["Round Start"].push(async (context) => {
+                let barrier = context.actor.getStatusCount("Charge_Barrier");
+
+                if (barrier > 0) {
+                    await context.actor.performReduceStatus("Status Barrier", barrier * 2);
+                }
+            });
+        },
+        (count) => {
+            return "If you have [/status/Charge_Barrier] Charge Barrier, perform Reduce Status up to [/status/Charge_Barrier] Charge Barrier * 2 stacks."
+        },
+        ["Round Start"], false, 1, false, true
+    ),
     markerEffect("Split Second", false, 1),
-    //
     markerEffect("Burn Resistance", true, 5),
     markerEffect("Frostbite Resistance", true, 5),
     markerEffect("Bleed Resistance", true, 5),
@@ -277,7 +305,6 @@ export const augmentEffects = [
     markerEffect("Tremor Resistance", true, 5),
     markerEffect("Sinking Resistance", true, 5),
     markerEffect("Damage Resistance", true, 3),
-    //
     markerEffect("Additional Reaction", true, 1),
     markerEffect("Throwing Master", false, 1),
     markerEffect("Concentrated Overcharge", false, 1),
@@ -374,18 +401,30 @@ export const augmentEffects = [
         ["Round Start"], false, 1, false, true
     ),
     // absorb
-    // indomitable
+    markerEffect("Indomitable", false, 1),
     // unstoppable
-    // redundant systems
-    markerEffect("Turbulence"),
+    markerEffect("Redundant Systems", false, 1),
+    markerEffect("Turbulence", false, 1),
     // - mark shit
     markerEffect("Striker Stance", false, 1),
     markerEffect("Slayer Stance", false, 1),
     markerEffect("Slasher Stance", false, 1),
-    //
     markerEffect("Impassioned", true, 1),
     markerEffect("Multifaceted", false, 1),
-    // - fervor
+    new Effect(
+        `Fervor`,
+        (context, count, trigger) => {
+            if (context.actor != null) {
+                context.dicePower = Number(context.dicePower) + Math.min(Number(context.actor.system.emotionLevelUsed), 3);
+            }
+        },
+        (count) => {
+            return `Gain 1 Dice Power for every time Emotion Level has been used this combat (max 3)`
+        },
+        ["On Use"],
+        false,
+        1
+    ),
     markerEffect("Meditation", false, 1),
     //
     markerEffect("Cursed", false, 5),
@@ -563,5 +602,38 @@ function flashEffect(name, status, allowNegative) {
         },
         ["Clash Win"],
         allowNegative
+    );
+}
+
+function transferEffect(name, status) {
+    return new Effect(
+        name,
+        (context, count, trigger) => {
+            if (context.attackType == "Melee" || context.attackType == "Ranged") {
+                context.events["Clash Win"].push(async (context) => {
+                    let stacks = await pollUserInputText(context.actor, `${name}: Transfer up to ${count} [/status/${status}] ${status} from self to target or target to self (negative to transfer to self, positive to target)`, "Stacks Transfered", "number", count, count * -1);
+                    stacks = Number(stacks);
+
+                    if (stacks < 0) {
+                        stacks = Math.min(context.target.getStatusCount(status), Math.abs(stacks));
+                        await context.target.reduceStatus(status, stacks);
+                        await context.actor.applyStatus(status, stacks);
+                        createEffectsMessage(context.actor.name, `Transfers ${stacks} [/status/${status}] ${status} from target to self!`);
+                    }
+                    else if (stacks > 0) {
+                        stacks = Math.min(context.actor.getStatusCount(status), Math.abs(stacks));
+                        await context.actor.reduceStatus(status, stacks);
+                        await context.target.applyStatus(status, stacks);
+                        createEffectsMessage(context.actor.name, `Transfers ${stacks} [/status/${status}] ${status} from self to target!`);
+                    }
+                });
+            }
+        },
+        (count) => {
+            return `Transfer up to ${count} [/status/${status}] ${status} from self to target or target to self.`;
+        },
+        ["Clash Win"],
+        false,
+        5, false, true
     );
 }

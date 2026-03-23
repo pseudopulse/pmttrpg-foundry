@@ -55,7 +55,7 @@ export async function wrapperPollUserInputOptions(data) {
 }
 
 export async function wrapperPollUserInputText(data) {
-    return await pollUserInputText(game.user, data.prompt, data.placeholder, data.mode, data.max);
+    return await pollUserInputText(game.user, data.prompt, data.placeholder, data.mode, data.max, data.min);
 }
 
 export async function wrapperPollUserInputConfirm(data) {
@@ -75,6 +75,16 @@ function existsInTokensList(actor) {
     }
 
     return false;
+}
+
+export function findByID(id) {
+    for (let token of canvas.tokens.placeables.filter(x => x.actor != null)) {
+        if (token.actor._id == id) {
+            return token.actor;
+        }
+    }
+
+    return null;
 }
 
 export function getActorUser(actor) {

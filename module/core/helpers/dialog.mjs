@@ -1,5 +1,5 @@
 import { RollContext } from "../combat/rollContext.mjs";
-import { enrichClashData } from "../helpers/clash.mjs";
+import { createClashMessage, enrichClashData } from "../helpers/clash.mjs";
 import { getActorUser, sendNetworkMessage } from "./netmsg.mjs";
 
 export function createAlertBox(alert) {
@@ -409,13 +409,14 @@ export async function pollReduceStatus(user, source, maxStacks, statusEffects) {
 }
 
 
-export async function pollUserInputText(user, prompt, placeholder, mode = "latin", max = 999) {
+export async function pollUserInputText(user, prompt, placeholder, mode = "latin", max = 999, min = 0) {
     if (user != game.user) {
         return await getActorUser(user).query("pmttrpg.pollUserInputText", {
             prompt: prompt,
             placeholder: placeholder,
             mode: mode,
-            max: max
+            max: max,
+            min: min
         });
     }
 
@@ -423,7 +424,8 @@ export async function pollUserInputText(user, prompt, placeholder, mode = "latin
         prompt: enrichClashData(prompt.replace("\n", "<br>")),
         placeholder: placeholder,
         mode: mode,
-        max: max
+        max: max,
+        min: min
     });
     let allowClose = false;
     let value = "";
@@ -484,6 +486,102 @@ export async function pollUserInputText(user, prompt, placeholder, mode = "latin
 /**
     * @param {RollContext} context 
     */
+export async function getAttackOptions(actor) {
+    let targetList = [];
+    for (let token of canvas.tokens.placeables.filter(x => x.actor && x.actor != actor)) {
+        targetList.push({
+            name: token.actor.name,
+            id: token.actor._id,
+            token: token
+        });
+    }
+
+    let target = game.user.targets.first();
+    if (target == null || target.actor == actor) {
+        target = targetList.length > 0 ? targetList[0] : null;
+
+        if (target == null) {
+            return;
+        }
+        else {
+            target.token.setTarget(true, { releaseOthers: true });
+        }
+    }
+
+    const content = await renderTemplate("systems/pmttrpg/templates/dialog/attack-options.hbs", {
+        weapons: actor.items.filter(x => x.type == "weapon"),
+        useExtraRoll: actor.system.recycleAction != null && actor.system.recycleAction.type == "Attack",
+        extraRoll: actor.system.recycleAction != null ? actor.system.recycleAction.context : null,
+        actor: actor,
+        targets: targetList
+    });
+    
+
+    const dialog = new Dialog({
+        title: "",
+        content: content,
+        buttons: {
+            skip: {
+                label: "Cancel",
+                callback: () => {
+                    dialog.close();
+                }
+            }
+        },
+        close: () => {
+            
+        },
+        render: async (html) => {
+            $("#at-targetButton").text(target.name);
+
+            html.on('click', '.rollable', async (event) => {
+                const element = event.currentTarget;
+                const dataset = element.dataset;
+
+                const itemId = element.closest('.item').dataset.itemId;
+                if (itemId == "recycle") {
+                    let ctx = new RollContext();
+                    Object.assign(ctx, actor.system.recycleAction.context);
+                    ctx.mustDeserialize = false;
+                    ctx.actor = actor;
+                    ctx.target = game.user.targets.first().actor;
+                    ctx.ignoreClashEffects = !(await pollUserInputConfirm(actor, "Apply clash effects for this recycled attack?"));
+                    if (ctx.modifiers != null) {
+                        ctx.modifiers.ignoreClashEffects = ctx.ignoreClashEffects;
+                    }
+                    ctx.fix();
+                    createClashMessage(actor, ctx);
+                    await actor.queueRoll(ctx, false);
+                    sendNetworkMessage("PENDING_CLASH", {
+                        attacker: actor,
+                        target: game.user.targets.first().actor,
+                        context: ctx,
+                    })
+                    await dialog.close();
+                    return;
+                }
+
+                const item = actor.items.get(itemId);
+                await item.roll(true);
+                await dialog.close();
+            });
+
+            html.on('click', '.at-target-entry', async (event) => {
+                let id = event.currentTarget.dataset.id;
+                let token = canvas.tokens.placeables.find(x => x.actor._id == id);
+                token.setTarget(true, { releaseOthers: true });
+                $("#at-targetButton").text(token.actor.name);
+            });
+        }
+    }, {
+        width: 500,
+        height: 425,
+    }).render(true);
+}
+
+/**
+    * @param {RollContext} context 
+    */
 export async function createClashResponse(actor, context) {
     const desc = context.getDescription();
     const content = await renderTemplate("systems/pmttrpg/templates/dialog/clash-response.hbs", {
@@ -513,11 +611,23 @@ export async function createClashResponse(actor, context) {
         },
         close: () => {
             if (!allowClose) {
-                throw new Error();
+                sendNetworkMessage("RESOLVE_CLASH", {
+                    target: context.target,
+                    attacker: context.actor
+                });
             }
         },
         render: async (html) => {
             $("#crw-outfits").hide();
+
+            if (actor.system.reactions <= 0 || actor.system.staggered) {
+                $("#cr-mainBlock").hide();
+                $("#cr-altBlock").show();
+            }
+            else {
+                $("#cr-altBlock").hide();
+            }
+
             html.on('click', '.rollable', async (event) => {
                 const element = event.currentTarget;
                 const dataset = element.dataset;
@@ -552,6 +662,6 @@ export async function createClashResponse(actor, context) {
         }
     }, {
         width: 500,
-        height: 600,
+        height: (actor.system.reactions <= 0 || actor.system.staggered) ? 370 : 600,
     }).render(true);
 }

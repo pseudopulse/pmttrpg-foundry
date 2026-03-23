@@ -378,7 +378,7 @@ export const weaponEffects = [
     ),
 ]
 
-function simpleStatusEffect(status, nextRound) {
+function simpleStatusEffect(status, nextRound, allowNegative) {
     let str = nextRound ? " next round" : "";
     return new Effect(
         `Inflict ${status}`,
@@ -391,7 +391,8 @@ function simpleStatusEffect(status, nextRound) {
                 `Gain % [/status/${status}] ${status}` + str, 
             count);
         },
-        ["Clash Win", "Clash Lose"]
+        ["Clash Win", "Clash Lose"],
+        allowNegative
     );
 }
 

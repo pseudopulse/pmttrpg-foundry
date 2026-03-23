@@ -5,7 +5,7 @@ import { getEffectsArray } from "../effects/effectHelpers.mjs";
 import { currentRound } from "./combatState.mjs";
 
 const triggerTypes = ["Clash Win", "Clash Lose", "On Use", "Always Active"];
-const eventTypes = ["Kill", "Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Clash Win", "Clash Lose"];
+const eventTypes = ["Kill", "Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Clash Win", "Clash Lose", "On Use"];
 const statusPlusValid = ["Burn", "Bleed", "Frostbite", "Sinking", "Tremor", "Rupture", "Poise", "Ruin"];
 
 
@@ -195,7 +195,6 @@ export class RollContext {
                 continue;
             }
 
-            
             if (valid.find(x => x == effect.trigger) != null && effect.effect.description != null && !effect.effect.dontFormat) {
                 let description = effect.effect.description(effect.count);
                 if (description != null && (!(description.includes("first round") && currentRound > 1) || fakeFirstRound)) {
@@ -324,7 +323,6 @@ export class RollContext {
 
         if (this.actor != null && this.actor.augment != null) {
             for (const effect of this.actor.augment.system.effects) {
-                console.log("mirroring " + effect.name + " to list");
                 this.effects.push({
                     effect: getEffectsArray("augment").find(x => x.name == effect.name),
                     count: effect.count,
