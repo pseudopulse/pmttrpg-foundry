@@ -2,3 +2,4 @@ jsconfig.json
 foundry
 foundry-config.yaml
 node_modules
+build.sh
