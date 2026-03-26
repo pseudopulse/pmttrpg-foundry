@@ -1,7 +1,8 @@
 import { Effect } from "./effect.mjs";
 import { handleNegativeText } from "../../core/effects/effectHelpers.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
-import { pollUserInputOptions } from "../helpers/dialog.mjs";
+import { pollUserInputConfirm, pollUserInputOptions } from "../helpers/dialog.mjs";
+import { scale } from "../../pmttrpg.mjs";
 
 export const skillEffects = [
     new Effect(
@@ -196,7 +197,7 @@ export const skillEffects = [
     new Effect(
         "Detonate",
         (context, count, trigger) => {
-            context.events.push(trigger, async (context) => {
+            context.events[trigger].push(async (context) => {
                 await context.target.fireStatusEffect("Burn");
             });
         },
@@ -210,7 +211,7 @@ export const skillEffects = [
     new Effect(
         "Smokey Detonate",
         (context, count, trigger) => {
-            context.events.push(trigger, async (context) => {
+            context.events[trigger].push(async (context) => {
                 await context.target.fireStatusEffect("Burn");
                 let burn = context.target.getStatusCount("Burn");
 
@@ -232,7 +233,7 @@ export const skillEffects = [
     new Effect(
         "Fireball",
         (context, count, trigger) => {
-            context.events.push(trigger, async (context) => {
+            context.events[trigger].push(async (context) => {
                 let burn = context.target.getStatusCount("Burn");
 
                 if (burn > 0) {
@@ -242,7 +243,7 @@ export const skillEffects = [
                         }
                         
                         await actor.takeDamageStatus(burn, "Burn", "HP", `[/status/Burn] Burns for %DMG% HP damage from Fireball! (%PHP% -> %HP%)`);
-                    });
+                    }, null);
                     
                     await context.target.fireStatusEffect("Burn");
                 }
@@ -253,8 +254,339 @@ export const skillEffects = [
         },
         ["Clash Win"],
         false,
+        5, false, true
+    ),
+    statusPauseEffect("Dark Flame", 1),
+    //
+    simpleStatusEffect("Frostbite", false, true),
+    markerEffect("Frostbite+", false, 3),
+    skillVigorEffect("Frostbite", 2, 1),
+    skillBonusEffect("Frostbite", 3),
+    statusPauseEffect("Freezer Burn", 1),
+    new Effect(
+        "Cold Snap",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                let paused = context.target.getStatusCount("Deep_Chill") > 0;
+                await context.target.fireStatusEffect("Frostbite");
+
+                if (!paused) {
+                    await context.target.setStatus("Frostbite", 0);
+                }
+            });
+        },
+        (count) => {
+            return `Trigger [/status/Frostbite] Frostbite on target, then clear all [/status/Frostbite] Frostbite.`;
+        },
+        ["Clash Win"],
+        false,
         1, false, true
     ),
+    statusPauseEffect("Deep Chill", 1),
+    new Effect(
+        "Shatter",
+        (context, count, trigger) => {
+            context.triggers[trigger].modify.push(async (ctx, data) => {
+                let frostbite = Math.min(ctx.target.getStatusCount("Frostbite"), count * 2);
+                
+                if (frostbite > 2) {
+                    await ctx.target.takeForceDamage(Math.floor(frostbite / 2));
+                    await ctx.target.reduceStatus("Frostbite", frostbite);
+                }
+            });
+        },
+        (count) => {
+            return `Clear up to ${count * 2} [/status/Frostbite] Frostbite from the target, and deal 1d8 Force Damage for every 2 cleared.`
+        },
+        ["Clash Win"],
+        false, 1, false, true
+    ),
+    new Effect(
+        "Chill Out",
+        (context, count, trigger) => {
+            context.triggers[trigger].modify.push(async (ctx, data) => {
+                let bind = Math.max(Math.floor(ctx.target.getStatusCount("Frostbite") / 2), 1);
+                if (ctx.target.getStatusCount("Frostbite") > 3 + count) {
+                    data.applyInfliction("Bind", Math.min(bind, count * 3), true);
+                }
+            });
+        },
+        (count) => {
+            return `If the target has ${3 + count}+ [/status/Frostbite] Frostbite, apply [/status/Bind] Bind next round equal half of the target's [/status/Frostbite] Frostbite, up to ${count * 3}.`
+        },
+        ["Clash Win"],
+        false, 1, false, true
+    ),
+    //
+    simpleStatusEffect("Bleed", false, true),
+    simpleStatusEffect("Bleed", true, true, "Inflict Delayed Bleed"),
+    markerEffect("Bleed+", false, 3),
+    skillVigorEffect("Bleed", 2, 1),
+    skillBonusEffect("Bleed", 2),
+    statusPauseEffect("Hemorrhage", 5),
+    new Effect(
+        "Vampiric Gash",
+        (context, count, trigger) => {
+            context.flags.push("Vampiric Gash");
+            context.events[trigger].push(async (ctx) => {
+                let bleed = ctx.target.getStatusCount("Bleed");
+                if (bleed > 0) {
+                    let php = Number(ctx.actor.system.attributes.health.value);
+                    await ctx.actor.heal(bleed, 0, 0);
+                    let hp = Number(ctx.actor.system.attributes.health.value);
+                    createEffectsMessage(ctx.actor.name, `Heals ${bleed} HP from Vampiric Gash! (${php} -> ${hp})`);
+                }
+            });
+        },
+        (count) => {
+            return `Heal HP equal to [/status/Bleed] Bleed on target. If the target did not clash, trigger their [/status/Bleed] Bleed.`
+        },
+        ["Clash Win"],
+        false, 1, false, true
+    ),
+    new Effect(
+        "Cauterize",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (ctx) => {
+                let bleed = Math.floor(ctx.target.getStatusCount("Bleed") / 2);
+                if (bleed > 0) {
+                    await ctx.target.applyStatus("Burn", bleed);
+                    createEffectsMessage(ctx.actor.name, `Gains ${bleed} [/status/Burn] Burn from Cauterize!`);
+                }
+            });
+        },
+        (count) => {
+            return `Inflict [/status/Burn] Burn equal to half of target's [/status/Bleed] Bleed.`
+        },
+        ["Clash Win"],
+        false, 1, false, true
+    ),
+    statusPauseEffect("Tendon Slice", 1),
+    new Effect(
+        "Trading Wounds",
+        (context, count, trigger) => {
+            context.triggers[trigger].modify.push(async (ctx, data) => {
+                let confirm = await pollUserInputConfirm(ctx.actor, `Apply Trading Wounds? (did you heal ${2 * count} HP?)`);
+
+                if (confirm) {
+                    data.applyInfliction("Bleed", count, false);
+                }
+            });
+        },
+        (count) => {
+            return `If the user healed ${2 * count}+ HP during this action, inflict ${count} [/status/Bleed] Bleed.`
+        },
+        ["Clash Win"],
+        false, 5, false, true
+    ),
+    //
+    new Effect(
+        `Gain Poise`,
+        (context, count, trigger) => {
+            context.triggers[trigger].applyInfliction("Poise", count, false);
+        },
+        (count) => {
+            return handleNegativeText(
+                `Gain % [/status/Poise] Poise`,
+                `Inflict % [/status/Poise] Poise`, 
+            count);
+        },
+        ["Clash Win", "Clash Lose"],
+    ),
+    new Effect(
+        `Increase Critical`,
+        (context, count, trigger) => {
+            context.triggers[trigger].applyInfliction("Poise", -count, false);
+        },
+        (count) => {
+            return `Gain ${count} [/status/Critical] Critical`;
+        },
+        ["Clash Win", "Clash Lose"], false
+    ),
+    markerEffect("Instant Crit", false, 1),
+    markerEffect("Precision", 0, 1),
+    // -- critical conversion
+    new Effect(
+        `Poise Pause`,
+        (context, count, trigger) => {
+            context.events["On Use"].push(async (context) => {
+                await context.actor.update({ "system.poisePaused": true }, { diff: false });
+            })
+        },
+        (count) => {
+            return "You do not roll for [/status/Critical] Critical Hits until the next round."
+        },
+        ["On Use"], false, 1, false, true
+    ),
+    markerEffect("Critical DMG+", false, 5, "On Crit", (count) => {
+        return `Deal ${count*3} HP damage.`;
+    }),
+    new Effect(
+        "Haste Crit",
+        (context, count, trigger) => {
+            context.events["Critical Hit"].push(async (ctx) => {
+                await ctx.actor.applyStatus("Haste", count * 2);
+                createEffectsMessage(ctx.actor.name, `Gains ${count * 2} [/status/Haste] Haste next round!`);
+            });
+        },
+        (count) => {
+            return `Gain ${count * 2} [/status/Haste] Haste next round.`
+        },
+        ["On Crit"],
+        false, 5, false, true
+    ),
+    // - stance swap
+    new Effect(
+        "Scattering Dance",
+        (context, count, trigger) => {
+            context.flags.push("Scattering Dance");
+            context.triggers["On Crit"].modify.push(async (ctx, data) => {
+                data.applyInfliction("Hemorrhage", Math.min(ctx.critical, 3), false);
+            });
+        },
+        (count) => {
+            return `Inflict [/status/Hemorrhage] Hemorrhage equal to [/status/Critical] Critical spent, max 3.`
+        },
+        ["On Crit"],
+        false, 5, false
+    ),
+    new Effect(
+        `Elusive`,
+        (context, count, trigger) => {
+            context.flags.push("Elusive");
+        },
+        (count) => {
+            return "Do not deal critical damage. Gain extra movement equal to half of the critical roll."
+        },
+        ["On Crit"], false, 5, false, true
+    ),
+    new Effect(
+        `Bulwark Defense`,
+        (context, count, trigger) => {
+            context.flags.push("Bulwark Defense");
+        },
+        (count) => {
+            return "Do not deal critical damage. Reduce damage taken by the critical roll."
+        },
+        ["On Crit"], false, 1, false, true
+    ),
+    new Effect(
+        "Showdown",
+        (context, count, trigger) => {
+            context.events["Clash Win"].push(async (ctx) => {
+                let poise = ctx.target.getStatusCount("Poise");
+                if (poise > 0) {
+                    await ctx.target.setStatus("Poise", 0);
+                    await ctx.actor.applyStatus("Poise", poise);
+                    createEffectsMessage(ctx.actor.name, `Steals ${poise} [/status/Poise] Poise from the target!`);
+                }
+            });
+        },
+        (count) => {
+            return `Steal the target's [/status/Poise] Poise.`
+        },
+        ["Clash Win"],
+        false, 1, false, true
+    ),
+    //
+    simpleStatusEffect("Ruin", false, true),
+    simpleStatusEffect("Devastation", false, true, "Increase Devastation"),
+    markerEffect("Instant Devastation"),
+    markerEffect("Ruination"),
+    // - devastation conversion
+    new Effect(
+        `Ruin Pause`,
+        (context, count, trigger) => {
+            context.events["Clash Win"].push(async (context) => {
+                await context.target.update({ "system.ruinPaused": true }, { diff: false });
+            })
+        },
+        (count) => {
+            return "Target does not roll for [/status/Devastation] Devastating Hits until the next round."
+        },
+        ["Clash Win"], false, 1, false, true
+    ),
+    markerEffect("Devastation DMG+", false, 5, "Devastating Hit", (count) => {
+        return `Deal ${count*3} HP damage.`;
+    }),
+    new Effect(
+        "Armor Decay",
+        (context, count, trigger) => {
+            context.triggers["Devastating Hit"].applyInfliction("Disarm", count, false);
+            context.triggers["Devastating Hit"].applyInfliction("Fragile", count, false);
+            context.triggers["Devastating Hit"].applyInfliction("Stagger_Fragile", count, false);
+        },
+        (count) => {
+            return `Inflict ${count} [/status/Disarm] Disarm, [/status/Fragile] Fragile, and [/status/Stagger_Fraggile] Stagger Fragile.`
+        },
+        ["Devastating Hit"],
+        false, 5, false
+    ),
+    new Effect(
+        "[Type] Deterioration",
+        (context, count, trigger) => {
+            context.triggers[trigger].modify.push(async (ctx, data) => {
+                let type = await pollUserInputOptions(ctx.actor, "Choose [Type] Fragility to inflict.", [
+                    {
+                        name: "Slash Fragility",
+                        icon: "/status/Slash_Fragility.png"
+                    },
+                    {
+                        name: "Pierce Fragility",
+                        icon: "/status/Pierce_Fragility.png"
+                    },
+                    {
+                        name: "Blunt Fragility",
+                        icon: "/status/Blunt_Fragility.png"
+                    },
+                ]);
+
+                data.applyInfliction(type.replace(" ", "_"), 2 * count, true);
+            });
+        },
+        (count) => {
+            return `Apply ${count * 2} [Type] Fragility next round, chosen on application.`
+        },
+        ["Devastating Hit"],
+        false, 5, false, true
+    ),
+    new Effect(
+        `Devastating Force`,
+        (context, count, trigger) => {
+            context.events["Devastating Hit"].push(async (context) => {
+                createEffectsMessage(context.target.name, `Is pushed ${Math.min(count, context.devastation)} SQR by Devastating Force!`);
+            })
+        },
+        (count) => {
+            return `Push the target a distance equal to [/status/Devastation] Devastation, max ${count}.`
+        },
+        ["Devastating Hit"], false, 5, false, true
+    ),
+    new Effect(
+        "Devastating Shock",
+        (context, count, trigger) => {
+            context.triggers["Devastating Hit"].applyInfliction("Bind", count * 2, false);
+        },
+        (count) => {
+            return `Inflict ${count * 2} [/status/Bind] Bind next round.`
+        },
+        ["Devastating Hit"],
+        false, 5, false
+    ),
+    new Effect(
+        "Debilitate",
+        (context, count, trigger) => {
+            context.triggers["Devastating Hit"].applyInfliction("Feeble", count, true);
+            context.triggers["Devastating Hit"].applyInfliction("Disarm", count, true);
+            context.triggers["Devastating Hit"].applyInfliction("Bind", count * 2, true);
+        },
+        (count) => {
+            return `Inflict ${count} [/status/Feeble] Feeble, [/status/Disarm] Disarm, and ${count * 2} [/status/Bind] Bind next roun.`
+        },
+        ["Devastating Hit"],
+        false, 5, false
+    ),
+    markerEffect("Primer", false, 1),
     //
     new Effect(
         "Gain Charge",
@@ -296,10 +628,10 @@ export const skillEffects = [
     )
 ]
 
-function simpleStatusEffect(status, nextRound, allowNegative) {
+function simpleStatusEffect(status, nextRound, allowNegative, nameOverride = null) {
     let str = nextRound ? " next round" : "";
     return new Effect(
-        `Inflict ${status}`,
+        nameOverride != null ? nameOverride : `Inflict ${status}`,
         (context, count, trigger) => {
             context.triggers[trigger].applyInfliction(status.replace(" ", "_"), count, nextRound);
         },
@@ -321,7 +653,7 @@ function statusPauseEffect(status, max = 5) {
             context.triggers[trigger].applyInfliction(status.replace(" ", "_"), count, false);
         },
         (count) => {
-            return `Inflict ${count} [/status/${status.replace(" ", _)}] ${status}.`
+            return `Inflict ${count} [/status/${status.replace(" ", "_")}] ${status}.`
         },
         ["Clash Win"],
         false, max
@@ -343,12 +675,12 @@ async function applyInAoe(origin, distance, callback, user) {
     }
 }
 
-function markerEffect(name, negative = false, count = 1) {
+function markerEffect(name, negative = false, count = 1, trigger = "Always Active", desc = null) {
     return new Effect(
         name,
         (context, count, trigger) => { },
-        null,
-        ["Always Active"],
+        desc,
+        [trigger],
         negative,
         count
     );

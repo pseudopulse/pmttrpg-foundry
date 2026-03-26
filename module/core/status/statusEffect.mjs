@@ -25,5 +25,7 @@ export const Triggers = {
     ACTION: 3,
     HIT: 4,
     BURST: 5,
-    NONE: 6
+    NONE: 6,
+    AFTER_DECAY: 7,
+    MOVE: 8
 }

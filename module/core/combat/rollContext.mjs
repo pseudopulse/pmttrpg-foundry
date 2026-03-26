@@ -4,7 +4,7 @@ import { outfitEffects } from "../effects/outfitEffects.mjs";
 import { getEffectsArray } from "../effects/effectHelpers.mjs";
 import { currentRound } from "./combatState.mjs";
 
-const triggerTypes = ["Clash Win", "Clash Lose", "On Use", "Always Active"];
+const triggerTypes = ["Clash Win", "Clash Lose", "On Use", "Always Active", "On Crit"];
 const eventTypes = ["Kill", "Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Clash Win", "Clash Lose", "On Use"];
 const statusPlusValid = ["Burn", "Bleed", "Frostbite", "Sinking", "Tremor", "Rupture", "Poise", "Ruin"];
 
@@ -41,6 +41,8 @@ export class RollContext {
         this.flags = [];
         this.recycled = false;
         this.macros = [];
+        this.critical = 0;
+        this.devastation = 0;
 
         for (const trigger of triggerTypes) {
             this.triggers[trigger] = new TriggerEvents();
@@ -91,6 +93,16 @@ export class RollContext {
         return this.effects.find(x => x.name == name) != null;
     }
 
+    effectCount(name) {
+        let effect = this.effects.find(x => x.name == name);
+
+        if (effect != null) {
+            return effect.count;
+        }
+
+        return 0;
+    }
+
     async resolveTriggers(triggers) {
         let lines = [];
         for (const costs of this.costs) {
@@ -120,6 +132,15 @@ export class RollContext {
 
                 if (this.flags.includes("Refractor-O") && statusPlusValid.includes(status)) {
                     cur += 3;
+                }
+
+                let plusEffect = this.effects.find(x => x.name == `${infliction.key}+`);
+                if (plusEffect != null) {
+                    cur += plusEffect.count;
+                }
+
+                if (this.hasEffect(`Instant ${infliction.key}`)) {
+                    infliction.nextRound = false;
                 }
 
                 if (cur < 0) {
@@ -184,10 +205,12 @@ export class RollContext {
         triggers["Augment Passive"] = [];
         triggers["Combat Start"] = [];
         triggers["Round Start"] = [];
+        triggers["On Crit"] = [];
         let valid = ["Clash Win", "Clash Lose", "On Use"]
         if (fakeFirstRound) {
             valid.push("Combat Start");
             valid.push("Round Start");
+            valid.push("On Crit");
         }
 
         for (const effect of this.effects) {
@@ -224,6 +247,7 @@ export class RollContext {
         if (valid.includes("Combat Start")) desc = this.append(desc, triggers["Combat Start"]);
         if (valid.includes("Round Start")) desc = this.append(desc, triggers["Round Start"]);
         if (validTriggers.includes("On Use")) desc = this.append(desc, triggers["On Use"]);
+        desc = this.append(desc, triggers["On Crit"]);
         if (validTriggers.includes("Clash Win")) desc = this.append(desc, triggers["Clash Win"]);
         if (validTriggers.includes("Clash Lose")) desc = this.append(desc, triggers["Clash Lose"]);
 
@@ -282,9 +306,29 @@ export class RollContext {
                 return "#ffa450ff";
             case "Round Start":
                 return "#fff350ff";
+            case "Devastating Hit":
+                return "#4600b6ff";
+            case "On Crit":
+                return "#ffedb0ff";
         }
 
         return "#000000";
+    }
+
+    loadPrimerEffects(effects) {
+        for (const effect of effects) {
+            let def = getEffectsArray(category).find(x => x.name == effect.name);
+
+            this.effects.push({
+                effect: def,
+                count: effect.count,
+                trigger: effect.trigger,
+                source: category,
+                name: effect.name
+            });
+
+            def.apply(this, effect.count, effect.trigger);
+        }
     }
 
     addEffectsList(effects, category) {

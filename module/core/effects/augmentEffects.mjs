@@ -38,7 +38,7 @@ export const augmentEffects = [
         (count) => {
             return `Gain ${count} Dice Power during the first round of combat.`;
         },
-        ["Clash Win"],
+        ["On Use"],
         false, 3, false, true
     ),
     simpleStatusEffect("Burn", false),

@@ -81,7 +81,10 @@
       "reactions": 0,
       "emotionLevelUsed": 0,
       "indomitableSpent": false,
-      "kineticStorageMovement": 0
+      "kineticStorageMovement": 0,
+      "poisePaused": false,
+      "ruinPaused": false,
+      "primerEffectsList": []
     }
   },
   "Item": {

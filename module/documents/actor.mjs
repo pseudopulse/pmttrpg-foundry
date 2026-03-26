@@ -136,6 +136,10 @@ export class PTActor extends Actor {
         system.nextRoundMovement = 0;
         system.staggerRounds = 0;
         system.staggered = false;
+        system.kineticStorageMovement = 0;
+        system.poisePaused = false;
+        system.ruinPaused = false;
+        system.primerEffectsList = [];
 
         await this.update({ system }, { diff: false, render: true });
     }
@@ -245,6 +249,22 @@ export class PTActor extends Actor {
         }
     }
 
+    getCritRoll(ctx) {
+        if (ctx.hasEffect("Precision")) {
+            return "1d10kh";
+        }
+
+        return "1d10";
+    }
+
+    getDevastationRoll(ctx) {
+        if (ctx.hasEffect("Ruination")) {
+            return "1d10kh";
+        }
+
+        return "1d10";
+    }
+
     async processClashResolution(ctx1, ctx2) {
         createResultMessage(ctx1, ctx2);
         if (ctx1.result > ctx2.result || ctx2.result == "X") {
@@ -264,9 +284,12 @@ export class PTActor extends Actor {
 
         let ruin = ctx2.actor.getStatusCount("Ruin");
         let devastation = ctx2.actor.getStatusCount("Devastation");
+        ctx1.devastation = devastation;
 
-        if (ruin > 0) {
-            let tmp = new Roll(`1d10`);
+        let landedDevastating = false;
+
+        if (ruin > 0 && !system.ruinPaused) {
+            let tmp = new Roll(this.getDevastationRoll(ctx1));
             await tmp.evaluate();
             let roll = tmp.total;
 
@@ -277,29 +300,39 @@ export class PTActor extends Actor {
                 await ctx2.actor.setStatus("Ruin", 0);
                 await ctx2.actor.setStatus("Devastation", 0);
                 await ctx2.actor.takeDamageStatus(damage, "Ruin", null, `Received a [/status/Devastation] Devastating hit for %DMG% HP damage! (%PHP% -> %HP%)`);
+                await ctx2.actor.loadPrimerEffects(ctx1);
                 await ctx1.fireEvent("Devastating Hit");
+                landedDevastating = true;
             }
             else {
                 createEffectsMessage(ctx1.actor.name, `Rolled ${roll}, failed [/status/Ruin] Ruin check!`);
             }
         }
 
+        if (!landedDevastating && ctx1.hasEffect("Primer")) {
+            this.cachePrimerEffects(ctx1);
+        }
+
         let poise = ctx1.actor.getStatusCount("Poise");
         let critical = ctx1.actor.getStatusCount("Critical");
+        ctx1.critical = critical;
 
-        if (poise > 0) {
-            let tmp = new Roll(`1d10`);
+        let landedCrit = false;
+
+        if (poise > 0 && (ctx1.attackType == "Melee" || ctx1.attackType == "Ranged") && !this.system.poisePaused) {
+            let tmp = new Roll(this.getCritRoll(ctx1));
             await tmp.evaluate();
             let roll = tmp.total;
 
             if (roll <= poise) {
                 tmp = new Roll(`${critical}d10`);
                 await tmp.evaluate();
-                let damage = tmp.total;
+                let damage = tmp.total + (3 * ctx1.effectCount("Critical DMG+"));
                 await ctx1.actor.setStatus("Poise", 0);
                 await ctx1.actor.setStatus("Critical", 0);
                 await ctx2.actor.takeDamageStatus(damage, "Poise", null, `Received a [/status/Critical] Critical hit for %DMG% HP damage! (%PHP% -> %HP%)`);
                 await ctx1.fireEvent("Critical Hit");
+                landedCrit = true;
             }
             else {
                 createEffectsMessage(ctx1.actor.name, `Rolled ${roll}, failed [/status/Poise] Poise check!`);
@@ -323,8 +356,13 @@ export class PTActor extends Actor {
             await ctx2.actor.takeDamageStatus(damage, "Smoke", null, `Takes %DMG% extra HP damage from [/status/Smoke] Smoke due to Puffy Brume! (%PHP% -> %HP%)`);
         }
 
+        let attackerTriggers = ["On Use", "Clash Win"];
+        if (landedCrit) {
+            attackerTriggers.push("On Crit");
+        }
+
         if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
-            createEffectsMessage(ctx1.actor.name, await ctx1.resolveTriggers(["On Use", "Clash Win"]), true);
+            createEffectsMessage(ctx1.actor.name, await ctx1.resolveTriggers(attackerTriggers), true);
             createEffectsMessage(ctx2.actor.name, await ctx2.resolveTriggers(["On Use", "Clash Lose"]), true);
         }
 
@@ -412,12 +450,35 @@ export class PTActor extends Actor {
                     damage = 0;
                 }
 
-                await this.takeDamage(damage, context);
+                await this.takeDamage(damage, context, 0, 0, 0, false, respCtx);
             }
 
             if (systemData.mostRecentRoll.type == "Evade") {
+                if (respCtx.flags.includes("Elusive")) {
+                    let poise = ctx1.actor.getStatusCount("Poise");
+                    if (poise > 0 && !this.system.poisePaused) {
+                        let tmp = new Roll(this.getCritRoll(respCtx));
+                        await tmp.evaluate();
+                        let roll = tmp.total;
+
+                        if (roll <= poise) {
+                            tmp = new Roll(`${critical}d10`);
+                            await tmp.evaluate();
+                            await selfCtx.actor.setStatus("Poise", 0);
+                            await selfCtx.actor.setStatus("Critical", 0);
+                            await selfCtx.fireEvent("Critical Hit");
+                            createEffectsMessage(respCtx.actor.name, `[/status/Critical] Elusive grants ${Math.floor(tmp.total) / 2} SQR of movement!`);
+                            await this.update({ "system.movement": Number(this.system.movement) + Math.floor(tmp.total / 2) }, { diff: false });
+                            
+                        }
+                        else {
+                            createEffectsMessage(respCtx.actor.name, `Rolled ${roll}, failed [/status/Poise] Poise check!`);
+                        }
+                    }
+                }
+
                 if (respCtx.result > context.result) {
-                    await this.takeDamage(-respCtx.result, context);
+                    // await this.takeDamage(-respCtx.result, context, 0, 0, 0, false, respCtx);
                 }
                 else {
                     await this.takeDamage(damage, context);
@@ -429,7 +490,7 @@ export class PTActor extends Actor {
                     if (canRespond) context.actor.receiveAttackRoll(respCtx, false);
                 }
                 else {
-                    await this.takeDamage(damage, context);
+                    await this.takeDamage(damage, context, 0, 0, 0, false, respCtx);
                 }
             }
         }
@@ -584,7 +645,7 @@ export class PTActor extends Actor {
         await this.update({ "system.attributes.sanity.temp": sp }, { diff: false });
     }
 
-    async takeDamage(damage, context, flatHP = 0, flatST = 0, flatSP = 0, silent = false) {
+    async takeDamage(damage, context, flatHP = 0, flatST = 0, flatSP = 0, silent = false, selfCtx = null) {
         let hp = this.system.attributes.health.value + this.system.attributes.health.temp;
         let st = this.system.attributes.stagger.value + this.system.attributes.stagger.temp;
         let sp = this.system.attributes.sanity.value + this.system.attributes.sanity.temp;
@@ -598,6 +659,28 @@ export class PTActor extends Actor {
 
         let resist = this.augmentEffectCount(`Damage Resistance`) + this.outfitEffectCount(`Damage Resistance`);
         let resText = "";
+
+        if (selfCtx != null && selfCtx.flags.includes("Bulwark Defense")) {
+            let poise = ctx1.actor.getStatusCount("Poise");
+            if (poise > 0 && !this.system.poisePaused) {
+                let tmp = new Roll(this.getCritRoll(selfCtx));
+                await tmp.evaluate();
+                let roll = tmp.total;
+
+                if (roll <= poise) {
+                    tmp = new Roll(`${critical}d10`);
+                    await tmp.evaluate();
+                    await selfCtx.actor.setStatus("Poise", 0);
+                    await selfCtx.actor.setStatus("Critical", 0);
+                    await selfCtx.fireEvent("Critical Hit");
+                    createEffectsMessage(selfCtx.actor.name, `[/status/Critical] Bulwark Defense reduces incoming damage by ${tmp.total}!`);
+                    resist += tmp.total;
+                }
+                else {
+                    createEffectsMessage(selfCtx.actor.name, `Rolled ${roll}, failed [/status/Poise] Poise check!`);
+                }
+            }
+        }
 
         if (!silent) {
             if (this.outfitEffectCount("Charged Hull") > 0 && this.getStatusCount("Overcharge") > 0) {
@@ -788,8 +871,53 @@ export class PTActor extends Actor {
         this.getOutfitContext().fireEvent("Combat Start");
     }
 
+    async cachePrimerEffects(incoming) {
+        const system = this.toObject(false).system;
+        system.primerValidEffects = system.primerValidEffects.filter(x => x.id != incoming.actor.id);
+        let data = {
+            id: incoming.actor.id,
+            effects: []
+        };
+
+        let primerValidEffects = [
+            "Armor Decay", "[Type] Deterioration", "Devastating Force", "Devastating Shock",
+            "Debilitate", "Wasting Curse", "Slowing Curse", "Exposing Curse", "Spreading Curse",
+        ];
+
+        for (const effect of incoming.effects) {
+            if (primerValidEffects.includes(effect.name)) {
+                data.effects.push(effect);
+            }
+        }
+
+        system.primerValidEffects.push(data);
+        await this.update({ system }, { diff: false });
+    }
+
+    async loadPrimerEffects(context) {
+        let actor = context.actor;
+        let actorToken = canvas.tokens.placeables.filter(x => x.actor._id == actor._id);
+
+        if (actorToken == null) return;
+
+        let primers = system.primerEffects.filter(x => {
+            let token = canvas.tokens.placeables.filter(x => x.actor._id == x.id);
+
+            if (token != null && token.disposition == actorToken.disposition) {
+                return true;
+            }
+
+            return false;
+        });
+
+        for (let primer in primers) {
+            await context.loadPrimerEffects(primer.effects);
+        }
+    }
+
     async handleNextRound() {
         await this.fireStatusEffects(Triggers.END);
+        await this.fireStatusEffects(Triggers.AFTER_DECAY);
 
         if (this.system.overchargeDeclared) {
             await this.fireStatusEffect("Overcharge");
@@ -808,6 +936,10 @@ export class PTActor extends Actor {
                 createEffectsMessage(this.name, `${this.name} has recovered from stagger!`);
             }
         }
+
+        system.poisePaused = false;
+        system.ruinPaused = false;
+        system.primerEffectsList = [];
 
         for (const status of system.statusEffects) {
             status.count = Number(status.count) + Number(status.nextRoundCount);
@@ -894,6 +1026,19 @@ export class PTActor extends Actor {
             await this.update({ system2 }, { diff: false, render: true });
             createEffectsMessage(this.name, `${this.name} is Indomitable! Recovered from stagger.`);
         }
+    }
+
+    async takeForceDamage(dice, context = null) {
+        if (context != null && context.actor != null) {
+            if (context.actor.augmentEffectCount("Explosive Force") > 0) {
+                dice += 3 + context.actor.system.attributes.rank.value;
+            }
+        }
+
+        let modifier = this.outfitEffectCount("Impact Guard") + this.augmentEffectCount("Steady");
+        let damage = new Roll(`${dice}d${8+modifier}`);
+        await damage.evaluate();
+        await this.takeDamageStatus(damage.total, "Force", "HP", "Received %DMG% HP in Force Damage! (%PHP% -> %HP%)");
     }
 
     async applyStatus(status, count = 0, nextRoundCount = 0) {
@@ -1007,6 +1152,10 @@ export class PTActor extends Actor {
         let def = statusList.find(x => x.name == status);
         let count = this.getStatusCount(status);
 
+        if (count <= 0) {
+            return;
+        }
+
         await def.activation(this);
         
         if (status == "Bleed" && this.getStatusCount("Hemorrhage") > 0) {
@@ -1040,10 +1189,12 @@ export class PTActor extends Actor {
         }
     }
 
-    async spendAction(triggerBleed = true) {
-        let actions = Number(this.system.actions);
-        await this.update({ "system.actions": Math.max(actions - 1, 0)}, { diff: false });
-        createEffectsMessage(this.name, `Spends 1 Action! (${actions} -> ${Math.max(actions - 1, 0)})`)
+    async spendAction(triggerBleed = true, free = false) {
+        if (!free) {
+            let actions = Number(this.system.actions);
+            await this.update({ "system.actions": Math.max(actions - 1, 0)}, { diff: false });
+            createEffectsMessage(this.name, `Spends 1 Action! (${actions} -> ${Math.max(actions - 1, 0)})`)
+        }
         if (triggerBleed) {
             await this.fireStatusEffects(Triggers.ACTION);
         }
@@ -1126,8 +1277,6 @@ export class PTActor extends Actor {
             switch (type) {
                 case "Attack":
                     let data = await getAttackOptions(actor);
-
-                    await actor.spendAction(true);
                     break;
                 case "Dash":
                     let movement = Number(actor.system.movement);

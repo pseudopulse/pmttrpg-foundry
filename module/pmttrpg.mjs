@@ -11,6 +11,7 @@ import { enrichClashData } from "./core/helpers/clash.mjs";
 import { createAlertBox } from "./core/helpers/dialog.mjs";
 import { PTTokenRuler } from "./documents/tokenRuler.mjs";
 import { macroList } from "./core/combat/macros.mjs";
+import { Triggers } from "./core/status/statusEffect.mjs";
 // import Hooks from "@client/helpers/hooks.mjs";
 
 Hooks.once("init", () => {
@@ -235,7 +236,7 @@ Hooks.on('preMoveToken', (token, data, action, user) => {
   }
 });
 
-Hooks.on('moveToken', (token, data, action, user) => {
+Hooks.on('moveToken', async (token, data, action, user) => {
   let distScale = 100;
   let origin = data.origin;
   let dest = data.destination;
@@ -243,7 +244,8 @@ Hooks.on('moveToken', (token, data, action, user) => {
   let sqr = Math.floor(dist / distScale);
 
   if ((game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user) {
-    token.actor.update({ "system.movement": Math.max(Number(token.actor.system.movement) - sqr, 0) }, { diff: false });
+    await token.actor.update({ "system.movement": Math.max(Number(token.actor.system.movement) - sqr, 0) }, { diff: false });
+    await token.actor.fireStatusEffects(Triggers.MOVE);
   }
 });
 

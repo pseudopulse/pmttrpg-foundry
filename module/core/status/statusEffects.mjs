@@ -62,6 +62,18 @@ export const statusList = [
     new StatusEffect("Hemorrhage", Triggers.NONE, async (actor) => {}, (count) => { return 0; }),
     new StatusEffect("Renewed_Blaze", Triggers.NONE, async (actor) => {}, (count) => { return 0; }),
     new StatusEffect("Deep_Chill", Triggers.NONE, async (actor) => {}, (count) => { return 0; }),
+    new StatusEffect("Dark_Flame", Triggers.AFTER_DECAY, async (actor) => {
+        let burn = actor.getStatusCount("Burn");
+        await actor.takeDamageStatus(burn, "Dark_Flame", "SP", "[/status/Dark_Flame] Burned for %DMG% SP damage! (%PSP% -> %SP%)")
+    }, (count) => { return 0; }),
+    new StatusEffect("Freezer_Burn", Triggers.AFTER_DECAY, async (actor) => {
+        let burn = actor.getStatusCount("Frostbite");
+        await actor.applyStatus("Burn", burn, 0);
+        createEffectsMessage(actor.name, `[/status/Freezer_Burn] Gains ${burn} [/status/Burn] Burn from decaying [/status/Frostbite] Frostbite!`)
+    }, (count) => { return 0; }),
+    new StatusEffect("Tendon_Slice", Triggers.MOVE, async (actor) => {
+        await actor.fireStatusEffect("Bleed");
+    }, (count) => { return 0; }),
 ];
 
 export function findStatusDef(name) {
