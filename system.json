@@ -20,7 +20,7 @@
       "thumbnail": "systems/pmttrpg/assets/anvil-impact.png"
     }
   ],
-  "version": "2.0.2",
+  "version": "2.0.3",
   "compatibility": {
     "minimum": 11,
     "verified": "11.315"
@@ -37,7 +37,7 @@
   "packs": [],
   "packFolders": [],
   "socket": false,
-  "manifest": "https://github.com/pseudopulse/pmttrpg-foundry/blob/main/system.json",
+  "manifest": "https://raw.githubusercontent.com/pseudopulse/pmttrpg-foundry/refs/heads/main/system.json",
   "download": "https://github.com/pseudopulse/pmttrpg-foundry/raw/refs/heads/main/pmttrpg.zip",
   "background": "systems/pmttrpg/assets/anvil-impact.png",
   "gridDistance": 1,
