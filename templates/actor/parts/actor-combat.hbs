@@ -159,9 +159,66 @@
       </div>
     </div>
 
+    {{!- Actions Panel }}
+    <div class="ac-resources-holder ac-grid-object ac-damage-panel" style="width: 35.8rem; height: 4.5rem; grid-template-columns: repeat(2, 1fr); grid-column: 1 / -1 !important;">
+      <div class="ac-resource ac-stat-holder ac-damage-stat" title="Actions Remaining" style="gap: 1rem !important;">
+        <label class="ac-item-name">Actions:</label>
+        <div class="ac-resource-xp">
+          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input" type="text"
+            inputmode="numeric" value="{{system.actions}}"
+            data-dtype="Number" style="width: 7rem;" />
+        </div>
+      </div>
+      <div class="ac-resource ac-stat-holder ac-damage-stat" title="Reactions Remaining" style="gap: 1rem !important;">
+        <label class="ac-item-name">Reactions:</label>
+        <div class="ac-resource-xp">
+          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input" type="text"
+            inputmode="numeric" value="{{system.reactions}}"
+            data-dtype="Number" style="width: 7rem;" />
+        </div>
+      </div>
+      <div class="ac-resource ac-stat-holder ac-damage-stat" title="Reactions Remaining" style="gap: 1rem !important;">
+        <label class="ac-item-name">Movement:</label>
+        <div class="ac-resource-xp">
+          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input" type="text"
+            inputmode="numeric" value="{{system.movement}}"
+            data-dtype="Number" style="width: 7rem;" />
+        </div>
+      </div>
+    </div>
+
+    {{#if hasOutgoingMarks}}
+    <div class="ac-resources-holder ac-grid-object ac-marks" style="width: 35.8rem; height: 7.5rem; grid-template-columns: repeat(4, 1fr); grid-column: 1 / -1 !important; padding: 0px; justify-items: center">
+      {{#each outgoingMarks as |mark mark|}}
+      <div class="ac-resource ac-stat-holder ac-mark-holder" data-id="{{mark.id}}" data-target="{{mark.target.id}}">
+        <div class="ac-mark-block">
+          <h class="" style="text-align: center">{{mark.name}}</h>
+          <div style="display: flex; gap: 1rem;">
+            <p class="" style="text-align: left; text-wrap-mode: nowrap;">Applied to: <br>{{mark.target.name}}</p>
+            <button class="ac-mark-remove" title="Remove Mark">X</button>
+          </div>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+    {{/if}}
+
+    {{#if hasIncomingMarks}}
+    <div class="ac-resources-holder ac-grid-object ac-marks" style="width: 35.8rem; height: 7.5rem; grid-template-columns: repeat(4, 1fr); grid-column: 1 / -1 !important; padding: 0px; justify-items: center">
+      {{#each incomingMarks as |mark mark|}}
+      <div class="ac-resource ac-stat-holder ac-mark-holder" data-id="{{mark.id}}" data-target="{{mark.target.id}}">
+        <div class="ac-mark-block">
+          <h class="" style="text-align: center">{{mark.name}}</h>
+          <p class="" style="text-align: center; text-wrap-mode: nowrap;">Applied by: <br>{{mark.source.name}}</p>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+    {{/if}}
+
     {{#if (recycleable actor)}}
     {{!- Recycle Panel }}
-    <div class="ac-resources-holder ac-grid-object ac-recycle-panel" style="width: 35.8rem; height: 10rem; grid-template-columns: repeat(2, 1fr); grid-column: 1 / -1 !important;">
+    <div class="ac-resources-holder ac-grid-object ac-recycle-panel ac-marks" style="width: 35.8rem; height: 10rem; grid-template-columns: repeat(2, 1fr); grid-column: 1 / -1 !important;">
       {{#with (getRecycleContext system.recycleAction) as |action|}}
         <div class="ac-resource" style="width: 9rem; height: 100%; justify-content: center; flex-direction: column; gap: 0rem;">
           <div style="display: flex; gap: 0.3rem; font-size: 18px;">
@@ -186,11 +243,15 @@
 
 <script>
     function toggleDP(event) {
+      console.log("dp");
+      console.log(event.currentTarget);
       event.preventDefault();
       document.getElementById('dispodrp').classList.toggle("ac-show");
     }
 
     function toggleDP2(event) {
+      console.log("dp2");
+      console.log(event.currentTarget);
       event.preventDefault();
       document.getElementById('dispodrp2').classList.toggle("ac-show");
     }
@@ -214,6 +275,42 @@
 </script>
 
 <style>
+  .ac-mark-holder {
+    height: 7rem !important;
+    width: 9rem !important;
+  }
+
+  .ac-marks {
+    display: flex !important;
+    padding: 2% !important;
+    height: 8rem !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 0.5rem;
+  }
+
+  .ac-mark-remove {
+    width: 2rem;
+    height: 2rem;
+    justify-content: center;
+    text-align: center;
+    margin: auto;
+    padding: 0%;
+    background: #f94343;
+    border: 2px solid red;
+  }
+
+  .ac-mark-block {
+    display: flex;
+    align-content: center;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding: 5% !important;
+    display: flex;
+    gap: 0.5rem;
+  }
+
   .ac-clashDescription {
       overflow-y: scroll;
       width: 100%;

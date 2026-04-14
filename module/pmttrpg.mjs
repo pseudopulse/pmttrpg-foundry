@@ -7,7 +7,7 @@ import { handler, sendNetworkMessage, registerMessages, getActorUser } from "./c
 import { currentRound, currentTurn, roundChange, setRound, turnChange, updateCombatant } from "./core/combat/combatState.mjs";
 import { getEffectsArray } from "./core/effects/effectHelpers.mjs";
 import { RollContext } from "./core/combat/rollContext.mjs";
-import { enrichClashData } from "./core/helpers/clash.mjs";
+import { createEffectsMessage, enrichClashData } from "./core/helpers/clash.mjs";
 import { createAlertBox } from "./core/helpers/dialog.mjs";
 import { PTTokenRuler } from "./documents/tokenRuler.mjs";
 import { macroList } from "./core/combat/macros.mjs";
@@ -37,10 +37,10 @@ Hooks.once("init", () => {
   };
 
   Actors.unregisterSheet('core', ActorSheet);
-  Actors.registerSheet('pmttrpg', PTActorSheet, 
+  Actors.registerSheet('pmttrpg', PTActorSheet,
     {
-      types: ["character"], 
-      makeDefault: true, 
+      types: ["character"],
+      makeDefault: true,
       label: 'PMTTRPG.SheetLabels.Actor'
     }
   );
@@ -76,10 +76,10 @@ Hooks.once("init", () => {
     lte: (v1, v2) => v1 <= v2,
     gte: (v1, v2) => v1 >= v2,
     and() {
-        return Array.prototype.every.call(arguments, Boolean);
+      return Array.prototype.every.call(arguments, Boolean);
     },
     or() {
-        return Array.prototype.slice.call(arguments, 0, -1).some(Boolean);
+      return Array.prototype.slice.call(arguments, 0, -1).some(Boolean);
     },
     effect(name, type) {
       return getEffectsArray(type).find(x => x.name == name);
@@ -230,7 +230,7 @@ Hooks.on('preMoveToken', (token, data, action, user) => {
   let dist = distanceBetween(origin, dest);
   let sqr = Math.floor(dist / distScale);
 
-  if (sqr > token.actor.system.movement && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user) {
+  if (token.movementAction != "blink" && sqr > token.actor.system.movement && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user) {
     ui.notifications.notify(`You cant move that far! You attempted to move ${sqr} SQR, while only having ${token.actor.system.movement} SQR remaining!`);
     return false;
   }
@@ -243,7 +243,12 @@ Hooks.on('moveToken', async (token, data, action, user) => {
   let dist = distanceBetween(origin, dest);
   let sqr = Math.floor(dist / distScale);
 
-  if ((game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user) {
+  if (token.movementAction != "blink" && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user) {
+    if (sqr > 6 && token.actor.augmentEffectCount("Velocity Generator") > 0) {
+      let movement = sqr - 6;
+      await token.actor.applyStatus("Charge", movement);
+      createEffectsMessage(token.actor.name, `Gains ${movement} [/status/Charge] Charge from Velocity Generator!`);
+    }
     await token.actor.update({ "system.movement": Math.max(Number(token.actor.system.movement) - sqr, 0) }, { diff: false });
     await token.actor.fireStatusEffects(Triggers.MOVE);
   }
@@ -272,11 +277,11 @@ function hideChatMessage(html) {
 export function findItemOwner(item) {
   for (const token of canvas.tokens.placeables) {
     if (token.actor == null) continue;
-      for (const aItem of token.actor.items) {
-        if (aItem._id == item._id) {
-          return token.actor;
-        }
+    for (const aItem of token.actor.items) {
+      if (aItem._id == item._id) {
+        return token.actor;
       }
+    }
   }
 
   for (const actor of game.actors) {
@@ -291,29 +296,98 @@ export function findItemOwner(item) {
 }
 
 export function searchByObject(actor) {
-    if (canvas.tokens != undefined) {
-      for (let token of canvas.tokens.placeables) {
-        if (token.actor == null) continue;
-        if (token.actor._id == actor._id) {
-            return token.actor;
-        }
+  if (canvas.tokens != undefined) {
+    for (let token of canvas.tokens.placeables) {
+      if (token.actor == null) continue;
+      if (token.actor._id == actor._id) {
+        return token.actor;
       }
     }
+  }
 
-    return game.actors.get(actor._id);
+  return game.actors.get(actor._id);
 }
 
 export function searchForActor(id) {
-    if (canvas.tokens != undefined) {
-      for (let token of canvas.tokens.placeables) {
-        if (token.actor == null) continue;
-        if (token.actor._id == id) {
-            return token.actor;
-        }
+  if (canvas.tokens != undefined) {
+    for (let token of canvas.tokens.placeables) {
+      if (token.actor == null) continue;
+      if (token.actor._id == id) {
+        return token.actor;
       }
     }
+  }
 
-    return game.actors.get(id);
+  return game.actors.get(id);
+}
+
+export function getDistance(actor1, actor2) {
+  let token1 = canvas.tokens.placeables.find(x => x.actor == actor1);
+  let token2 = canvas.tokens.placeables.find(x => x.actor == actor2);
+  return scale(canvas.grid.measureDistance(token1, token2));
+}
+
+export function getAlliesWithinRadius(actor, radius) {
+  let actors = [];
+  let source = canvas.tokens.placeables.find(x => x.actor == actor);
+  let dispo = 0;
+  if (actor != null) {
+      dispo = canvas.tokens.placeables.find(x => x.actor == actor).document.disposition;
+  }
+
+  for (let token of canvas.tokens.placeables.filter(x => x.document.disposition == dispo)) {
+    if (scale(canvas.grid.measureDistance(source, token)) <= radius && token.actor != actor) {
+      actors.push(token.actor);
+    }
+  }
+
+  return actors;
+}
+
+export function getEnemiesWithinRadius(actor, radius) {
+  let actors = [];
+  let source = canvas.tokens.placeables.find(x => x.actor == actor);
+  let dispo = 0;
+  if (user != null) {
+      dispo = canvas.tokens.placeables.find(x => x.actor == actor).document.disposition;
+  }
+
+  for (let token of canvas.tokens.placeables.filter(x => x.document.disposition != dispo)) {
+    if (scale(canvas.grid.measureDistance(source, token)) <= radius) {
+      actors.push(token.actor);
+    }
+  }
+
+  return actors;
+}
+
+export function findActorsOfTeam(actor) {
+  let team = getActorTeam(actor);
+  let actors = [];
+
+  if (canvas.tokens != undefined) {
+    for (let token of canvas.tokens.placeables) {
+      if (token.actor == null) continue;
+      if (token.actor._id != actor.id && token.document.disposition == team) {
+        actors.push(token.actor);
+      }
+    }
+  }
+
+  return actors;
+}
+
+export function getActorTeam(actor) {
+  if (canvas.tokens != undefined) {
+    for (let token of canvas.tokens.placeables) {
+      if (token.actor == null) continue;
+      if (token.actor._id == actor.id) {
+        return token.document.disposition;
+      }
+    }
+  }
+
+  return -1;
 }
 
 export function roughSizeOfObject(object) {

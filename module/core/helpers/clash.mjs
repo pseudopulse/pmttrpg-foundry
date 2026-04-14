@@ -21,8 +21,8 @@ export function enrichClashData(str) {
     return result;
 }
 
-function checkDraw(ctx1, ctx2) {
-    return (ctx1.result == ctx2.result) && (ctx1.damageType != "Block" && ctx1.damageType != "Evade") && (ctx2.damageType != "Block" && ctx2.damageType != "Evade");
+export function checkDraw(ctx1, ctx2) {
+    return (ctx1.result == ctx2.result) && (ctx1.type != "Block" && ctx1.type != "Evade") && (ctx2.type != "Block" && ctx2.type != "Evade");
 }
 
 export async function createResultMessage(ctx1, ctx2) {

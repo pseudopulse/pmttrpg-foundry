@@ -1,0 +1,21 @@
+functional parts (there's like 10 left to finish if i have time)
+
+emotion tracking
+
+techniques
+
+bullets
+
+tools
+
+//
+
+test block / evade and make sure they work
+
+//
+
+implement within RollContext
+- protect
+- defTwoHandedFree
+- ignoreEmotionLoss
+- bondTarget

@@ -1,24 +1,38 @@
 <form class="{{cssClass}} flexcol" autocomplete="off">
     <section class="sheet-body">
-        <div class="id-resources-holder">
-            <div class="id-resource id-prompt-text">
-                <h4>{{{prompt}}}</h4>
+        <div class="bo-resources-holder">
+            <div class="bo-resource bo-prompt-text" style="width: 15rem !important">
+                <h4 style="margin: 0">Choose any status effects to burst.</h4>
             </div>
-            <div class="id-resource">
-                <button onclick="toggleID('toggle-idrp')" class="id-dropbtn id-small-dropdown" id="idrp-button">
-                    <img src="systems/pmttrpg/assets/null" width="48" height="48" class="id-drp-img"/>
-                    <a class="id-drp-option">placeholder</a>
-                </button>
-                <div class="id-dropdown-content id-drp-input" id="toggle-idrp">
-                    {{#each options as |option|}}
-                    <div class="id-drp-selection" onclick="toggleID('toggle-idrp')">
-                        {{#if (ne option.icon "null")}}
-                        <img src="systems/pmttrpg/assets/{{option.icon}}" width="48" height="48" class="id-drp-img"/>
-                        {{/if}}
-                        <a class="id-drp-option">{{option.displayName}}</a>
-                    </div>
-                    {{/each}}
+            {{#if sinkingAvailable}}
+            <div class="bo-resource">
+                <div class="bo-div">
+                    <input type="checkbox" class="burst-input" data-id="Sinking" />
+                    <img src="systems/pmttrpg/assets/status/Sinking.png" class="bo-statusIcon" title="Sinking" />
+                    <h4 class="bo-statusText">Sinking</h4>
                 </div>
+            </div>
+            {{/if}}
+
+            {{#if tremorAvailable}}
+            <div class="bo-resource">
+                <div class="bo-div">
+                    <input type="checkbox" class="burst-input" data-id="Tremor" />
+                    <img src="systems/pmttrpg/assets/status/Tremor.png" class="bo-statusIcon" title="Tremor" />
+                    <h4 class="bo-statusText">Tremor</h4>
+                </div>
+            </div>
+            {{/if}}
+
+            {{#if ruptureAvailable}}
+            <div class="bo-resource">
+                <div class="bo-div">
+                    <input type="checkbox" class="burst-input" data-id="Rupture" />
+                    <img src="systems/pmttrpg/assets/status/Rupture.png" class="bo-statusIcon" title="Rupture" />
+                    <h4 class="bo-statusText">Rupture</h4>
+                </div>
+            </div>
+            {{/if}}
         </div>
             </div>
         </div>
@@ -33,7 +47,7 @@
     }
 
     function toggleID(element) {
-        document.getElementById(element).classList.toggle("id-show");
+        document.getElementById(element).classList.toggle("bo-show");
     }
 
 
@@ -46,67 +60,84 @@
 </script>
 
 <style>
-    .idrp-hidden {
-        display: none;
+    .bo-statusIcon {
+        width: 2rem;
+        height: 2rem;
+        border: none;
+    }
+
+    .bo-statusText {
+        text-align: center;
+        margin: 0;
+        align-self: center;
+    }
+
+    .burst-input {
+        align-self: center;
+    }
+
+    .bo-div {
+        display: flex;
     }
     
-    .id-clashDescription {
+    .bo-clashDescription {
         overflow-y: scroll;
         width: 100%;
         padding: 0 2% !important;
         text-wrap-mode: wrap;
     }
 
-    .id-statblock-container {
+    .bo-statblock-container {
         padding: 2% !important;
         columns: 2;
         display: flex;
         gap: 0.5rem;
     }
 
-    .id-rollInfo {
+    .bo-rollInfo {
         height: 9rem;
         width: 8rem;
         padding: 2% !important;
     }
 
-    .id-drp-selection {
+    .bo-drp-selection {
         display: flex;
         justify-content: flex-start;
         align-items: center;
         width: fit-content;
     }
 
-    .id-drp-img {
+    .bo-drp-img {
         border: none;
         width: 2rem;
         height: 2rem;
     }
 
-    .id-resource {
+    .bo-resource {
         background-color: cadetblue;
         border: 2px solid black;
         border-radius: 1px;
-        display: grid;
-        grid-template-columns: auto 1fr;
         align-items: center;
         gap: 0.5rem;
         padding: 5%;
         position: relative;
+        display: flex;
+        height: 2rem;
+        width: 10rem;
     }
 
-    .id-resource-input {
+    .bo-resource-input {
         background-color: slategray;
         border: 1px solid silver;
         text-align: center;
         width: 4rem;
     }
 
-    .id-nop {
+    .bo-nop {
         pointer-events: none;
     }
 
-    .id-resource-content {
+    .bo-resource-content {
         display: flexbox;
         justify-content: center;
         align-items: center;
@@ -116,11 +147,11 @@
         margin: auto;
     }
 
-    .id-resource-divider {
+    .bo-resource-divider {
         text-align: center;
     }
 
-    .id-resource-icon {
+    .bo-resource-icon {
         width: 50px;
         height: 50px;
         border: none;
@@ -128,17 +159,17 @@
         padding: 10%;
     }
 
-    .id-text-field {
+    .bo-text-field {
         width: 15rem;
         text-align: center;
     }
 
-    .id-prompt-text {
+    .bo-prompt-text {
         font-size: 16px;
         font-weight: bold;
     }
 
-    .id-resources-holder {
+    .bo-resources-holder {
         background-color: #1d1b22;
         border: 2px solid slategray;
         padding: 2%;
@@ -151,16 +182,16 @@
         justify-content: center;
     }
 
-    .id-padding-t2 {
+    .bo-padding-t2 {
         padding-top: 2%;
         padding-bottom: 2%;
     }
 
-    .id-padding-0 {
+    .bo-padding-0 {
         padding: 0;
     }
 
-    .id-dropbtn {
+    .bo-dropbtn {
         background-color: cadetblue;
         color: white;
         padding: 16px;
@@ -176,23 +207,23 @@
         display: flex;
     }
 
-    .id-dropbtn-small {
+    .bo-dropbtn-small {
         width: 3rem;
         height: 2rem;
         line-height: 0;
     }
 
-    .id-dropbtn:hover,
-    .id-dropbtn:focus {
+    .bo-dropbtn:hover,
+    .bo-dropbtn:focus {
         background-color: slategray;
     }
 
-    .id-dropdown {
+    .bo-dropdown {
         position: relative;
         display: inline-block;
     }
 
-    .id-dropdown-content {
+    .bo-dropdown-content {
         display: none;
         position: absolute;
         background-color: #f6f6f6;
@@ -203,22 +234,22 @@
         left: 10%;
     }
 
-    .id-dropdown-content a {
+    .bo-dropdown-content a {
         color: black;
         padding: 12px 16px;
         text-decoration: none;
         display: block;
     }
 
-    .id-drp-input:hover {
+    .bo-drp-input:hover {
         background-color: #f1f1f1;
     }
 
-    .id-show {
+    .bo-show {
         display: block;
     }
 
-    .id-drp-img {
+    .bo-drp-img {
 
     }
 </style>

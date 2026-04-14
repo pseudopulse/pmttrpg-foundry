@@ -2,7 +2,7 @@
 
 import { searchByObject } from "../../pmttrpg.mjs";
 import { RollContext } from "../combat/rollContext.mjs";
-import { pollUserInputConfirm, pollUserInputOptions, pollUserInputText, pollReduceStatus } from "./dialog.mjs";
+import { pollUserInputConfirm, pollUserInputOptions, pollUserInputText, pollReduceStatus, pollDistributeStatus, pollUserInputBurst } from "./dialog.mjs";
 
 export function sendNetworkMessage(type, data) {
     ChatMessage.create({
@@ -21,7 +21,7 @@ export function registerMessages() {
     handler["PENDING_CLASH"] = async (data) => {
         const target = searchByObject(data.target);
         const attacker = searchByObject(data.attacker);
-        
+
         if (existsInTokensList(target)) {
             const context = new RollContext();
             context.attackerTokenId = data.attackerTokenId;
@@ -44,10 +44,32 @@ export function registerMessages() {
         }
     }
 
+    handler["USE_ACTION_SKILL"] = async (data) => {
+        const target = searchByObject(data.target);
+        const attacker = searchByObject(data.attacker);
+
+        if (game.user.isGM) {
+            await attacker.processActionSkill(attacker.items.find(x => x._id == data.item._id), target);
+        }
+    };
+
+    handler["OVERWRITE_CLASH"] = async (data) => {
+        const target = searchByObject(data.target);
+        const attacker = searchByObject(data.attacker);
+
+        if (testUserPermission(attacker, game.user)) {
+            attacker.updateQueuedRoll(target);
+        }
+    };
+    
+    
+
     CONFIG.queries["pmttrpg.pollUserInputOptions"] = wrapperPollUserInputOptions;
     CONFIG.queries["pmttrpg.pollUserInputText"] = wrapperPollUserInputText;
     CONFIG.queries["pmttrpg.pollUserInputConfirm"] = wrapperPollUserInputConfirm;
     CONFIG.queries["pmttrpg.pollReduceStatus"] = wrapperPollReduceStatus;
+    CONFIG.queries["pmttrpg.pollDistributeStatus"] = wrapperPollDistributeStatus;
+    CONFIG.queries["pmttrpg.pollUserInputBurst"] = wrapperPollUserInputBurst;
 }
 
 export async function wrapperPollUserInputOptions(data) {
@@ -64,6 +86,14 @@ export async function wrapperPollUserInputConfirm(data) {
 
 export async function wrapperPollReduceStatus(data) {
     return await pollReduceStatus(game.user, data.source, data.count, data.statusEffects);
+}
+
+export async function wrapperPollDistributeStatus(data) {
+    return await pollDistributeStatus(game.user, data.team, data.status, data.count);
+}
+
+export async function wrapperPollUserInputBurst(data) {
+    return await pollUserInputBurst(game.user, data.target);
 }
 
 

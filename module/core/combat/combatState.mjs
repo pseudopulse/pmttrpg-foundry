@@ -22,6 +22,12 @@ export async function roundChange(combat, round, turn) {
 
 export async function turnChange(combat, round, turn) {
     currentTurn = turn;
+
+    for (const token of canvas.tokens.placeables) {
+        if (token != null && token.id == combat.current.tokenId) {
+            await token.actor.handleNextTurn();
+        }
+    }
 }
 
 export async function updateCombatant(combatant, data, id) {

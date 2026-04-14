@@ -3,13 +3,47 @@ import { StatusEffect, Triggers } from "./statusEffect.mjs";
 
 export const statusList = [
     new StatusEffect("Burn", Triggers.END, async (actor) => {
+        let burn = actor.getStatusCount("Burn");
         await actor.takeDamageStatus(actor.getStatusCount("Burn"), "Burn", "HP", "[/status/Burn] Burned for %DMG% HP damage! (%PHP% -> %HP%)")
+        let res = actor.augmentEffectCount("Burn Resistance") + actor.outfitEffectCount("Burn Resistance");
+        res = Math.min(res, burn);
+        if (res > 0 && actor.augmentEffectCount("Restorative Warmth") > 0) {
+            let php = actor.system.attributes.health.value;
+            await actor.heal(res, 0, 0);
+            let hp = actor.system.attributes.health.value;
+            createEffectsMessage(actor.name, `Heals ${res} HP from Restorative Warmth! (${php} -> ${hp})`);
+        }
+
+        if ((burn - res) > 0 && actor.augmentEffectCount("Afterburn") > 0) {
+            let val = Math.max(Math.floor((burn - res) / 2), 1);
+            await actor.applyStatus("Smoke", val);
+            createEffectsMessage(actor.name, `Gains ${val} [/status/Smoke] Smoke from Afterburn!`);
+        }
     }, (count) => { return count / 2 }),
     new StatusEffect("Frostbite", Triggers.END, async (actor) => {
         await actor.takeDamageStatus(actor.getStatusCount("Frostbite"), "Frostbite", "ST", "[/status/Frostbite] Froze for %DMG% ST damage! (%PST% -> %ST%)")
+        let decay = Math.floor(actor.getStatusCount("Frostbite") / 2);
+
+        if (actor.augmentEffectCount("Sublimation") > 0 && res > 0) {
+            await actor.applyStatus("Smoke", res);
+            createEffectsMessage(actor.name, `Gains ${res} [/status/Smoke] Smoke from Sublimation!`);
+        }
     }, (count) => { return count / 2 }),
     new StatusEffect("Bleed", Triggers.ACTION, async (actor) => {
         await actor.takeDamageStatus(actor.getStatusCount("Bleed"), "Bleed", "HP", "[/status/Bleed] Bled for %DMG% HP damage! (%PHP% -> %HP%)")
+
+        let res = actor.augmentEffectCount("Bleed Resistance") + actor.outfitEffectCount("Bleed Resistance");
+        let bleed = actor.getStatusCount("Bleed") - res;
+        if (res > 0 && actor.augmentEffectCount("Blood is Fuel") > 0) {
+            await actor.applyStatus("Charge", Math.max(Math.floor(bleed / 2), 1));
+            createEffectsMessage(actor.name, `Gains ${Math.max(Math.floor(bleed / 2), 1)} [/status/Charge] Charge from Blood is Fuel!`);
+        }
+
+        if (actor.augmentEffectCount("Blood is Fuel Alt") > 0) {
+            await actor.applyStatus("Charge", 2);
+            createEffectsMessage(actor.name, `Gains 2 [/status/Charge] Charge from Blood is Fuel!`);
+        }
+        
     }, (count) => { return count / 2 }),
     new StatusEffect("Rupture", Triggers.BURST, async (actor) => {
         await actor.takeDamageStatus(actor.getStatusCount("Rupture"), "Rupture", "HP", "[/status/Rupture] Rupture bursted for %DMG% HP damage! (%PHP% -> %HP%)")

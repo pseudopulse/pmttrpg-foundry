@@ -1,6 +1,8 @@
 import { roughSizeOfObject } from "../pmttrpg.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { validate, handleEffectAddButton, handleEffectCounterChange, handleEffectRemoveButton, handleEffectTriggerChange, handleEffectTypeChange, getEffectsArray } from "../core/effects/effectHelpers.mjs";
+import { MarkNames } from "../core/status/mark.mjs";
+import { findByID } from "../core/helpers/netmsg.mjs";
 
 //
 export class PTActorSheet extends ActorSheet {
@@ -28,10 +30,31 @@ export class PTActorSheet extends ActorSheet {
 
         context.statusList = statusList;
 
-        this.prepareItems(context);
+        let marks = [];
+        for (let mark of context.system.outgoingMarks) {
+            marks.push({
+                name: MarkNames[mark.id],
+                id: mark.id,
+                target: findByID(mark.target),
+            });
+        }
+        
+        context.outgoingMarks = marks;
+        context.hasOutgoingMarks = marks.length > 0;
 
-        console.log(this.document.name);
-        console.log(roughSizeOfObject(this.document));
+        let marks2 = [];
+        for (let mark of context.system.incomingMarks) {
+            marks2.push({
+                name: MarkNames[mark.id],
+                id: mark.id,
+                source: findByID(mark.target),
+            });
+        }
+        
+        context.incomingMarks = marks2;
+        context.hasIncomingMarks = marks2.length > 0;
+
+        this.prepareItems(context);
 
         return context;
     }
@@ -112,6 +135,14 @@ export class PTActorSheet extends ActorSheet {
             this.actor.update({ system }, { diff: false, render: true });
         });
 
+        html.on('click', '.ac-mark-remove', (ev) => {
+            ev.preventDefault();
+            let target = ev.currentTarget.closest('.ac-mark-holder').dataset.target;
+            let mark = ev.currentTarget.closest('.ac-mark-holder').dataset.id;
+
+            findByID(target).removeMark(this.actor, mark);
+        });
+
         html.on('change', '.emotion-input', (ev) => {
             ev.preventDefault();
             const system = this.actor.toObject(false).system;
@@ -166,7 +197,10 @@ export class PTActorSheet extends ActorSheet {
             if (dataset.rollType == 'item') {
                 const itemId = element.closest('.item').dataset.itemId;
                 const item = this.actor.items.get(itemId);
-                if (item) return item.roll();
+
+                if (item && this.actor.getCanUseItem(item)) {
+                    return item.roll();
+                }
             }
         }
 

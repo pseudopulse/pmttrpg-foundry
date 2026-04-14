@@ -1,7 +1,7 @@
 <div class="ef-resources-holder flexcol">
     <div class="ef-resources">
         <div class="ef-resource-content">
-            <button onclick="toggleEF('{{id}}-effect{{index}}')" class="ef-dropbtn ef-large-dropdown">
+            <button onclick="toggleEF('{{id}}-effect{{index}}')" class="ef-dropbtn ef-large-dropdown" style="font-size: 13px !important;">
                 {{name}}
             </button>
             <div id="{{id}}-effect{{index}}" class="ef-dropdown-content">
@@ -97,6 +97,7 @@
         grid: 1 / span 3;
         gap: 0;
         margin: auto;
+        position: relative;
     }
 
     .ef-resource-divider {
@@ -150,6 +151,8 @@
         height: 2rem;
         line-height: 0;
         text-wrap-mode: nowrap;
+        display: flex;
+        align-items: center;
     }
 
     .ef-dropbtn-small {

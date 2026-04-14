@@ -5,6 +5,7 @@ import { createEffectsMessage } from "../helpers/clash.mjs";
 import { scale } from "../../pmttrpg.mjs";
 import { Conditional } from "../combat/rollContext.mjs";
 import { pollReduceStatus, pollUserInputText } from "../helpers/dialog.mjs";
+import { MarkNames, MARKS } from "../status/mark.mjs";
 
 export const augmentEffects = [
     augmentBonusEffect("Burn", 2),
@@ -21,13 +22,28 @@ export const augmentEffects = [
     augmentVigorEffect("Frostbite", 2),
     augmentVigorEffect("Bleed", 2),
     augmentVigorEffect("Haste", 2),
-    // - smoke overflow
+    new Effect(
+        `Smoke Overflow`,
+        (context, count, trigger) => {
+            if (context.actor != null && context.actor.getStatusCount("Smoke") >= 4 + (4 * count)) {
+                context.dicePower = Number(context.dicePower) + count;
+                context.nonSkillDicePower = Number(context.nonSkillDicePower) + count;
+            }
+        },
+        (count) => {
+            return `Gain ${count} Dice Power while at ${4 + (4 * count)} [/status/Smoke] Smoke.`
+        },
+        ["On Use"],
+        false,
+        3
+    ),
     new Effect(
         "Bloodthirst",
         (context, count, trigger) => {
             if (currentRound <= 1 && !context.flags.includes("Bloodthirst")) {
                 context.flags.push("Bloodthirst");
                 context.dicePower = Number(context.dicePower) + 3;
+                context.nonSkillDicePower = Number(context.nonSkillDicePower) + 3;
             }
 
             context.events["Kill"].push(async (context) => {
@@ -167,6 +183,7 @@ export const augmentEffects = [
         (context, count, trigger) => {
             context.conditionals.push(new Conditional("Lone Fighter", `Increase Dice Power by ${count} if the target has not had action taken against them by an ally in 2 rounds.`, (context) => {
                 context.dicePower = Number(context.dicePower) + count;
+                context.nonSkillDicePower = Number(context.nonSkillDicePower) + count;
             }, [], null));
         },
         null,
@@ -405,7 +422,16 @@ export const augmentEffects = [
     // unstoppable
     markerEffect("Redundant Systems", false, 1),
     markerEffect("Turbulence", false, 1),
-    // - mark shit
+    //
+    markerEffect(MarkNames[MARKS.Aid], false, 5),
+    markerEffect(MarkNames[MARKS.Analysis], false, 5),
+    markerEffect(MarkNames[MARKS.Assassination], false, 5),
+    markerEffect(MarkNames[MARKS.Encirclement], false, 5),
+    markerEffect(MarkNames[MARKS.Exploitation], false, 5),
+    markerEffect(MarkNames[MARKS.Fanaticism], false, 5),
+    markerEffect(MarkNames[MARKS.Subjugation], false, 5),
+    markerEffect(MarkNames[MARKS.Tending], false, 5),
+    //
     markerEffect("Striker Stance", false, 1),
     markerEffect("Slayer Stance", false, 1),
     markerEffect("Slasher Stance", false, 1),
@@ -416,6 +442,7 @@ export const augmentEffects = [
         (context, count, trigger) => {
             if (context.actor != null) {
                 context.dicePower = Number(context.dicePower) + Math.min(Number(context.actor.system.emotionLevelUsed), 3);
+                context.nonSkillDicePower = Number(context.nonSkillDicePower) + Math.min(Number(context.actor.system.emotionLevelUsed), 3);
             }
         },
         (count) => {
@@ -446,6 +473,7 @@ export const augmentEffects = [
         (context, trigger, count) => {
             if (currentRound <= 1) {
                 context.dicePower = Number(context.dicePower) - count;
+                context.nonSkillDicePower = Number(context.nonSkillDicePower) - count;
             }
         },
         (count) => {
@@ -454,6 +482,114 @@ export const augmentEffects = [
         ["On Use"],
         false, 5, false, false
     ),
+    //
+    markerEffect("EMA", false, 999),
+    markerEffect("Integrated Boosters", false, 3),
+    markerEffect("Deserter", false, 1),
+    markerEffect("Double Time", false, 1),
+    markerEffect("Ice Skater", false, 1),
+    //
+    markerEffect("Force Fields", false, 5),
+    markerEffect("Companion - Swift"), // X
+    markerEffect("Explosive Force", false, 1),
+    //
+    new Effect(
+        "Weakness Exploit (F)",
+        (context, count, trigger) => {
+            let stat = context.actor.system.attributes.health.value;
+            let max = context.actor.system.attributes.health.max;
+            let thresholds = Math.floor((max - stat) / (max * 0.25));
+            if (thresholds > 3) { 
+                thresholds = 3 
+            }
+
+            if (thresholds > 0) {
+                context.triggers["Clash Win"].applyInfliction("Fragile", thresholds, false);
+            }
+        },
+        (count) => {
+            return `Inflict 1 [/status/Fragile] Fragile for every 25% missing HP on self, max 3.`
+        },
+        ["Clash Win"], false, 1
+    ),
+    new Effect(
+        "Weakness Exploit (SF)",
+        (context, count, trigger) => {
+            let stat = context.actor.system.attributes.health.value;
+            let max = context.actor.system.attributes.health.max;
+            let thresholds = Math.floor((max - stat) / (max * 0.25));
+            if (thresholds > 3) { 
+                thresholds = 3 
+            }
+
+            if (thresholds > 0) {
+                context.triggers["Clash Win"].applyInfliction("Stagger_Fragile", thresholds, false);
+            }
+        },
+        (count) => {
+            return `Inflict 1 [/status/Stagger_Fragile] Stagger Fragile for every 25% missing HP on self, max 3.`
+        },
+        ["Clash Win"], false, 1
+    ),
+    new Effect(
+        "Momentum Thief",
+        (context, count, trigger) => {
+            let bind = context.target.getStatusCount("Bind");
+
+            if (bind > 0) {
+                bind = Math.max(Math.floor(bind / 2), 1);
+
+                context.triggers["Clash Win"].applyInfliction("Haste", -bind, true);
+            }
+        },
+        (count) => {
+            return `Gain [/status/Haste] Haste next round equal to half of [/status/Bind] Bind on target.`
+        },
+        ["Clash Win"], false, 1
+    ),
+    //
+    markerEffect("Belt Feeder", false, 3),
+    // markerEffect("Unlock", false, 1), // X
+    // loaded salvo
+    markerEffect("Restorative Warmth", false, 1), 
+    markerEffect("Afterburn", false, 1), 
+    markerEffect("Rekindled Embers", false, 1),
+    // blazing burn
+    // rare meal
+    markerEffect("Open Arteries", false, 1), 
+    // polluted steam
+    markerEffect("Smoke Veil", false, 1),
+    // markerEffect("Gauged Release", false, 1), // X
+    markerEffect("Sublimation", false, 1), 
+    markerEffect("Soothing Mist", false, 1), 
+    // markerEffect("Reaper of Chance", false, 1), // X
+    // markerEffect("Mutually Assured Destruction", false, 1), // X
+    // critical attention
+    markerEffect("Rupture Overdose", false, 999), // X
+    markerEffect("Mentor", false, 1),
+    markerEffect("Slamdown", false, 1), 
+    markerEffect(MarkNames[MARKS.Sniper], false, 1),
+    markerEffect(MarkNames[MARKS.Commander], false, 1),
+    markerEffect(MarkNames[MARKS.Crippling], false, 1),
+    markerEffect(MarkNames[MARKS.Puppeteer], false, 1),
+    markerEffect("Feedback Loop", false, 1), 
+    markerEffect("Ammo Infusion", false, 1), // X
+    markerEffect("Ammo Infusion Alt", false, 1), // X
+    markerEffect("Detox", false, 1),
+    // markerEffect("Lifeforce Energy", false, 1), // X
+    // blackout
+    markerEffect("Thermal Generator", false, 1),
+    markerEffect("Blood is Fuel", false, 1),
+    markerEffect("Blood is Fuel Alt", false, 1),
+    markerEffect("Energy Intake", false, 1),
+    markerEffect("Velocity Generator", false, 1),
+    // power vacuum
+    markerEffect("Steam Engine", false, 1),
+    markerEffect("Torment Nexus", false, 1),
+    // markerEffect("Undying", false, 1), // X
+    // markerEffect("Set Example", false, 1), // X
+    // markerEffect("Stalwart Wall", false, 1), // X
+    // markerEffect("Apathy", false, 1), // X
 ]
 
 function augmentThresholdEffect(name, bar, mult, status, negativeStatus = []) {
@@ -539,6 +675,7 @@ function augmentVigorEffect(status, req) {
         (context, count, trigger) => {
             if (context.actor != null) {
                 context.dicePower = Number(context.dicePower) + (Math.clamp(context.actor.getStatusCount(status) / req, 0, 3));
+                context.nonSkillDicePower = Number(context.nonSkillDicePower) + (Math.clamp(context.actor.getStatusCount(status) / req, 0, 3));
             }
         },
         (count) => {
@@ -557,11 +694,13 @@ function augmentBonusEffect(status, req, invert = false) {
             if (invert) {
                 if (context.actor != null && context.actor.getStatusCount(status) >= req) {
                     context.dicePower = Number(context.dicePower) + 1;
+                    context.nonSkillDicePower = Number(context.nonSkillDicePower) + 1;
                 }
             }
             else {
                 if (context.target != null && context.target.getStatusCount(status) >= req) {
                     context.dicePower = Number(context.dicePower) + 1;
+                    context.nonSkillDicePower = Number(context.nonSkillDicePower) + 1;
                 }
             }
         },

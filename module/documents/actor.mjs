@@ -1,16 +1,20 @@
 import { RollContext } from "../core/combat/rollContext.mjs";
-import { createClashMessage, createEffectsMessage, createResultMessage } from "../core/helpers/clash.mjs";
-import { createClashResponse, getAttackOptions, pollReduceStatus, pollUserInputConfirm, pollUserInputOptions } from "../core/helpers/dialog.mjs";
+import { checkDraw, createClashMessage, createEffectsMessage, createResultMessage } from "../core/helpers/clash.mjs";
+import { createClashResponse, getAttackOptions, getSkillOptions, pollReduceStatus, pollUserInputBurst, pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "../core/helpers/dialog.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
-import { playSound, searchByObject } from "../pmttrpg.mjs";
+import { getAlliesWithinRadius, getDistance, playSound, searchByObject } from "../pmttrpg.mjs";
 import { currentRound } from "../core/combat/combatState.mjs";
 import { getRollContextFromData } from "./item.mjs";
 import { registerEffectMacro } from "../core/combat/macros.mjs";
+import { Mark, MarkNames, MARKS } from "../core/status/mark.mjs";
+import { findByID, sendNetworkMessage } from "../core/helpers/netmsg.mjs";
 
 let pending = {};
 let pendingStagger = {};
+let pendingSmokeVeil = {};
 let targetHP = {};
+let targetST = {};
 
 //
 export class PTActor extends Actor {
@@ -98,6 +102,21 @@ export class PTActor extends Actor {
         }
     }
 
+    sendTriggerActionSkill(item, target) {
+        sendNetworkMessage("USE_ACTION_SKILL", {
+            attacker: this,
+            target: target,
+            item: item,
+        });
+    }
+
+    async processActionSkill(item, target) {
+        let ctx = getRollContextFromData(item);
+        
+        createEffectsMessage(ctx.actor.name, `Uses the skill ${item.name} on ${target == this ? "self" : target.name}!`);
+        createEffectsMessage(ctx.actor.name, await ctx.resolveTriggers(["On Use", "Clash Win"]));
+    }
+
     getOutfitContext() {
         if (this.outfit != null) {
             return getRollContextFromData(this.outfit, true, "Block");
@@ -140,12 +159,21 @@ export class PTActor extends Actor {
         system.poisePaused = false;
         system.ruinPaused = false;
         system.primerEffectsList = [];
+        system.outgoingMarks = [];
+        system.incomingMarks = [];
+        system.overheatedWeapons = [];
+        system.forceFields = this.augmentEffectCount("Force Fields");
 
         await this.update({ system }, { diff: false, render: true });
     }
 
     getModifiedDamage(context, damage, cat) {
-        const result = damage * this.findResistance(context.damageType, cat);
+        let res = this.findResistance(context.damageType, cat);
+        if (context.flags.includes("Rip Space") && res < 1.5) {
+            res = 1.5;
+        }
+
+        const result = damage * res;
 
         return Math.floor(result);
     }
@@ -204,6 +232,8 @@ export class PTActor extends Actor {
                 return cat == "ST" ? this.outfit.system.pierceResST : this.outfit.system.pierceRes;
             case "Blunt":
                 return cat == "ST" ? this.outfit.system.bluntResST : this.outfit.system.bluntRes;
+            default:
+                return 1;
         }
     }
 
@@ -243,6 +273,7 @@ export class PTActor extends Actor {
             respCtx.fix();
 
             targetHP[respCtx.target.id] = respCtx.target.system.attributes.health.value;
+            targetST[respCtx.target.id] = respCtx.target.system.attributes.stagger.value;
 
             await respCtx.target.receiveAttackRoll(respCtx);
             playSound("clash");
@@ -265,19 +296,61 @@ export class PTActor extends Actor {
         return "1d10";
     }
 
+    processIgnorePower(ctx1, ctx2) {
+        if (ctx2.hasEffect("Ignore Power")) {
+            ctx1.nullifyPower(true);
+            ctx2.nullifyPower(false);
+        }
+
+        if (ctx1.hasEffect("Ignore Power")) {
+            ctx2.nullifyPower(true);
+            ctx1.nullifyPower(false);
+        }
+    }
+
     async processClashResolution(ctx1, ctx2) {
+        this.processIgnorePower(ctx1, ctx2);
+        
         createResultMessage(ctx1, ctx2);
-        if (ctx1.result > ctx2.result || ctx2.result == "X") {
+
+        if (checkDraw(ctx1, ctx2)) {
+            return;
+        }
+
+        if (ctx1.result >= ctx2.result || ctx2.result == "X") {
 
         }
-        else if (ctx2.result > ctx1.result || ctx1.result == "X") {
+        else if (ctx2.result >= ctx1.result || ctx1.result == "X") {
             let tmp = ctx1;
             ctx1 = ctx2;
             ctx2 = tmp;
         }
-        else {
-            return;
+
+        if (ctx1.target.hasMarkApplied(ctx1.actor, MARKS.Analysis) 
+        && (ctx1.target.findResistance(ctx1.damageType, "HP") >= 1.5 || ctx1.target.findResistance(ctx1.damageType, "ST") >= 1.5)) {
+            let type = await pollUserInputOptions(ctx1.actor, "Choose Marked for Analysis [Type] Fragility.", [
+                {
+                    name: "Slash Fragility",
+                    icon: "/status/Slash_Fragility.png"
+                },
+                {
+                    name: "Pierce Fragility",
+                    icon: "/status/Pierce_Fragility.png"
+                },
+                {
+                    name: "Blunt Fragility",
+                    icon: "/status/Blunt_Fragility.png"
+                },
+            ]);
+
+            ctx1.triggers["Clash Win"].applyInfliction(type, 2, true);
         }
+
+        if (ctx1.target.hasMarkApplied(ctx1.actor, MARKS.Exploitation)) {
+            ctx1.triggers["On Use"].applyInfliction("Charge", -2, false);
+        }
+
+        let totalAssassinationDamage = 3;
 
         await ctx1.fireEvent("On Use");
         await ctx2.fireEvent("On Use");
@@ -288,7 +361,7 @@ export class PTActor extends Actor {
 
         let landedDevastating = false;
 
-        if (ruin > 0 && !system.ruinPaused) {
+        if (ruin > 0 && !ctx2.actor.system.ruinPaused) {
             let tmp = new Roll(this.getDevastationRoll(ctx1));
             await tmp.evaluate();
             let roll = tmp.total;
@@ -302,7 +375,12 @@ export class PTActor extends Actor {
                 await ctx2.actor.takeDamageStatus(damage, "Ruin", null, `Received a [/status/Devastation] Devastating hit for %DMG% HP damage! (%PHP% -> %HP%)`);
                 await ctx2.actor.loadPrimerEffects(ctx1);
                 await ctx1.fireEvent("Devastating Hit");
+                if (ctx1.actor.augmentEffectCount("Open Arteries") > 0) {
+                    await ctx2.actor.applyStatus("Bleed", Math.min(damage, 8));
+                    createEffectsMessage(ctx1.actor.name, `Inflicts ${Math.min(damage, 8)} [/status/Bleed] Bleed from Open Arteries!`);
+                }
                 landedDevastating = true;
+                totalAssassinationDamage += 3;
             }
             else {
                 createEffectsMessage(ctx1.actor.name, `Rolled ${roll}, failed [/status/Ruin] Ruin check!`);
@@ -310,7 +388,7 @@ export class PTActor extends Actor {
         }
 
         if (!landedDevastating && ctx1.hasEffect("Primer")) {
-            this.cachePrimerEffects(ctx1);
+            await ctx2.actor.cachePrimerEffects(ctx1);
         }
 
         let poise = ctx1.actor.getStatusCount("Poise");
@@ -319,13 +397,26 @@ export class PTActor extends Actor {
 
         let landedCrit = false;
 
-        if (poise > 0 && (ctx1.attackType == "Melee" || ctx1.attackType == "Ranged") && !this.system.poisePaused) {
+        if (poise > 0 && (ctx1.attackType == "Melee" || ctx1.attackType == "Ranged") && !ctx1.actor.system.poisePaused) {
             let tmp = new Roll(this.getCritRoll(ctx1));
             await tmp.evaluate();
             let roll = tmp.total;
 
             if (roll <= poise) {
-                tmp = new Roll(`${critical}d10`);
+                let allies = getAlliesWithinRadius(ctx1.actor, 3);
+                let bonusCritical = 0;
+                for (let ally of allies) {
+                    if (ally.augmentEffectCount("Mentor") > 0 && await pollUserInputConfirm(ally, `Spend your [/status/Critical] Critical to strengthen ${ctx1.actor.name}'s hit?`)) {
+                        bonusCritical += ally.getStatusCount("Critical");
+                        await ally.setStatus("Critical", 0);
+                        await ally.setStatus("Poise", 0);
+                        createEffectsMessage(ally.name, `Contributes their [/status/Critical] Critical to strengthen ${ctx1.actor.name}'s attack!`);
+                    }
+                }
+                if (ctx2.actor.hasMarkApplied(ctx1.actor, MARKS.Commander)) {
+                    bonusCritical += 1;
+                }
+                tmp = new Roll(`${critical + bonusCritical}d10`);
                 await tmp.evaluate();
                 let damage = tmp.total + (3 * ctx1.effectCount("Critical DMG+"));
                 await ctx1.actor.setStatus("Poise", 0);
@@ -333,6 +424,7 @@ export class PTActor extends Actor {
                 await ctx2.actor.takeDamageStatus(damage, "Poise", null, `Received a [/status/Critical] Critical hit for %DMG% HP damage! (%PHP% -> %HP%)`);
                 await ctx1.fireEvent("Critical Hit");
                 landedCrit = true;
+                totalAssassinationDamage += 3;
             }
             else {
                 createEffectsMessage(ctx1.actor.name, `Rolled ${roll}, failed [/status/Poise] Poise check!`);
@@ -346,20 +438,96 @@ export class PTActor extends Actor {
             await ctx2.actor.takeDamageStatus(damage, "Smoke", null, `Takes %DMG% extra HP damage from [/status/Smoke] Smoke! (%PHP% -> %HP%)`);
             if (ctx1.actor.augmentEffectCount("Dizzying Smog") > 0) {
                 damage = Math.max(Math.floor(damage / 2), 1);
-                await ctx2.actor.takeDamageStatus(damage, "Smoke", "ST", `Takes %DMG% extra ST damage from [/status/Smoke] Smoke due to Dizzying Smog! (%PST% -> %ST%)`);
+                await ctx2.actor.takeDamageStatus(damage, "none", "ST", `Takes %DMG% extra ST damage from [/status/Smoke] Smoke due to Dizzying Smog! (%PST% -> %ST%)`);
             }
         }
 
         if (ctx1.actor.augmentEffectCount("Puffy Brume") > 0) {
             let smoke = ctx1.actor.getStatusCount("Smoke");
             let damage = Math.max(Math.floor(smoke / 2), 1);
-            await ctx2.actor.takeDamageStatus(damage, "Smoke", null, `Takes %DMG% extra HP damage from [/status/Smoke] Smoke due to Puffy Brume! (%PHP% -> %HP%)`);
+            await ctx2.actor.takeDamageStatus(damage, "none", null, `Takes %DMG% extra HP damage from [/status/Smoke] Smoke due to Puffy Brume! (%PHP% -> %HP%)`);
+        }
+
+        if (ctx1.hasEffect("Fumigate")) {
+            let smoke = ctx1.actor.getStatusCount("Smoke");
+            if (smoke > 0) {
+                await ctx1.actor.setStatus("Smoke", 0);
+                await ctx2.actor.takeDamageStatus(smoke, "none", null, `Takes %DMG% extra HP damage from [/status/Smoke] Smoke due to Fumigate! (%PHP% -> %HP%)`);
+            }
         }
 
         let attackerTriggers = ["On Use", "Clash Win"];
         if (landedCrit) {
             attackerTriggers.push("On Crit");
         }
+
+        if (landedDevastating) {
+            attackerTriggers.push("Devastating Hit");
+        }
+
+        if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
+            await ctx1.fireEvent("Clash Win Instant");
+            await ctx2.fireEvent("Clash Lose Instant");
+        }
+
+        if (ctx1.flags.includes("IgnoreInfliction")) {
+            ctx2.ignoringInflictions = true;
+        }
+
+        if (ctx2.flags.includes("IgnoreInfliction")) {
+            ctx1.ignoringInflictions = true;
+        }
+
+        let ctx1R = ctx1.flags.includes("Reflective Barrier");
+        let ctx2R = ctx2.flags.includes("Reflective Barrier");
+
+        if (ctx1R) {
+            ctx1.flags = ctx1.flags.filter(x => x != "Reflective Barrier");
+            ctx2.flags.push("Reflective Barrier");
+        }
+
+        if (ctx2R) {
+            ctx2.flags = ctx2.flags.filter(x => x != "Reflective Barrier");
+            ctx1.flags.push("Reflective Barrier");
+        }
+        
+        let bursts = await pollUserInputBurst(ctx1.actor, ctx2.actor);
+
+        if (bursts.sinkingBurst) {
+            await ctx1.fireEvent("Sinking Burst");
+            await ctx2.actor.fireStatusEffect("Sinking");
+            attackerTriggers.push("Sinking Burst");
+        }
+
+        if (bursts.tremorBurst) {
+            await ctx1.fireEvent("Tremor Burst");
+            await ctx2.actor.fireStatusEffect("Tremor");
+            attackerTriggers.push("Tremor Burst");
+            totalAssassinationDamage += 3;
+        }
+
+        if (bursts.ruptureBurst) {
+            await ctx1.fireEvent("Rupture Burst");
+            await ctx2.actor.fireStatusEffect("Rupture");
+            attackerTriggers.push("Rupture Burst");
+            totalAssassinationDamage += 3;
+        }
+
+        if (ctx2.actor.hasMarkApplied(ctx1.actor, MARKS.Commander) && !landedCrit) {
+            ctx1.triggers["Clash Win"].applyInfliction("Poise", 1, false);
+        }
+
+        if (ctx1.actor.augmentEffectCount("Feedback Loop") > 0) {
+            let charge = ctx1.getChargeCosts();
+            if (charge > 12) {
+                charge = 12;
+            }
+
+            ctx1.triggers["Clash Win"].applyInfliction("Charge", charge, false);
+        }
+
+        await ctx1.actor.handleClashEmotion(ctx1.actor, ctx1.triggers, ctx2.actor, ctx2.result == "X", ctx1);
+        await ctx2.actor.handleClashEmotion(ctx2.actor, ctx2.triggers, ctx1.actor, ctx2.result == "X", ctx2);
 
         if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
             createEffectsMessage(ctx1.actor.name, await ctx1.resolveTriggers(attackerTriggers), true);
@@ -401,9 +569,25 @@ export class PTActor extends Actor {
             }
         }
 
+        if (ctx1.target.hasMarkApplied(ctx1.actor, MARKS.Assassination)) {
+            await ctx2.actor.takeDamageStatus(totalAssassinationDamage, "none", "HP", `Takes %DMG% HP damage from Target for Assassination! (%PHP% -> %HP%)`);
+        }
+
+        if (ctx1.target.hasMarkApplied(ctx1.actor, MARKS.Subjugation)) {
+            await ctx2.actor.takeDamageStatus(2, "none", "SP", `Takes %DMG% SP damage from Target for Subjugation! (%PSP% -> %SP%)`);
+            await ctx1.actor.heal(0, 0, 2);
+        }
+
         if (pendingStagger[ctx2.actor.name] != null) {
             if (pendingStagger[ctx2.actor.name]) {
                 await ctx2.actor.stagger();
+                pendingStagger[ctx2.actor.name] = false;
+            }
+        }
+
+        if (pendingSmokeVeil[ctx2.actor.name] != null) {
+            if (pendingStagger[ctx2.actor.name]) {
+                await ctx2.setStatus("Smoke", 0);
                 pendingStagger[ctx2.actor.name] = false;
             }
         }
@@ -426,6 +610,76 @@ export class PTActor extends Actor {
         }
     }
 
+    async handleClashEmotion(actor, triggers, target, oneSided, context) {
+        let ignoreLoss = context.ignoreEmotionLoss;
+        if (actor.checkDisposition("Protective") && context.protect) {
+            ignoreLoss = true;
+        }
+
+        if (actor.checkDisposition("Possessive")) {
+            if (context.protect) {
+                triggers["On Use"].emotion += 1;
+            }
+            
+            if (context.bondTarget) {
+                triggers["Clash Win"].emotion += 1;
+            }
+        }
+
+        if (actor.checkDisposition("Vengeful") && context.defTwoHandedFree) {
+            triggers["On Use"].emotion += 1;
+            ignoreLoss = true;
+        }
+
+        if (!actor.checkDisposition("Gloomy")) {
+            triggers["Clash Win"].emotion += 1;
+            if (!ignoreLoss) triggers["Clash Lose"].emotion -= 1;
+        }
+
+        if (actor.checkDisposition("Masochistic") && oneSided) {
+            triggers["Clash Lose"].emotion += 3;
+        }
+
+        if (actor.checkDisposition("Gloomy")) {
+            let kill = actor.system.attributes.health.value <= 0 && targetHP[target.id] > 0;
+            let stagger = actor.system.attributes.stagger.value <= 0 && targetST[target.id] > 0;
+            let ignoreOS = actor.checkImpassioned("Gloomy") && oneSided;
+            if (!kill && !stagger && !ignoreOS) {
+                if (!ignoreLoss) triggers["Clash Win"].emotion -= 1;
+            }
+
+            triggers["Clash Lose"].emotion += 1;
+        }
+
+        if (actor.checkDisposition("Focused") && actor.isMarkedTarget(target)) {
+            triggers["Clash Win"].emotion += 1;
+        }
+
+        if (actor.checkDisposition("Wrathful") && context.skillUsed) {
+            triggers["Clash Win"].emotion += 1;
+        }
+
+        if (actor.system.attributes.health.value <= 0 && targetHP[target.id] > 0) {
+            if (actor.checkDisposition("Focused") && actor.isMarkedTarget(target)) {
+                triggers["Clash Win"].emotion += 1;
+            }
+
+            if (actor.checkDisposition("Wrathful") && context.skillUsed) {
+                triggers["Clash Win"].emotion += 1;
+            }
+        }
+
+        if (actor.system.attributes.stagger.value <= 0 && targetST[target.id] > 0) {
+            if (actor.checkDisposition("Focused") && actor.isMarkedTarget(target)) {
+                triggers["Clash Win"].emotion += 1;
+            }
+
+            if (actor.checkDisposition("Wrathful") && context.skillUsed) {
+                triggers["Clash Win"].emotion += 1;
+            }
+        }
+    }
+
     /**
     * @param {RollContext} context 
     */
@@ -439,10 +693,41 @@ export class PTActor extends Actor {
 
         let damage = context.result;
 
+        if (systemData.mostRecentRoll == null || context.result > systemData.mostRecentRoll.context.result) {
+            if (context.attackType == "Ranged" || context.type == "Ranged") {
+                let feeder = context.actor.augmentEffectCount("Belt Feeder");
+                if (feeder > 0) {
+                    let bullets = await pollUserInputText(context.actor, `Belt Feeder: Select bullet count to spend for bonus damage (${2 + (feeder - 1)} DMG per bullet)`, `Bullets to consume`, "number", 12 / (2 + (feeder - 1)), 0);
+                    let extra = Number(bullets) * (2 + (feeder - 1));
+                    damage += extra;
+                    createEffectsMessage(context.actor, `Spends ${bullets} bullets to deal ${extra} additional damage!`);
+                }
+            }
+        }
+
         if (systemData.mostRecentRoll != null && systemData.mostRecentRoll.type != "None" && canRespond) {
             const respCtx = new RollContext();
             Object.assign(respCtx, systemData.mostRecentRoll.context);
             respCtx.fix();
+            this.processIgnorePower(context, respCtx);
+
+            if (respCtx.type != "Block" && respCtx.type != "Evade" && respCtx.hand == "Defensive 1H") {
+                let conv = await pollUserInputConfirm(this, "Convert Defensive 1-Handed attack to a Block?");
+
+                if (conv) {
+                    respCtx.type = "Block";
+                    systemData.mostRecentRoll.type = "Block";
+                    await this.convertQueuedRoll();
+                    createEffectsMessage(this.name, `Converts their Counter into a Block!`);
+
+                    if (this.checkDisposition("Anxious")) {
+                        let pe = this.system.emotion;
+                        await this.gainEmotion(2);
+                        let e = this.system.emotion;
+                        createEffectsMessage(this.name, `Gains 2 Emotion from Anxious! (${pe} -> ${e})`)
+                    }
+                }
+            }
 
             if (systemData.mostRecentRoll.type == "Block") {
                 damage -= respCtx.result;
@@ -469,7 +754,6 @@ export class PTActor extends Actor {
                             await selfCtx.fireEvent("Critical Hit");
                             createEffectsMessage(respCtx.actor.name, `[/status/Critical] Elusive grants ${Math.floor(tmp.total) / 2} SQR of movement!`);
                             await this.update({ "system.movement": Number(this.system.movement) + Math.floor(tmp.total / 2) }, { diff: false });
-                            
                         }
                         else {
                             createEffectsMessage(respCtx.actor.name, `Rolled ${roll}, failed [/status/Poise] Poise check!`);
@@ -477,8 +761,11 @@ export class PTActor extends Actor {
                     }
                 }
 
-                if (respCtx.result > context.result) {
-                    // await this.takeDamage(-respCtx.result, context, 0, 0, 0, false, respCtx);
+                if (respCtx.result >= context.result) {
+                    let pst = this.system.attributes.stagger.value;
+                    await this.heal(0, respCtx.result, 0);
+                    let st = this.system.attributes.stagger.value;
+                    createEffectsMessage(this.name, `Recovers ${respCtx.result} ST from Evade! (${pst} -> ${st})`);
                 }
                 else {
                     await this.takeDamage(damage, context);
@@ -650,6 +937,39 @@ export class PTActor extends Actor {
         let st = this.system.attributes.stagger.value + this.system.attributes.stagger.temp;
         let sp = this.system.attributes.sanity.value + this.system.attributes.sanity.temp;
 
+        if (selfCtx != null && selfCtx.hasEffect("Lowered Guard")) {
+            let guard = selfCtx.effectCount("Lowered Guard");
+
+            if (this.getStatusCount("Sinking") >= guard) {
+                await this.applyStatus("Protection", guard * 2, 0);
+                await this.applyStatus("Stagger_Protection", guard * 2, 0);
+            }
+        }
+
+        let snipersMarkLine = "";
+        let markDamage = 0;
+        if (selfCtx != null && this.hasMarkApplied(context.actor, MARKS.Sniper)) {
+            let distance = getDistance(this, context.actor) - 4;
+            if (distance > 0) {
+                markDamage = distance;
+                snipersMarkLine = `Increased by ${markDamage} from Sniper's Mark`;
+            }
+        }
+        
+        let smokeVeilLine = "";
+        let veilResistance = 0;
+        if (selfCtx != null && this.augmentEffectCount("Smoke Veil") > 0) {
+            let smoke = this.getStatusCount("Smoke");
+            if (await pollUserInputConfirm(this, "Spend all [/status/Smoke] Smoke to reduce incoming stagger damage by half?")) {
+                veilResistance = Math.floor(smoke / 2);
+                await this.setStatus("Smoke", 0);
+                
+                if (veilResistance > 0) {
+                    smokeVeilLine = `Reduced by ${veilResistance} from Smoke Veil`;
+                }
+            }
+        }
+
         let prevHP = hp;
         let prevST = st;
         let prevSP = sp;
@@ -705,8 +1025,9 @@ export class PTActor extends Actor {
         }
 
         if (damage != 0) {
-            let hpDmg = this.getModifiedDamage(context, damage, null);
+            let hpDmg = this.getModifiedDamage(context, damage + markDamage, null);
             let stDmg = this.getModifiedDamage(context, damage, "ST");
+            stDmg = Math.max(stDmg - veilResistance, 0);
             let hpP = this.handleProt(context, "", false);
             let hpPT = this.handleProt(context, "", true);
             let stP = this.handleProt(context, "ST", false);
@@ -789,11 +1110,13 @@ export class PTActor extends Actor {
                 effect:
                     this.removeLinesWithString(`
                 ${damage}${resText} x ${this.findResistance(context.damageType, null)} = ${this.getModifiedDamage(context, damage, null)} HP damage taken. (${prevHP} -> ${hp})
+                (${snipersMarkLine})
                 (${protTextHP[0] != null ? protTextHP[0] : ""})
                 (${protTextHP[1] != null ? protTextHP[1] : ""})
 
                 ${damage}${resText} x ${this.findResistance(context.damageType, "ST")} = ${this.getModifiedDamage(context, damage, "ST")} ST damage taken. (${prevST} -> ${st})
                 (${protTextST[0] != null ? protTextST[0] : ""})
+                (${smokeVeilLine})
                 `, "()")
             }
         }
@@ -836,6 +1159,27 @@ export class PTActor extends Actor {
         await this.update({ system }, { diff: false });
     }
 
+    async updateQueuedRoll(target) {
+        const system = this.toObject(false).system;
+        
+        if (system.mostRecentRoll != null) {
+            system.mostRecentRoll.context.target = target.id;
+        }
+
+        await this.update({ system }, { diff: false });
+    }
+
+    async convertQueuedRoll() {
+        const system = this.toObject(false).system;
+        
+        if (system.mostRecentRoll != null) {
+            system.mostRecentRoll.type = "Block";
+            system.mostRecentRoll.context.type = "Block";
+        }
+
+        await this.update({ system }, { diff: false });
+    }
+
     fixRollType(type) {
         if (type != "Block" && type != "Evade") {
             return "Counter";
@@ -873,7 +1217,11 @@ export class PTActor extends Actor {
 
     async cachePrimerEffects(incoming) {
         const system = this.toObject(false).system;
-        system.primerValidEffects = system.primerValidEffects.filter(x => x.id != incoming.actor.id);
+        if (system.primerEffects == null) {
+            system.primerEffects = [];
+        }
+
+        system.primerEffects = system.primerEffects.filter(x => x.id != incoming.actor.id);
         let data = {
             id: incoming.actor.id,
             effects: []
@@ -890,7 +1238,7 @@ export class PTActor extends Actor {
             }
         }
 
-        system.primerValidEffects.push(data);
+        system.primerEffects.push(data);
         await this.update({ system }, { diff: false });
     }
 
@@ -900,8 +1248,12 @@ export class PTActor extends Actor {
 
         if (actorToken == null) return;
 
-        let primers = system.primerEffects.filter(x => {
-            let token = canvas.tokens.placeables.filter(x => x.actor._id == x.id);
+        if (this.system.primerEffects == null) {
+            return;
+        }
+
+        let primers = this.system.primerEffects.filter(x => {
+            let token = canvas.tokens.placeables.filter(y => y.actor._id == x.id);
 
             if (token != null && token.disposition == actorToken.disposition) {
                 return true;
@@ -910,14 +1262,36 @@ export class PTActor extends Actor {
             return false;
         });
 
-        for (let primer in primers) {
+        for (let primer of primers) {
             await context.loadPrimerEffects(primer.effects);
         }
     }
 
     async handleNextRound() {
+        if (this.augmentEffectCount("Soothing Mist") > 0) {
+            let smoke = Math.floor(this.getStatusCount("Smoke") / 4);
+            if (smoke > 0) {
+                let php = this.system.attributes.health.value;
+                await this.heal(0, 0, smoke);
+                let hp = this.system.attributes.health.value;
+                createEffectsMessage(this.name, `Recovered ${smoke} HP from Soothing Mist! (${php} -> ${hp})`);
+            }
+        }
+        
+        if (this.augmentEffectCount("Thermal Generator") > 2) {
+            let burn = Math.floor(this.getStatusCount("Burn") / 2);
+
+            if (burn > 0) {
+                this.applyStatus("Charge", burn);
+                createEffectsMessage(this.name, `Gains ${burn} [/status/Charge] Charge from Thermal Generator!`);
+            }
+        }
+
         await this.fireStatusEffects(Triggers.END);
         await this.fireStatusEffects(Triggers.AFTER_DECAY);
+        await this.setStatus("Sinking", 0);
+        await this.setStatus("Rupture", 0);
+        await this.setStatus("Tremor", 0);
 
         if (this.system.overchargeDeclared) {
             await this.fireStatusEffect("Overcharge");
@@ -964,12 +1338,53 @@ export class PTActor extends Actor {
             await this.update({ "system.chargeBarrierHP": shield }, { diff: false });
             createEffectsMessage(this.name, `Gains ${shield} Temporary HP from [/status/Charge_Barrier] Charge Barrier!`);
         }
+    }
+
+    checkDisposition(dispo) {
+        return this.system.disposition == dispo || (this.system.secondaryDisposition == dispo && this.augmentEffectCount("Multifaceted") > 0);
+    }
+
+    checkImpassioned(dispo) {
+        return this.system.disposition == dispo && this.augmentEffectCount("Impassioned") > 0;
+    }
+
+    async gainEmotion(count) {
+        const system = this.toObject(false).system;
+
+        system.emotion = Number(system.emotion) + count;
+
+        await this.update({ system }, { diff: false, render: true });
+    }
+
+    async loseEmotion(count) {
+        const system = this.toObject(false).system;
+
+        system.emotion = Number(system.disposition) - count;
+        if (system.emotion < 0) {
+            system.emotion = 0;
+        }
+
+        await this.update({ system }, { diff: false, render: true });
+    }
+
+    async handleNextTurn() {
+        let sinking = this.getStatusCount("Sinking");
+        if (sinking > 0 && this.augmentEffectCount("Torment Nexus") > 0) {
+            await this.applyStatus("Charge", sinking);
+            createEffectsMessage(this.name, `Gains ${sinking} [/status/Charge] Charge from Torment Nexus!`);
+        }
 
         let kMovement = Math.max(this.system.movement - this.system.kineticStorageMovement, 0);
         let speed = this.getStatusCount("Haste") + this.getStatusCount("Bind");
+        speed += 2 * this.augmentEffectCount("EMA");
         speed += this.system.nextRoundMovement;
         if (this.augmentEffectCount("Kinetic Storage") > 0) {
             speed += kMovement;
+        }
+
+        if (this.augmentEffectCount("Deserter") && getAlliesWithinRadius(this, 2).length == 0) {
+            speed += 3;
+            createEffectsMessage(this.name, "Gains 3 SQR of movement from Deserter!");
         }
 
         await this.update({ "system.movement": 6 + speed }, { diff: false });
@@ -981,6 +1396,8 @@ export class PTActor extends Actor {
 
         let actions = Math.max(Math.ceil(Number(this.system.attributes.rank.value) / 2), 1);
         await this.update({ "system.actions": actions }, { diff: false });
+
+        await this.updateOverheatedWeapons();
     }
 
     getStatusCount(status) {
@@ -1001,6 +1418,41 @@ export class PTActor extends Actor {
         }
 
         return 0;
+    }
+
+    getCanUseItem(item) {
+        return this.system.overheatedWeapons.filter(x => x.id == item.id).length == 0;
+    }
+
+    async overheatWeapon(item) {
+        let weapon = {
+            id: item.id,
+            rounds: 2
+        };
+
+        const system = this.toObject(false).system;
+
+        let existing = system.overheatedWeapons.find(x => x.id == item.id);
+        if (existing != null) {
+            existing.rounds = Number(existing.rounds) + 1;
+        }
+        else {
+            system.overheatedWeapons.push(weapon);
+        }
+
+        await this.update({ system }, { diff: false, render: true });
+    }
+
+    async updateOverheatedWeapons() {
+        const system = this.toObject(false).system;
+
+        for (let weapon of system.overheatedWeapons) {
+            weapon.rounds = Number(weapon.rounds) - 1;
+        }
+
+        system.overheatedWeapons = system.overheatedWeapons.filter(x => x.rounds > 0);
+
+        await this.update({ system }, { diff: false, render: true });
     }
 
     async stagger() {
@@ -1033,6 +1485,11 @@ export class PTActor extends Actor {
             if (context.actor.augmentEffectCount("Explosive Force") > 0) {
                 dice += 3 + context.actor.system.attributes.rank.value;
             }
+
+            if (context.actor.augmentEffectCount("Slamdown") > 0) {
+                await this.applyStatus("Tremor", dice, 0);
+                createEffectsMessage(context.actor.name, `Inflicts ${dice} [/status/Tremor] Tremor from Slamdown!`);
+            }
         }
 
         let modifier = this.outfitEffectCount("Impact Guard") + this.augmentEffectCount("Steady");
@@ -1041,12 +1498,24 @@ export class PTActor extends Actor {
         await this.takeDamageStatus(damage.total, "Force", "HP", "Received %DMG% HP in Force Damage! (%PHP% -> %HP%)");
     }
 
-    async applyStatus(status, count = 0, nextRoundCount = 0) {
+    async applyStatus(status, count = 0, nextRoundCount = 0, ignoreSmokeCap = false) {
         count = Math.floor(count);
         nextRoundCount = Math.floor(nextRoundCount);
         const system = this.toObject(false).system;
 
         let type = system.statusEffects.find(x => x.name == status);
+
+        if (status == "Smoke") {
+            let cap = 10;
+            let overflow = this.augmentEffectCount("Smoke Overflow");
+            if (overflow > 0) {
+                cap = 8 + (overflow * 4);
+            }
+
+            if (count + this.getStatusCount("Smoke") > cap && !ignoreSmokeCap) {
+                count = Math.max(cap - this.getStatusCount("Smoke"), 0);
+            }
+        }
 
         if (type != null) {
             type.count = Number(type.count) + count;
@@ -1156,6 +1625,13 @@ export class PTActor extends Actor {
             return;
         }
 
+        if (status == "Charge_Barrier" && this.system.maintainedBarrier) {
+            await this.setStatus(status, Math.max(Math.floor(count / 2), 1));
+            await this.setMaintainedBarrier(false);
+            await def.activation(this);
+            return;
+        }
+
         await def.activation(this);
         
         if (status == "Bleed" && this.getStatusCount("Hemorrhage") > 0) {
@@ -1173,7 +1649,17 @@ export class PTActor extends Actor {
             return;
         }
 
-        await this.setStatus(status, def.decay(count));
+        let decay = def.decay(count);
+
+        if (status == "Smoke" && this.augmentEffectCount("Steam Engine") > 0) {
+            let amount = count - decay;
+            if (amount > 0) {
+                await this.applyStatus("Charge", amount);
+                createEffectsMessage(this.name, `Gains ${amount} [/status/Charge] Charge from Steam Engine!`);
+            }
+        }
+
+        await this.setStatus(status, decay);
     }
 
     async fireStatusEffects(trigger) {
@@ -1186,6 +1672,13 @@ export class PTActor extends Actor {
             if (def.triggerType == trigger && status.count > 0) {
                 await this.fireStatusEffect(status.name);
             }
+        }
+    }
+
+    async handleMarkAid(actor, hp = 3) {
+        if (actor.hasMarkApplied(this, MARKS.Aid)) {
+            await actor.heal(hp, 0, 0);
+            createEffectsMessage(actor.name, `Recovers ${hp} HP from ${this.name}'s Target for Aid!`);
         }
     }
 
@@ -1241,13 +1734,21 @@ export class PTActor extends Actor {
     }
 
     async performReduceStatus(source, count) {
+        if (this.hasMarkApplied(null, MARKS.Fanaticism)) {
+            count = Math.max(Math.floor(count / 2), 0);
+        }
+
         let data = await pollReduceStatus(this, source, count, this.system.statusEffects);
         let text = "";
+
+        let totalReduction = 0;
 
         for (let status in data) {
             if (Object.prototype.hasOwnProperty.call(data, status)) {
                 let count = data[status];
                 if (count <= 0) continue;
+
+                totalReduction += count;
 
                 let prev = this.getStatusCount(status);
                 await this.reduceStatus(status, count);
@@ -1256,6 +1757,160 @@ export class PTActor extends Actor {
         }
 
         createEffectsMessage(this.name, text);
+
+        return totalReduction;
+    }
+
+    getReduceStatusCount() {
+        return (Number(this.system.abilities.Justice.value) + Number(this.system.attributes.rank.value)) * 2;
+    }
+
+    async getAvailableMarks() {
+        let marks = [];
+        for (const [id, name] of Object.entries(MarkNames)) {
+            if (this.getOutgoingMarkCount(id) < this.augmentEffectCount(name)) {
+                marks.push(id);
+            }
+        }
+
+        return marks;
+    }
+
+    async getAllMarks() {
+        let marks = [];
+        for (const [id, name] of Object.entries(MarkNames)) {
+            marks.push(id);
+        }
+
+        return marks;
+    }
+
+    getOutgoingMarkCount(markType) {
+        return this.system.outgoingMarks.filter(x => x.source == this.id && x.id == markType).length;
+    }
+
+    async pushToOutgoing(mark) {
+        const system = this.toObject(false).system;
+        system.outgoingMarks.push(mark);
+        await this.update({ system }, { diff: false, render: true });
+    }
+
+    async removeFromOutgoing(predicate) {
+        const system = this.toObject(false).system;
+        system.outgoingMarks = system.outgoingMarks.filter(predicate);
+        await this.update({ system }, { diff: false, render: true });
+    }
+
+    async applyMark(source, markType) {
+        const system = this.toObject(false).system;
+
+        let mark = new Mark(source.id, this.id, markType);
+
+        system.incomingMarks.push(mark);
+
+        await this.update({ system }, { diff: false, render: true });
+
+        await source.pushToOutgoing(mark);
+    }
+
+    async removeMark(source, markType) {
+        const system = this.toObject(false).system;
+
+        system.incomingMarks = system.incomingMarks.filter(x => !(x.source == source.id && x.id == markType));
+
+        await this.update({ system }, { diff: false, render: true });
+
+        await source.removeFromOutgoing(x => !(x.source == source.id && x.id == markType));
+    }
+
+    hasMarkApplied(source, markType) {
+        return this.system.incomingMarks.filter(x => (source == null || (x.source == source.id)) && x.id == markType).length > 0;
+    }
+
+    isMarkedTarget(target) {
+        return this.system.outgoingMarks.filter(x => x.target == target.id).length > 0;
+    }
+
+    getAllMarkSources(markType) {
+        let marks = this.system.incomingMarks.filter(x => x.id == markType);
+        let actors = [];
+
+        for (let mark of marks) {
+            actors.push(findByID(mark.source));
+        }
+    }
+
+    async handleLoadedBranding(target) {
+        let marks = await this.getAllMarks();
+
+        let options = [];
+        let map = {};
+
+        for (let mark of marks) {
+            if (target.hasMarkApplied(this, mark)) {
+                continue;
+            }
+            
+            map[MarkNames[mark]] = mark;
+            options.push({
+                name: MarkNames[mark],
+                icon: null
+            });
+        }
+
+        if (options.length == 0) {
+            ui.notifications.info("You have no available marks!");
+            return
+        }
+
+        let type = await pollUserInputOptions(this, "Select a Mark to apply.", options, 0);
+        type = map[type];
+
+        await target.applyMark(this, type);
+        createEffectsMessage(this.name, `Applied ${MarkNames[type]} to ${target.name}!`);
+    }
+
+    async handleApplyMark() {
+        if (game.user.targets.first() == null) {
+            ui.notifications.info("You need a target to mark!");
+            return
+        }
+
+        let target = game.user.targets.first().actor;
+
+        let marks = await this.getAvailableMarks();
+
+        let options = [];
+        let map = {};
+
+        for (let mark of marks) {
+            if (target.hasMarkApplied(this, mark)) {
+                continue;
+            }
+            
+            map[MarkNames[mark]] = mark;
+            options.push({
+                name: MarkNames[mark],
+                icon: null
+            });
+        }
+
+        if (options.length == 0) {
+            ui.notifications.info("You have no available marks!");
+            return
+        }
+
+        let type = await pollUserInputOptions(this, "Select a Mark to apply.", options, 0);
+        type = map[type];
+
+        await target.applyMark(this, type);
+        createEffectsMessage(this.name, `Applied ${MarkNames[type]} to ${target.name}!`);
+    }
+
+    async setMaintainedBarrier(val) {
+        const system = this.toObject(false).system;
+        system.maintainedBarrier = val;
+        await this.update({ system }, { diff: false, render: true });
     }
 
     async refreshMacroBar() {
@@ -1270,24 +1925,35 @@ export class PTActor extends Actor {
             let type = await pollUserInputOptions(actor, "What action do you want to take?", [
                 { name: "Attack", icon: "icons/Attack.png" },
                 { name: "Dash", icon: "icons/Dash.png" },
+                { name: "Use Skill", icon: "resources/LightIcon.webp" },
                 { name: "Reduce Status", icon: "icons/Reduce_Status.png" },
+                { name: "Mark", icon: "icons/Mark.png" },
                 { name: "Spend Action", icon: "icons/Discard_Reaction.png" }
             ]);
 
             switch (type) {
                 case "Attack":
-                    let data = await getAttackOptions(actor);
+                    await getAttackOptions(actor);
+                    break;
+                case "Use Skill":
+                    await getSkillOptions(actor);
                     break;
                 case "Dash":
                     let movement = Number(actor.system.movement);
                     let extraMovement = 3 + actor.system.abilities.Justice.value + this.outfitEffectCount("Light Material");
+                    if (this.augmentEffectCount("Double Time") > 0) {
+                        extraMovement += 3;
+                    }
                     await actor.update({ "system.movement": movement + extraMovement });
                     createEffectsMessage(actor.name, `Gains ${extraMovement} extra movement from dashing! (${movement} -> ${movement + extraMovement})`);
                     await actor.spendAction(false);
                     break;
                 case "Reduce Status":
-                    await actor.performReduceStatus("Reduce Status", (Number(actor.system.abilities.Justice.value) + Number(actor.system.attributes.rank.value)) * 2);
+                    await actor.performReduceStatus("Reduce Status", actor.getReduceStatusCount());
                     await actor.spendAction(false);
+                    break;
+                case "Mark":
+                    await actor.handleApplyMark();
                     break;
                 case "Spend Action":
                     await actor.spendAction(true);
@@ -1321,6 +1987,58 @@ export class PTActor extends Actor {
                     createEffectsMessage(actor.name, `Gains 8 [/resources/EmotionIcon] Emotion from Meditation! (${emotion} -> ${emotion + 8})`);
                 }
             }, "icons/Controlled_Stagger.png");
+        }
+
+        if (this.augmentEffectCount("Integrated Boosters") > 0) {
+            await registerEffectMacro("Integrated Boosters", async (actor) => {
+                let charge = await actor.getStatusCount("Charge");
+                let cost = 3 * actor.augmentEffectCount("Integrated Boosters");
+
+                if (charge >= cost) {
+                    await actor.reduceStatus("Charge", cost);
+                    await actor.update({ "system.movement": Number(actor.system.movement) + (cost / 3)}, { render: true, diff: false });
+                    createEffectsMessage(actor.name, `Spends ${cost} [/status/Charge] Charge to gain ${cost / 3} SQR of movement!`)
+                }
+                else {
+                    ui.notifications.info(`You need at least ${cost} Charge, but you only have ${charge}!`);
+                }
+            },
+        "icons/Integrated_Boosters.png");
+        }
+
+        if (this.augmentEffectCount("Ice Skater") > 0) {
+            await registerEffectMacro("Ice Skater", async (actor) => {
+                let frostbite = await actor.getStatusCount("Frostbite");
+                let cost = actor.augmentEffectCount("Ice Skater");
+
+                if (frostbite >= cost) {
+                    await actor.reduceStatus("Frostbite", cost);
+                    await actor.update({ "system.movement": Number(actor.system.movement) + cost}, { render: true, diff: false });
+                    createEffectsMessage(actor.name, `Burns ${cost} [/status/Frostbite] Frostbite to gain ${cost} SQR of movement!`)
+                }
+                else {
+                    ui.notifications.info(`You need at least ${cost} Frostbite, but you only have ${frostbite}!`);
+                }
+            },
+        "icons/Ice_Skater.png");
+        }
+
+        if (this.augmentEffectCount("Detox") > 0) {
+            await registerEffectMacro("Detox", async (actor) => {
+                let charge = await actor.getStatusCount("Charge");
+
+                if (charge > 2) {
+                    charge = Math.floor(charge / 2);
+
+                    let reduction = await actor.performReduceStatus("Detox", charge);
+                    createEffectsMessage(actor.name, `Spends ${reduction * 2} [/status/Charge] Charge to use Detox!`);
+                    await actor.reduceStatus("Charge", reduction * 2);
+                }
+                else {
+                    ui.notifications.info(`You have no Charge!`);
+                }
+            },
+        "icons/Detox");
         }
 
         for (const macro of oCtx.macros) {

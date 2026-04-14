@@ -41,6 +41,9 @@ export class PTItemSheet extends ItemSheet {
             context.rollContext.attackType = context.system.attackType;
         }
 
+        context.rollContext.hand = context.system.hand;
+        context.rollContext.form = context.system.form;
+
         context.rollContext.addEffectsList(context.system.effects, this.item.type);
         context.rollContext.processEffects();
 
@@ -106,6 +109,44 @@ export class PTItemSheet extends ItemSheet {
             else {
                 system.attackType = "Melee";
             }
+
+            this.item.update({ system }, { render: true, diff: false });
+        });
+
+        html.on('click', '.wb-form-type-button', (event) => {
+            const system = this.document.toObject(false).system;
+            let optionsM = ["Small", "Medium", "Sturdy", "Hybrid", "Versatile", "Innate"];
+            let optionsR = ["Low Cal", "High Cal", "Reactive", "Hybrid", "Recoil", "Innate"];
+
+            let array = system.type == "Ranged" ? optionsR : optionsM;
+            let index = array.findIndex(x => x == system.form);
+            if (index == -1) index = 0;
+
+            index++;
+            if (index >= array.length) {
+                index = 0;
+            }
+
+            system.form = array[index];
+
+            this.item.update({ system }, { render: true, diff: false });
+        });
+
+        html.on('click', '.wb-hand-type-button', (event) => {
+            const system = this.document.toObject(false).system;
+            let optionsM = ["Offensive 1H", "Offensive 2H", "Defensive 1H", "Defensive 2H"];
+            let optionsR = ["Offensive 1H", "Offensive 2H"];
+
+            let array = system.type == "Ranged" ? optionsR : optionsM;
+            let index = array.findIndex(x => x == system.hand);
+            if (index == -1) index = 0;
+
+            index++;
+            if (index >= array.length) {
+                index = 0;
+            }
+
+            system.hand = array[index];
 
             this.item.update({ system }, { render: true, diff: false });
         });

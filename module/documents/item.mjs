@@ -2,7 +2,7 @@
 // import { Token } from "@client/config.mjs";
 // import { ChatMessage } from "@client/config.mjs";
 import { RollContext } from "../core/combat/rollContext.mjs";
-import { createClashMessage } from "../core/helpers/clash.mjs";
+import { createClashMessage, createEffectsMessage } from "../core/helpers/clash.mjs";
 import { createAlertBox, getActionModifiers, pollUserInputOptions } from "../core/helpers/dialog.mjs";
 import { sendNetworkMessage } from "../core/helpers/netmsg.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
@@ -66,6 +66,11 @@ export class PTItem extends Item {
                 result = result.total > reroll.total ? reroll : result;
             }
             else {
+                if (this.actor.augmentEffectCount("Energy Intake") > 0) {
+                    await this.actor.applyStatus("Charge", 4);
+                    createEffectsMessage(this.actor.name, `Gains 4 [/status/Charge] Charge from Energy Intake!`);
+                }
+                
                 await this.actor.reduceStatus("Paralysis", 1);
                 result = result.total > reroll.total ? reroll : result;
             }
@@ -117,6 +122,11 @@ export class PTItem extends Item {
                 result = result.total > reroll.total ? reroll : result;
             }
             else {
+                if (this.actor.augmentEffectCount("Energy Intake") > 0) {
+                    await this.actor.applyStatus("Charge", 4);
+                    createEffectsMessage(this.actor.name, `Gains 4 [/status/Charge] Charge from Energy Intake!`);
+                }
+
                 await this.actor.reduceStatus("Paralysis", 1);
                 result = result.total > reroll.total ? reroll : result;
             }
@@ -124,6 +134,10 @@ export class PTItem extends Item {
 
         context.result = result.total;
         context.applyClashEffects = true;
+
+        if (context.hasEffect("Overheat")) {
+            await this.actor.overheatWeapon(this);
+        }
 
         if (initiator) {
             sendNetworkMessage("PENDING_CLASH", {
@@ -152,6 +166,8 @@ export class PTItem extends Item {
         rollContext.target = target;
         rollContext.type = systemData.attackType;
         rollContext.attackType = systemData.attackType;
+        rollContext.form = systemData.form;
+        rollContext.hand = systemData.hand;
 
         if (rollSkill) {
             const tmpCtx = new RollContext();
@@ -194,6 +210,8 @@ export class PTItem extends Item {
         rollContext.actor = this.actor;
         rollContext.target = target;
         rollContext.type = systemData.type;
+        rollContext.form = systemData.form;
+        rollContext.hand = systemData.hand;
 
         if (rollSkill) {
             const tmpCtx = new RollContext();
@@ -218,6 +236,8 @@ export class PTItem extends Item {
         rollContext.actor = this.actor;
         rollContext.target = target;
         rollContext.type = systemData.type;
+        rollContext.form = systemData.form;
+        rollContext.hand = systemData.hand;
 
         if (rollSkill) {
             const tmpCtx = new RollContext();
@@ -251,6 +271,9 @@ export function getRollContextFromData(item, def = false, defType = "Block") {
     rollContext.damageType = def ? defType : systemData.damageType;
     rollContext.name = item.name;
     rollContext.attackType = systemData.type;
+    rollContext.form = systemData.form;
+    rollContext.hand = systemData.hand;
     rollContext.processEffects();
+    rollContext.mergeCosts();
     return rollContext;
 }

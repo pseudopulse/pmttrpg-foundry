@@ -9,7 +9,7 @@
                 </div>
             </div>
             <div class="sb-dropdown-holder">
-                <img class="sb-resource-icon sb-resource-button" onclick="toggle('skillTypeDrp')"
+                <img class="sb-resource-icon sb-resource-button" onclick="toggleSB('skillTypeDrp')"
                     src='systems/pmttrpg/assets/damageTypes/{{system.type}}.png' width='24' height='24' />
                 <label class="resource-label">{{system.type}} Skill</label>
                 <div id="skillTypeDrp" class="sb-dropdown-content">
@@ -40,7 +40,7 @@
 </div>
 
 <script>
-    function toggle(element) {
+    function toggleSB(element) {
         document.getElementById(element).classList.toggle("sb-show");
     }
 </script>
@@ -263,6 +263,6 @@
     }
 
     .sb-show {
-        display: block;
+        display: block !important;
     }
 </style>

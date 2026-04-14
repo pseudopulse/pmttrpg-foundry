@@ -25,9 +25,14 @@
             {{else}}
             <img class="wb-resource-icon wb-resource-button wb-resource-icon-noEdit wb-resource-button-noEdit"
             src='systems/pmttrpg/assets/damageTypes/{{rollContext.damageType}}.png' width='24' height='24' />
-            <p class="wb-resource-button wb-resource-button-noEdit wb-attack-type-button">{{rollContext.attackType}}</p>
             {{/if}}
         </div>
+        {{#if editable}}
+        <div>
+            <p class="wb-resource-button wb-hand-type-button">{{rollContext.hand}}</p>
+            <p class="wb-resource-button wb-form-type-button">{{rollContext.form}}</p>
+        </div>
+        {{/if}}
     </div>
 
     <div class="wb-clashDescription wb-resource">
@@ -42,6 +47,18 @@
 </script>
 
 <style>
+    .wb-hand-type-button {
+        width: 8rem;
+        height: 1.5rem;
+        padding: 2%;
+    }
+
+    .wb-form-type-button {
+        width: 8rem; 
+        height: 1.5rem; 
+        padding: 2%;
+    }
+
     .wb-resource-icon-noEdit {
         padding: 0% !important;
         background: none !important;
@@ -76,7 +93,7 @@
 
     .wb-type-container {
         display: flex;
-        gap: 1rem;
+        gap: 0.5rem;
         align-content: center;
         align-items: center;
         justify-items: center;
@@ -115,7 +132,7 @@
     }
 
     .wb-rollInfo {
-        height: 9rem;
+        height: 12.5rem;
         width: 14rem;
         padding: 0% !important;
         columns: 1;

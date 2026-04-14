@@ -1,14 +1,14 @@
 <div class="sc-costs-holder">
     <div class="sc-cost">
         <img class="sc-cost-img" src='systems/pmttrpg/assets/resources/LightIcon.webp'
-        title='Counter' width='24' height='24' />
+        title='Light' width='24' height='24' />
         <h4 class="sc-cost-text">{{system.light}}</h4>
     </div>
 
     {{#each context.costs as |cost|}}
     <div class="sc-cost">
         <img class="sc-cost-img" src='systems/pmttrpg/assets/status/{{cost.status}}.png'
-        title='Counter' width='24' height='24' />
+        title='{{cost.status}}' width='24' height='24' />
         <h4 class="sc-cost-text">{{cost.cost}}</h4>
     </div>
     {{/each}}
@@ -32,7 +32,8 @@
     .sc-cost {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        justify-content: center;
+        gap: 0.1rem !important;
         background: slategray;
         border: 2px solid silver;
         padding: 5%;

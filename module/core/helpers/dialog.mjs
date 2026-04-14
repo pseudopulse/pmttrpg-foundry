@@ -1,6 +1,7 @@
+import { findActorsOfTeam, searchByObject } from "../../pmttrpg.mjs";
 import { RollContext } from "../combat/rollContext.mjs";
 import { createClashMessage, enrichClashData } from "../helpers/clash.mjs";
-import { getActorUser, sendNetworkMessage } from "./netmsg.mjs";
+import { findByID, getActorUser, sendNetworkMessage } from "./netmsg.mjs";
 
 export function createAlertBox(alert) {
     const dialog = new Dialog({
@@ -180,12 +181,24 @@ export async function getActionModifiers(actor, context) {
 }
 
 export async function pollUserInputOptions(user, prompt, options, defaultIndex = 0) {
+    for (let option of options) {
+        if (option.icon == null) {
+            option.icon = "null";
+        }
+    }
+
     if (user != game.user) {
         return await getActorUser(user).query("pmttrpg.pollUserInputOptions", {
             prompt: prompt,
             options: options,
             defaultIndex: defaultIndex
         });
+    }
+
+    for (let option1 of options) {
+        if (option1.displayName == null) {
+            option1.displayName = option1.name;
+        }
     }
 
     const content = await renderTemplate("systems/pmttrpg/templates/dialog/input-dropdown.hbs", {
@@ -221,15 +234,15 @@ export async function pollUserInputOptions(user, prompt, options, defaultIndex =
             },
             render: (html) => {
                 let setOption = (option) => {
-                    if (option.icon == null) {
-                        $("#idrp-button").find(".idrp-img").hide()
+                    if (option.icon == "null") {
+                        $("#idrp-button").find(".id-drp-img").hide();
                     }
                     else {
-                        $("#idrp-button").find(".idrp-img").show();
+                        $("#idrp-button").find(".id-drp-img").show();
                         document.getElementById("idrp-button").querySelector("img").src = `systems/pmttrpg/assets/${option.icon}`;
                     }
 
-                    $("#idrp-button").find(".id-drp-option").text(option.name);
+                    $("#idrp-button").find(".id-drp-option").text(option.displayName);
                 };
 
                 setOption(option);
@@ -237,7 +250,7 @@ export async function pollUserInputOptions(user, prompt, options, defaultIndex =
                 html.on('click', '.id-drp-selection', (ev) => {
                     let text = ev.currentTarget.querySelector(".id-drp-option").textContent;
 
-                    option = options.find(x => x.name == text);
+                    option = options.find(x => x.displayName == text);
                     setOption(option);
                 });
 
@@ -248,6 +261,75 @@ export async function pollUserInputOptions(user, prompt, options, defaultIndex =
                 });
             },
             default: "submit"
+        }, {
+            width: 500,
+            height: 320
+        }).render(true);
+    });
+}
+
+export async function pollUserInputBurst(user, target) {
+    target = searchByObject(target);
+
+    if (await target.getStatusCount("Sinking") <= 0 && await target.getStatusCount("Rupture") <= 0 && await target.getStatusCount("Tremor") <= 0) {
+        return {
+            sinkingBurst: false,
+            tremorBurst: false,
+            ruptureBurst: false,
+        };
+    }
+
+    if (user != game.user) {
+        return await getActorUser(user).query("pmttrpg.pollUserInputBurst", {
+            target: target,
+        });
+    }
+
+    const content = await renderTemplate("systems/pmttrpg/templates/dialog/burst-options.hbs", {
+        sinkingAvailable: await target.getStatusCount("Sinking") > 0,
+        ruptureAvailable: await target.getStatusCount("Rupture") > 0,
+        tremorAvailable: await target.getStatusCount("Tremor") > 0
+    });
+
+    return new Promise((resolve, reject) => {
+        let data = {
+            sinkingBurst: false,
+            tremorBurst: false,
+            ruptureBurst: false,
+        };
+
+        const dialog = new Dialog({
+            title: "",
+            content: content,
+            buttons: {
+                submit: {
+                    label: "Confirm",
+                    callback: () => {
+                        dialog.close();
+                    }
+                },
+            },
+            close: () => {
+                resolve(data);
+            },
+            render: (html) => {
+                html.on('click', '.burst-input', (ev) => {
+                    let type = ev.currentTarget.dataset.id;
+
+                    switch (type) {
+                        case "Sinking":
+                            data.sinkingBurst = ev.currentTarget.checked;
+                            break;
+                        case "Tremor":
+                            data.tremorBurst = ev.currentTarget.checked;
+                            break;
+                        case "Rupture":
+                            data.ruptureBurst = ev.currentTarget.checked;
+                            break;
+                    }
+                });
+            },
+            default: "Confirm"
         }, {
             width: 500,
             height: 320
@@ -408,6 +490,80 @@ export async function pollReduceStatus(user, source, maxStacks, statusEffects) {
     });
 }
 
+export async function pollDistributeStatus(user, team, status, count) {
+    if (user != game.user) {
+        return await getActorUser(user).query("pmttrpg.pollDistributeStatus", {
+            status: status,
+            count: count,
+            team: team
+        });
+    }
+
+    let allies = [];
+
+    for (let token of canvas.tokens.placeables.filter(x => x.document.disposition == team)) {
+        allies.push({
+            name: token.actor.name,
+            allocated: 0,
+            id: token.actor._id
+        })
+    }
+
+    const content = await renderTemplate("systems/pmttrpg/templates/dialog/ally-status.hbs", {
+        prompt: enrichClashData(`Choose how to spread ${count} [/status/${status}] ${status} between allies!`),
+        allies: allies
+    });
+
+    let tallyAll = () => {
+        let count = 0;
+        for (let ally of allies) {
+            count += ally.allocated;
+        }
+
+        return count;
+    }
+
+    let update = (html) => {
+        html.find('.als-numInput').each((x, input) => {
+            let ally = allies.find(x => x.id == input.closest('.als-allyCard').dataset.id);
+            input.min = 0;
+            input.max = Number(input.value) + (Math.max(count - tallyAll(), 0));
+        });
+    } 
+    
+    return new Promise((resolve, reject) => {
+        const dialog = new Dialog({
+            title: "",
+            content: content,
+            buttons: {
+                submit: {
+                    label: "Confirm",
+                    callback: () => {
+                        dialog.close();
+                    }
+                }
+            },
+            close: () => {
+                resolve(allies);
+            },
+            render: (html) => {
+                update(html);
+
+                html.on('input', '.als-numInput', (ev) => {
+                    let val = Number(ev.currentTarget.value);
+                    let ally = allies.find(x => x.id == ev.currentTarget.closest('.als-allyCard').dataset.id);
+                    ally.allocated = val;
+
+                    update(html);
+                });
+            },
+            default: "submit"
+        }, {
+            width: 600,
+            height: 400
+        }).render(true);
+    });
+}
 
 export async function pollUserInputText(user, prompt, placeholder, mode = "latin", max = 999, min = 0) {
     if (user != game.user) {
@@ -486,6 +642,86 @@ export async function pollUserInputText(user, prompt, placeholder, mode = "latin
 /**
     * @param {RollContext} context 
     */
+export async function getSkillOptions(actor) {
+    if (actor.items.filter(x => x.type == "skill" && x.system.type == "Action").length == 0) {
+        ui.notifications.info("You dont have any action skills!");
+        return;
+    }
+
+
+    let targetList = [];
+    for (let token of canvas.tokens.placeables.filter(x => x.actor && x.actor != actor)) {
+        targetList.push({
+            name: token.actor.name,
+            id: token.actor._id,
+            token: token
+        });
+    }
+
+    let target = game.user.targets.first();
+    if (target == null || target.actor == actor) {
+        target = targetList.length > 0 ? targetList[0] : null;
+
+        if (target == null) {
+            return;
+        }
+        else {
+            target.token.setTarget(true, { releaseOthers: true });
+        }
+    }
+
+    const content = await renderTemplate("systems/pmttrpg/templates/dialog/skill-options.hbs", {
+        skills: actor.items.filter(x => x.type == "skill" && x.system.type == "Action"),
+        actor: actor,
+        targets: targetList,
+        target: target.name
+    });
+    
+
+    const dialog = new Dialog({
+        title: "",
+        content: content,
+        buttons: {
+            skip: {
+                label: "Cancel",
+                callback: () => {
+                    dialog.close();
+                }
+            }
+        },
+        close: () => {
+            
+        },
+        render: async (html) => {
+            $("#sto-targetButton").text(target.name);
+
+            html.on('click', '.rollable', async (event) => {
+                const element = event.currentTarget;
+                const dataset = element.dataset;
+
+                const itemId = element.closest('.item').dataset.itemId;
+            
+                const item = actor.items.get(itemId);
+                await actor.sendTriggerActionSkill(item, target.token.actor);
+                await dialog.close();
+            });
+
+            html.on('click', '.sto-target-entry', async (event) => {
+                let id = event.currentTarget.dataset.id;
+                let token = canvas.tokens.placeables.find(x => x.actor._id == id);
+                token.setTarget(true, { releaseOthers: true });
+                $("#sto-targetButton").text(token.actor.name);
+            });
+        }
+    }, {
+        width: 500,
+        height: 425,
+    }).render(true);
+}
+
+/**
+    * @param {RollContext} context 
+    */
 export async function getAttackOptions(actor) {
     let targetList = [];
     for (let token of canvas.tokens.placeables.filter(x => x.actor && x.actor != actor)) {
@@ -509,7 +745,7 @@ export async function getAttackOptions(actor) {
     }
 
     const content = await renderTemplate("systems/pmttrpg/templates/dialog/attack-options.hbs", {
-        weapons: actor.items.filter(x => x.type == "weapon"),
+        weapons: actor.items.filter(x => x.type == "weapon" && actor.getCanUseItem(x)),
         useExtraRoll: actor.system.recycleAction != null && actor.system.recycleAction.type == "Attack",
         extraRoll: actor.system.recycleAction != null ? actor.system.recycleAction.context : null,
         actor: actor,
@@ -585,14 +821,16 @@ export async function getAttackOptions(actor) {
 export async function createClashResponse(actor, context) {
     const desc = context.getDescription();
     const content = await renderTemplate("systems/pmttrpg/templates/dialog/clash-response.hbs", {
-        weapons: actor.items.filter(x => x.type == "weapon"),
+        weapons: actor.items.filter(x => x.type == "weapon" && actor.getCanUseItem(x)),
         outfits: actor.items.filter(x => x.type == "outfit"),
         rollContext: context,
         enrichedClashData: enrichClashData(desc),
-        actor: actor
+        actor: actor,
+        hasForceField: actor.system.forceFields > 0
     });
 
     let allowClose = false;
+    let dontSendMessage = false;
     const dialog = new Dialog({
         title: "",
         content: content,
@@ -607,14 +845,49 @@ export async function createClashResponse(actor, context) {
                     allowClose = true;
                     dialog.close();
                 }
+            },
+            redirect: {
+                label: "Redirect",
+                callback: () => {
+                    allowClose = true;
+                    dontSendMessage = true;
+                    let options = [];
+                    let actors = findActorsOfTeam(actor);
+                    for (let actor of actors) {
+                        options.push({
+                            displayName: actor.name,
+                            name: actor.id
+                        });
+                    }
+                    let res = pollUserInputOptions(actor, "Select ally to redirect to.", options).then((target) => {
+                        target = findByID(target);
+                        sendNetworkMessage("PENDING_CLASH", {
+                            target: target,
+                            attacker: context.actor,
+                            context: context
+                        });
+                        sendNetworkMessage("OVERWRITE_CLASH", {
+                            target: target,
+                            attacker: context.actor
+                        });
+                        dialog.close();
+                    })
+                }
             }
         },
         close: () => {
-            if (!allowClose) {
+            if (!allowClose && !dontSendMessage) {
+                console.log("closing statement");
                 sendNetworkMessage("RESOLVE_CLASH", {
                     target: context.target,
                     attacker: context.actor
                 });
+            }
+            else if (allowClose) {
+
+            }
+            else {
+                throw new Error();
             }
         },
         render: async (html) => {
@@ -633,17 +906,47 @@ export async function createClashResponse(actor, context) {
                 const dataset = element.dataset;
 
                 const itemId = element.closest('.item').dataset.itemId;
-                const item = actor.items.get(itemId);
-                item.roll(false, null, context).then(() => {
-                    allowClose = true;
+                if (itemId == "FORCE_FIELD") {
+                    const ctx = new RollContext();
+                    ctx.target = context.target;
+                    ctx.actor = actor;
+                    ctx.type = "Block";
+                    ctx.attackType = "Block";
+                    ctx.name = "Force Field";
+                    ctx.damageType = "Block";
+                    ctx.diceMax = 10;
+                    ctx.dicePower = actor.system.abilities.Temperance.value;
+                    let roll = new Roll(`1d10+${actor.system.abilities.Temperance.value}`);
+                    roll.evaluate().then((x) => {
+                        ctx.result = x.total;
 
-                    sendNetworkMessage("RESOLVE_CLASH", {
-                        target: context.target,
-                        attacker: context.actor
+                        actor.queueRoll(ctx).then(() => {
+                            allowClose = true;
+
+                            sendNetworkMessage("RESOLVE_CLASH", {
+                                target: context.target,
+                                attacker: context.actor
+                            });
+                            
+                            dialog.close();
+
+                            createClashMessage(actor, ctx);
+                        });
                     });
-                    
-                    dialog.close();
-                })
+                }
+                else {
+                    const item = actor.items.get(itemId);
+                    item.roll(false, null, context).then(() => {
+                        allowClose = true;
+
+                        sendNetworkMessage("RESOLVE_CLASH", {
+                            target: context.target,
+                            attacker: context.actor
+                        });
+                        
+                        dialog.close();
+                    })
+                }
             });
 
             html.on('click', '.crw-tab-button', (event) => {

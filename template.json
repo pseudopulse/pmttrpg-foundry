@@ -84,7 +84,12 @@
       "kineticStorageMovement": 0,
       "poisePaused": false,
       "ruinPaused": false,
-      "primerEffectsList": []
+      "primerEffects": [],
+      "incomingMarks": [],
+      "outgoingMarks": [],
+      "maintainedBarrier": false,
+      "overheatedWeapons": [],
+      "forceFields": 0
     }
   },
   "Item": {

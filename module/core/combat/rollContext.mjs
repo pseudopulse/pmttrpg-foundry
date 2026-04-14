@@ -3,9 +3,10 @@ import { weaponEffects } from "../effects/weaponEffects.mjs";
 import { outfitEffects } from "../effects/outfitEffects.mjs";
 import { getEffectsArray } from "../effects/effectHelpers.mjs";
 import { currentRound } from "./combatState.mjs";
+import { MARKS } from "../status/mark.mjs";
 
-const triggerTypes = ["Clash Win", "Clash Lose", "On Use", "Always Active", "On Crit"];
-const eventTypes = ["Kill", "Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Clash Win", "Clash Lose", "On Use"];
+const triggerTypes = ["Clash Win", "Clash Lose", "On Use", "Always Active", "On Crit", "Devastating Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Augment Passive", "Combat Start", "Round Start"];
+const eventTypes = ["Kill", "Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Clash Win", "Clash Lose", "On Use", "Clash Win Instant", "Clash Lose Instant"];
 const statusPlusValid = ["Burn", "Bleed", "Frostbite", "Sinking", "Tremor", "Rupture", "Poise", "Ruin"];
 
 
@@ -43,6 +44,19 @@ export class RollContext {
         this.macros = [];
         this.critical = 0;
         this.devastation = 0;
+        this.forcedBurst = [];
+        this.forcedExcludeBurst = [];
+        this.ignoringInflictions = false;
+        // power null stuff
+        this.nonSkillDicePower = 0;
+        this.skillDicePower = 0;
+        this.alreadyAppliedPowerNull = false;
+        //
+        this.protect = false;
+        this.ignoreEmotionLoss = false;
+        this.bondTarget = false;
+        this.defTwoHandedFree = false;
+        this.skillUsed = false;
 
         for (const trigger of triggerTypes) {
             this.triggers[trigger] = new TriggerEvents();
@@ -103,8 +117,24 @@ export class RollContext {
         return 0;
     }
 
+    mergeCosts() {
+        let newCosts = [];
+        for (let cost of this.costs) {
+            let existing = newCosts.find(x => x.status == cost.status);
+            if (existing) {
+                existing.cost = Number(existing.cost) + cost.cost;
+            }
+            else {
+                newCosts.push(cost);
+            }
+        }
+
+        this.costs = newCosts;
+    }
+
     async resolveTriggers(triggers) {
         let lines = [];
+        this.mergeCosts();
         for (const costs of this.costs) {
             for (const cost of costs) {
                 let status = cost.status;
@@ -115,6 +145,9 @@ export class RollContext {
             }
         }
 
+        let alreadyApplied = [];
+        let totalAidHP = 0;
+
         for (const trigger of triggers) {
             let data = this.triggers[trigger];
 
@@ -122,9 +155,53 @@ export class RollContext {
                 await func(this, data);
             }
 
+            if (data.hpHeal > 0 || data.spHeal > 0 || data.stHeal > 0) {
+                let php = this.actor.system.attributes.health.value;
+                let pst = this.actor.system.attributes.stagger.value;
+                let psp = this.actor.system.attributes.sanity.value;
+                await this.actor.heal(data.hpHeal, data.stHeal, data.spHeal);
+                let hp = this.actor.system.attributes.health.value;
+                let st = this.actor.system.attributes.stagger.value;
+                let sp = this.actor.system.attributes.sanity.value;
+
+                if (data.hpHeal > 0) {
+                    lines.push(`Recover ${hpHeal} HP (${php} -> ${hp})`);
+                }
+
+                if (data.stHeal > 0) {
+                    lines.push(`Recover ${stHeal} ST (${pst} -> ${st})`);
+                }
+
+                if (data.spHeal > 0) {
+                    lines.push(`Recover ${spHeal} SP (${psp} -> ${sp})`);
+                }
+            }
+
+            if (data.emotion > 0) {
+                let pe = this.actor.system.emotion;
+                await this.actor.gainEmotion(data.emotion);
+                let e = this.actor.system.emotion;
+                lines.push(`Gain ${data.emotion} [/resources/EmotionIcon] Emotion (${pe} -> ${e})`);
+            }
+
+            if (data.emotion < 0) {
+                let pe = this.actor.system.emotion;
+                await this.actor.loseEmotion(Math.abs(data.emotion));
+                let e = this.actor.system.emotion;
+                lines.push(`Lose ${Math.abs(data.emotion)} [/resources/EmotionIcon] Emotion (${pe} -> ${e})`);
+            }
+
             for (const infliction of data.inflictions) {
                 let status = infliction.key;
                 let cur = Number(infliction.count);
+
+                if (this.flags.includes("Reflective Barrier") && cur > 0) {
+                    cur = -cur;
+                }
+
+                if (this.flags.includes("OC Vuln") && cur > 0) {
+                    cur = 2 * cur;
+                }
 
                 if (this.flags.includes("Refractor-C") && statusPlusValid.includes(status)) {
                     cur += 1;
@@ -139,6 +216,15 @@ export class RollContext {
                     cur += plusEffect.count;
                 }
 
+                if (this.actor.augmentEffectCount("Rekindled Embers") > 0 && infliction.key == "Burn") {
+                    let thresholds = Math.min(Math.floor((max - stat) / (max * 0.25)), 3);
+                    cur += thresholds;
+                }
+
+                if (this.actor.hasMarkApplied(this.target, MARKS.Crippling) && statusPlusValid.includes(status)) {
+                    cur += 1;
+                }
+
                 if (this.hasEffect(`Instant ${infliction.key}`)) {
                     infliction.nextRound = false;
                 }
@@ -149,16 +235,50 @@ export class RollContext {
                     lines.push(`Gain ${Math.abs(cur)} [/status/${status}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + Math.abs(cur)})`);
                 }
                 else {
-                    if (this.target != null) {
+                    if (this.target != null && !this.ignoringInflictions) {
                         let prev = infliction.nextRound ? Number(this.target.getStatusCountNext(status)) : Number(this.target.getStatusCount(status));
                         await this.target.applyStatus(status, infliction.nextRound ? 0 : cur, infliction.nextRound ? cur : 0);
+                        if (!alreadyApplied.includes(status))  {
+                            alreadyApplied.push(status);
+                            totalAidHP += 3;
+                        }
+
                         lines.push(`Inflict ${cur} [/status/${status}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + cur})`);
                     }
                 }
             }
         }
 
+        if (this.target != null && totalAidHP > 0) {
+            await this.actor.handleMarkAid(this.target, totalAidHP);
+        }
+
         return this.append("", lines);
+    }
+
+    getChargeCosts() {
+        let totalCharge = 0;
+
+        for (let cost of this.costs) {
+            if (cost.status == "Charge") {
+                totalCharge += cost.cost;
+            }
+        }
+
+        return totalCharge;
+    }
+
+    nullifyPower(nullifySkill = false) {
+        if (this.alreadyAppliedPowerNull) {
+            return;
+        }
+        
+        this.alreadyAppliedPowerNull = true;
+        this.dicePower = this.dicePower - this.nonSkillDicePower;
+        
+        if (nullifySkill) {
+            this.dicePower = this.dicePower - this.skillDicePower;
+        }
     }
 
     async processEffects() {
@@ -170,18 +290,56 @@ export class RollContext {
                 case "Blunt":
                 case "Pierce":
                     this.dicePower = this.dicePower + Number(this.actor.system.attributes.rank.value);
+                    //
+                    this.dicePower = this.dicePower + await this.actor.getStatusCount("Strength");
+                    this.nonSkillDicePower = this.nonSkillDicePower + await this.actor.getStatusCount("Strength");
+                    //
+                    this.dicePower = this.dicePower - await this.actor.getStatusCount("Feeble");
+                    this.nonSkillDicePower = this.nonSkillDicePower - await this.actor.getStatusCount("Feeble");
                     break;
                 case "Block":
                     this.dicePower = this.dicePower + Number(this.actor.system.abilities.Temperance.value);
+                    //
+                    this.dicePower = this.dicePower + await this.actor.getStatusCount("Endurance");
+                    this.nonSkillDicePower = this.nonSkillDicePower + await this.actor.getStatusCount("Endurance");
+                    //
+                    this.dicePower = this.dicePower - await this.actor.getStatusCount("Disarm");
+                    this.nonSkillDicePower = this.nonSkillDicePower - await this.actor.getStatusCount("Disarm");
                     break;
                 case "Evade":
                     this.dicePower = this.dicePower + Number(this.actor.system.abilities.Insight.value);
+                    //
+                    this.dicePower = this.dicePower + await this.actor.getStatusCount("Endurance");
+                    this.nonSkillDicePower = this.nonSkillDicePower + await this.actor.getStatusCount("Endurance");
+                    //
+                    this.dicePower = this.dicePower - await this.actor.getStatusCount("Disarm");
+                    this.nonSkillDicePower = this.nonSkillDicePower - await this.actor.getStatusCount("Disarm");
+                    //
+                    this.diceMax = this.diceMax + 2;
                     break;
             }
         }
 
-        if (this.damageType == "Evade") {
-            this.diceMax += 2;
+        switch (this.form) {
+            case "Medium":
+                this.diceMax = this.diceMax + 2;
+                break;
+            case "High Cal":
+                this.diceMax = this.diceMax + 2;
+                break;
+            default:
+                break;
+        }
+
+        switch (this.hand) {
+            case "Offensive 1H":
+                this.dicePower = this.dicePower + 1;
+                break;
+            case "Offensive 2H":
+                this.dicePower = this.dicePower + 2;
+                break;
+            default:
+                break;
         }
         
         for (const effect of this.effects) {
@@ -198,20 +356,18 @@ export class RollContext {
     getDescription(validTriggers = ["On Use", "Clash Win", "Clash Lose"], postClash = false, fakeFirstRound = false) {
         let desc = "";
         let triggers = {};
-        triggers["Clash Win"] = [];
-        triggers["Clash Lose"] = [];
-        triggers["On Use"] = [];
-        triggers["Always Active"] = [];
-        triggers["Augment Passive"] = [];
-        triggers["Combat Start"] = [];
-        triggers["Round Start"] = [];
-        triggers["On Crit"] = [];
-        let valid = ["Clash Win", "Clash Lose", "On Use"]
+        for (let trigger of triggerTypes) {
+            triggers[trigger] = [];
+        }
+
+        let valid = ["Clash Win", "Clash Lose", "On Use", "Tremor Burst", "Sinking Burst", "Rupture Burst"]
         if (fakeFirstRound) {
             valid.push("Combat Start");
             valid.push("Round Start");
-            valid.push("On Crit");
         }
+
+        valid.push("On Crit");
+        valid.push("Devastating Hit");
 
         for (const effect of this.effects) {
             if (this.ignoreClashEffects) {
@@ -238,9 +394,6 @@ export class RollContext {
             }
         }
 
-        console.log("generating desc");
-        console.log(this.modifierText);
-        
         desc = this.append(desc, triggers["Augment Passive"]);
         desc = this.append(desc, triggers["Always Active"]);
         desc = this.append(desc, this.modifierText);
@@ -248,6 +401,10 @@ export class RollContext {
         if (valid.includes("Round Start")) desc = this.append(desc, triggers["Round Start"]);
         if (validTriggers.includes("On Use")) desc = this.append(desc, triggers["On Use"]);
         desc = this.append(desc, triggers["On Crit"]);
+        desc = this.append(desc, triggers["Devastating Hit"]);
+        desc = this.append(desc, triggers["Rupture Burst"]);
+        desc = this.append(desc, triggers["Sinking Burst"]);
+        desc = this.append(desc, triggers["Tremor Burst"]);
         if (validTriggers.includes("Clash Win")) desc = this.append(desc, triggers["Clash Win"]);
         if (validTriggers.includes("Clash Lose")) desc = this.append(desc, triggers["Clash Lose"]);
 
@@ -308,6 +465,12 @@ export class RollContext {
                 return "#fff350ff";
             case "Devastating Hit":
                 return "#4600b6ff";
+            case "Tremor Burst":
+                return "#e5ff00ff";
+            case "Sinking Burst":
+                return "#0043d4ff";
+            case "Rupture Burst":
+                return "#31ffbaff";
             case "On Crit":
                 return "#ffedb0ff";
         }
@@ -317,13 +480,13 @@ export class RollContext {
 
     loadPrimerEffects(effects) {
         for (const effect of effects) {
-            let def = getEffectsArray(category).find(x => x.name == effect.name);
+            let def = getEffectsArray(effect.source).find(x => x.name == effect.name);
 
             this.effects.push({
                 effect: def,
                 count: effect.count,
                 trigger: effect.trigger,
-                source: category,
+                source: effect.source,
                 name: effect.name
             });
 
@@ -332,6 +495,10 @@ export class RollContext {
     }
 
     addEffectsList(effects, category) {
+        if (category == "skill" || category == "Skill") {
+            this.skillUsed = true;
+        }
+
         for (const effect of effects) {
             let def = getEffectsArray(category).find(x => x.name == effect.name);
 
@@ -393,6 +560,10 @@ export class TriggerEvents {
     constructor() {
         this.inflictions = [];
         this.modify = [];
+        this.hpHeal = 0;
+        this.spHeal = 0;
+        this.stHeal = 0;
+        this.emotion = 0;
     }
 
     mergeInflictions() {

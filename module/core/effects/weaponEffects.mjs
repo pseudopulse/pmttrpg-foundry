@@ -90,7 +90,7 @@ export const weaponEffects = [
     new Effect(
         `Gain Poise`,
         (context, count, trigger) => {
-            context.triggers[trigger].applyInfliction("Poise", count, false);
+            context.triggers[trigger].applyInfliction("Poise", -count, false);
         },
         (count) => {
             return handleNegativeText(
