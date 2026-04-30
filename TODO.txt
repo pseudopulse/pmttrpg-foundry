@@ -1,21 +1,18 @@
 functional parts (there's like 10 left to finish if i have time)
 
-emotion tracking
-
 techniques
+/ - finish technique handling for some reason it bricks everything if a technique is active
 
-bullets
+kill tracking for effects
 
-tools
+force damage input
+
+implement earthquake and make ground rumbler count as it
+
+homebrew effects
+
+add toggle for primary outfit and primary augment
 
 //
 
-test block / evade and make sure they work
-
-//
-
-implement within RollContext
-- protect
-- defTwoHandedFree
-- ignoreEmotionLoss
-- bondTarget
+fix Blo Dice Power / Evd Dice Power effects not working

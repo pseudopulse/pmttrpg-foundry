@@ -5,7 +5,7 @@
       <div class="as-resource flex-group-center">
         <label for="system.attributes.xp.value" class="resource-label">XP</label>
         <div class="as-resource-content flexrow flex-center flex-between as-resource-xp">
-          <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="as-resource-input" type="text"
+          <input onclick="setCursorRight()"  class="as-resource-input" type="text"
             inputmode="numeric" name="system.attributes.xp.value" value="{{system.attributes.xp.value}}"
             data-dtype="Number" />
         </div>
@@ -33,7 +33,7 @@
       <div class="as-resource">
         <img src="systems/pmttrpg/assets/resources/HPIcon.webp" class="as-resource-icon" />
         <div class="as-resource-content flexrow flex-center flex-between">
-          <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="as-resource-input as-resource-hp"
+          <input onclick="setCursorRight()"  class="as-resource-input as-resource-hp"
             type="text" inputmode="numeric" name="system.attributes.health.value"
             value="{{system.attributes.health.value}}" data-dtype="Number" />
           <span class="as-resource-divider"> / </span>
@@ -45,7 +45,7 @@
       <div class="as-resource">
         <img src="systems/pmttrpg/assets/resources/StaggerIcon.webp" class="as-resource-icon" />
         <div class="as-resource-content flexrow flex-center flex-between">
-          <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="as-resource-input as-resource-hp"
+          <input onclick="setCursorRight()"  class="as-resource-input as-resource-hp"
             type="text" inputmode="numeric" name="system.attributes.stagger.value"
             value="{{system.attributes.stagger.value}}" data-dtype="Number" />
           <span class="as-resource-divider"> / </span>
@@ -57,7 +57,7 @@
       <div class="as-resource">
         <img src="systems/pmttrpg/assets/resources/PanicBlue.png" class="as-resource-icon" />
         <div class="as-resource-content flexrow flex-center flex-between">
-          <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="as-resource-input as-resource-hp"
+          <input onclick="setCursorRight()"  class="as-resource-input as-resource-hp"
             type="text" inputmode="numeric" name="system.attributes.sanity.value"
             value="{{system.attributes.sanity.value}}" data-dtype="Number" />
           <span class="as-resource-divider"> / </span>
@@ -69,7 +69,7 @@
       <div class="as-resource">
         <img src="systems/pmttrpg/assets/resources/LightIcon.webp" class="as-resource-icon" />
         <div class="as-resource-content flexrow flex-center flex-between">
-          <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="as-resource-input as-resource-hp"
+          <input onclick="setCursorRight()"  class="as-resource-input as-resource-hp"
             type="text" inputmode="numeric" name="system.attributes.light.value"
             value="{{system.attributes.light.value}}" data-dtype="Number" />
           <span class="as-resource-divider"> / </span>
@@ -84,7 +84,7 @@
       {{#each system.abilities as |ability key|}}
       <div class="as-resource flexrow flex-group-center">
         <img src="systems/pmttrpg/assets/stats/{{key}}.png" class="as-resource-icon" />
-        <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="as-resource-input as-resource-stat"
+        <input onclick="setCursorRight()"  class="as-resource-input as-resource-stat"
           type="text" inputmode="numeric" name="system.abilities.{{key}}.value" value="{{ability.value}}"
           data-dtype="Number" />
       </div>

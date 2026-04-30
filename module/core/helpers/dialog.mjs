@@ -47,8 +47,14 @@ export async function getActionModifiers(actor, context) {
         const data = {
             activeConditionals: [],
             item: null,
+            technique: null,
             forcedAdvState: 0,
-            ignoreClashEffects: false
+            ignoreClashEffects: false,
+            bondTarget: false,
+            ignoreEmotion: false,
+            protect: false,
+            def2H: false,
+            defFollowup: false,
         };
         let allowClose = false;
         const dialog = new Dialog({
@@ -69,8 +75,9 @@ export async function getActionModifiers(actor, context) {
                 }
             },
             render: (html) => {
-                $("#amw-tools").hide();
-                $("#amw-conditionals").hide();
+                $("#amw-tools").hide().removeClass("am-active-tab");
+                $("#amw-conditionals").hide().removeClass("am-active-tab");
+                $("#amw-options").hide().removeClass("am-active-tab");
 
                 html.on('click', '.misc-toggle', (event) => {
                     if (event.currentTarget.checked) {
@@ -95,6 +102,16 @@ export async function getActionModifiers(actor, context) {
                                         input.checked = false;
                                     }
                                 });
+                            case "BondTarget":
+                                data.bondTarget = true;
+                            case "Def2H":
+                                data.def2H = true;
+                            case "DefFollowup":
+                                data.defFollowup = true;
+                            case "Protect":
+                                data.protect = true;
+                            case "IgnoreEmotion":
+                                data.ignoreEmotion = true;
                             default:
                                 break;
                         }
@@ -109,6 +126,16 @@ export async function getActionModifiers(actor, context) {
                             case "Adv":
                             case "Disadv":
                                 data.forcedAdvState = 0;
+                            case "BondTarget":
+                                data.bondTarget = false;
+                            case "Def2H":
+                                data.def2H = false;
+                            case "DefFollowup":
+                                data.defFollowup = false;
+                            case "Protect":
+                                data.protect = false;
+                            case "IgnoreEmotion":
+                                data.ignoreEmotion = false;
                             default:
                                 break;
                         }
@@ -151,25 +178,51 @@ export async function getActionModifiers(actor, context) {
                     }
                 })
 
+                html.on('click', '.amw-technique-button', (event) => {
+                    if (data.technique == null) {
+                        actor.getTechnique().then((technique) => {
+                            data.technique = technique;
+
+                            data.technique.sheet.render(true);
+                        });
+                    }
+                });
+
                 html.on('click', '.amw-tab-button', (event) => {
                     const element = event.currentTarget;
+
+                    html.find('.am-active-tab').each((x, tab) => {
+                        tab.classList.remove('am-active-tab');
+                    });
+
+                    element.classList.add('am-active-tab');
         
                     if (element.textContent == "Skills") {
-                        $("#amw-skills").show();
-                        $("#amw-tools").hide();
-                        $("#amw-conditionals").hide();
+                        $("#amw-skills").show().addClass("am-active-tab");
+                        $("#amw-tools").hide().removeClass("am-active-tab");
+                        $("#amw-conditionals").hide().removeClass("am-active-tab");
+                        $("#amw-options").hide().removeClass("am-active-tab");
                     }
 
                     if (element.textContent == "Tools") {
-                        $("#amw-tools").show();
-                        $("#amw-skills").hide();
-                        $("#amw-conditionals").hide();
+                        $("#amw-tools").show().addClass("am-active-tab");
+                        $("#amw-skills").hide().removeClass("am-active-tab");
+                        $("#amw-conditionals").hide().removeClass("am-active-tab");
+                        $("#amw-options").hide().removeClass("am-active-tab");
                     }
 
                     if (element.textContent == "Conditionals") {
-                        $("#amw-conditionals").show();
-                        $("#amw-tools").hide();
-                        $("#amw-skills").hide();
+                        $("#amw-conditionals").show().addClass("am-active-tab");
+                        $("#amw-tools").hide().removeClass("am-active-tab");
+                        $("#amw-skills").hide().removeClass("am-active-tab");
+                        $("#amw-options").hide().removeClass("am-active-tab");
+                    }
+
+                    if (element.textContent == "Options") {
+                        $("#amw-options").show().addClass("am-active-tab");
+                        $("#amw-tools").hide().removeClass("am-active-tab");
+                        $("#amw-skills").hide().removeClass("am-active-tab");
+                        $("#amw-conditionals").hide().removeClass("am-active-tab");
                     }
                 });
             },
@@ -877,7 +930,6 @@ export async function createClashResponse(actor, context) {
         },
         close: () => {
             if (!allowClose && !dontSendMessage) {
-                console.log("closing statement");
                 sendNetworkMessage("RESOLVE_CLASH", {
                     target: context.target,
                     attacker: context.actor
@@ -936,7 +988,7 @@ export async function createClashResponse(actor, context) {
                 }
                 else {
                     const item = actor.items.get(itemId);
-                    item.roll(false, null, context).then(() => {
+                    item.roll(false, dataset.rollType, context).then(() => {
                         allowClose = true;
 
                         sendNetworkMessage("RESOLVE_CLASH", {

@@ -27,7 +27,7 @@
         </div>
 
         <div class="ef-resource-content">
-            <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="ef-resource-input effect-counter"
+            <input onclick="setCursorRight()"  class="ef-resource-input effect-counter"
                 id="{{id}}-effectCounter-{{index}}" type="number" min="-10" max="10" value="{{count}}" data-dtype="Number" />
         </div>
 
@@ -39,6 +39,10 @@
 
 <script>
     function toggleEF(element) {
+        if (document.activeElement.tagName.toLowerCase() == "input") {
+            return;
+        }
+
         document.getElementById(element).classList.toggle("ef-show");
     }
 

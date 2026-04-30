@@ -1,12 +1,12 @@
 <div class="ob-statblock-container ob-resources-holder">
     <div class="ob-rollInfo flexcol ob-resource">
-        {{#with (drctx this "Blo") as |ctx|}}
+        {{#with (drctx this "Block") as |ctx|}}
             <div class="ob-roll-holder">
                 <img class="ob-roll-icon" src='systems/pmttrpg/assets/damageTypes/Block.png' width='24' height='24'/>
                 <p class="ob-rollDisplay">{{ctx.diceCount}}d{{ctx.diceMax}}+{{ctx.dicePower}}</p>
             </div>
         {{/with}}
-        {{#with (drctx this "Evd") as |ctx|}}
+        {{#with (drctx this "Evade") as |ctx|}}
             <div class="ob-roll-holder">
                 <img class="ob-roll-icon" src='systems/pmttrpg/assets/damageTypes/Evade.png' width='24' height='24'/>
                 <p class="ob-rollDisplay">{{ctx.diceCount}}d{{ctx.diceMax}}+{{ctx.dicePower}}</p>

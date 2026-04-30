@@ -56,6 +56,8 @@ export class PTItem extends Item {
             context.modifierText = enemyCtx.enemyModifierText;
         }
 
+        context.isReaction = true;
+
         if (context.forcedAdvState != 0 || this.actor.getStatusCount("Paralysis") > 0) {
             const reroll = await new Roll(`1d${context.diceMax}+${context.dicePower}`, "").evaluate();
 
@@ -148,6 +150,9 @@ export class PTItem extends Item {
 
             await this.actor.spendAction();
         }
+        else {
+            context.isReaction = false;
+        }
 
         await this.actor.queueRoll(context);
 
@@ -176,12 +181,16 @@ export class PTItem extends Item {
             tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
             await tmpCtx.processEffects();
             rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
+            
+            if (rollContext.modifiers.item != null) {
+                await this.actor.deductLight(rollContext.modifiers.item.system.light);
+            }
         }
 
         rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
         await rollContext.processEffects();
 
-        if (rollContext.hasEffect("Extra DMG Type") || (rollContext.attackType == "Ranged" && !rollContext.hasEffect("Charge Ammo"))) {
+        if (rollContext.hasEffect("Extra DMG Type") || rollContext.hasEffect("Versatility") || (rollContext.attackType == "Ranged" && !rollContext.hasEffect("Charge Ammo"))) {
             rollContext.damageType = await pollUserInputOptions(game.user, "Select Damage Type", [
                 {
                     name: "Slash",
@@ -198,6 +207,29 @@ export class PTItem extends Item {
             ], ["Slash", "Pierce", "Blunt"].indexOf(rollContext.damageType));
         }
 
+        if ((rollContext.attackType == "Ranged" || rollContext.hasEffect("Ballistic") || rollContext.hasEffect("Loaded Salvo")) && (!rollContext.hasEffect("Charge Ammo") || (this.actor.augmentEffectCount("Ammo Infusion") > 0 || this.actor.augmentEffectCount("Ammo Infusion Alt")))) {
+            if (rollContext.hasEffect("Charge Ammo")) {
+                let cost = 2;
+                if (((this.actor.augmentEffectCount("Ammo Infusion") > 0 && this.actor.getStatusCount("Charge") >= 6) || (this.actor.augmentEffectCount("Ammo Infusion Alt") && this.actor.getStatusCount("Charge") >= 4))) {
+                    let bullet = await rollContext.loadBullet();
+                    if (bullet != "Standard") {
+                        if (this.actor.augmentEffectCount("Ammo Infusion") > 0) {
+                            cost = 6;
+                        }
+                        else {
+                            cost = 4;
+                        }
+                    }
+                }
+
+                await this.actor.reduceStatus("Charge", cost);
+                createEffectsMessage(this.actor.name, `Spends ${cost} [/status/Charge] Charge to create ammo!`);
+            }
+            else {
+                await rollContext.loadBullet();
+            }
+        }
+
         return rollContext;
     }
 
@@ -209,7 +241,8 @@ export class PTItem extends Item {
         rollContext.name = this.name;
         rollContext.actor = this.actor;
         rollContext.target = target;
-        rollContext.type = systemData.type;
+        rollContext.damageType = "Block";
+        rollContext.type = "Block";
         rollContext.form = systemData.form;
         rollContext.hand = systemData.hand;
 
@@ -220,6 +253,10 @@ export class PTItem extends Item {
             tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
             await tmpCtx.processEffects();
             rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
+
+            if (rollContext.modifiers.item != null) {
+                await this.actor.deductLight(rollContext.modifiers.item.system.light);
+            }
         }
 
         rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
@@ -235,7 +272,8 @@ export class PTItem extends Item {
         rollContext.name = this.name;
         rollContext.actor = this.actor;
         rollContext.target = target;
-        rollContext.type = systemData.type;
+        rollContext.damageType = "Evade";
+        rollContext.type = "Evade";
         rollContext.form = systemData.form;
         rollContext.hand = systemData.hand;
 
@@ -246,6 +284,10 @@ export class PTItem extends Item {
             tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
             await tmpCtx.processEffects();
             rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
+
+            if (rollContext.modifiers.item != null) {
+                await this.actor.deductLight(rollContext.modifiers.item.system.light);
+            }
         }
 
         rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
@@ -269,6 +311,7 @@ export function getRollContextFromData(item, def = false, defType = "Block") {
     rollContext.addEffectsList(systemData.effects, fixTypeName(item.type));
     rollContext.actor = findItemOwner(item);
     rollContext.damageType = def ? defType : systemData.damageType;
+    rollContext.type = def ? defType : systemData.type;
     rollContext.name = item.name;
     rollContext.attackType = systemData.type;
     rollContext.form = systemData.form;

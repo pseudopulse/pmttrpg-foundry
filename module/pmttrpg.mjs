@@ -47,12 +47,12 @@ Hooks.once("init", () => {
 
   // item stuff
   CONFIG.Item.documentClass = PTItem;
-  CONFIG.Item.types = ["weapon", "tool", "skill", "outfit"];
+  CONFIG.Item.types = ["weapon", "tool", "skill", "outfit", "augment", "technique"];
 
   Items.unregisterSheet('core', ItemSheet);
   Items.registerSheet('pmttrpg', PTItemSheet,
     {
-      types: ["weapon", "tool", "skill", "outfit", "augment"],
+      types: ["weapon", "tool", "skill", "outfit", "augment", "technique"],
       makeDefault: true,
       label: 'PMTTRPG.SheetLabels.Item'
     }
@@ -134,6 +134,10 @@ Hooks.once("init", () => {
       return text.replace("_", " ");
     },
     checkCosts(actor, costs, light = 0) {
+      if (actor.system.attributes.light.value < light) {
+        return false;
+      }
+      
       for (const cost of costs) {
         if (actor.getStatusCount(cost.status) < cost.cost) {
           return false;
@@ -163,6 +167,7 @@ Hooks.once("init", () => {
   Handlebars.registerPartial('ptWeaponBlock', '{{> systems/pmttrpg/templates/item/parts/weapon-block.hbs}}')
   Handlebars.registerPartial('ptOutfitBlock', '{{> systems/pmttrpg/templates/item/parts/outfit-block.hbs}}')
   Handlebars.registerPartial('ptSkillBlock', '{{> systems/pmttrpg/templates/item/parts/skill-block.hbs}}')
+  Handlebars.registerPartial('ptTechniqueBlock', '{{> systems/pmttrpg/templates/item/parts/technique-block.hbs}}')
   Handlebars.registerPartial('ptSkillCosts', '{{> systems/pmttrpg/templates/item/parts/skill-costs.hbs}}')
   Handlebars.registerPartial('ptConditionalCosts', '{{> systems/pmttrpg/templates/item/parts/conditional-costs.hbs}}')
   return preloadHandlebarsTemplates();
@@ -295,6 +300,16 @@ export function findItemOwner(item) {
   return null;
 }
 
+export function findOfTypeForActor(actor, type) {
+  for (const aItem of actor.items) {
+    if (aItem.type == type) {
+      return aItem;
+    }
+  }
+
+  return null;
+}
+
 export function searchByObject(actor) {
   if (canvas.tokens != undefined) {
     for (let token of canvas.tokens.placeables) {
@@ -325,6 +340,23 @@ export function getDistance(actor1, actor2) {
   let token1 = canvas.tokens.placeables.find(x => x.actor == actor1);
   let token2 = canvas.tokens.placeables.find(x => x.actor == actor2);
   return scale(canvas.grid.measureDistance(token1, token2));
+}
+
+export function getAlliesWithinRadiusOfTarget(actor, target, radius) {
+  let actors = [];
+  let source = canvas.tokens.placeables.find(x => x.actor == target);
+  let dispo = 0;
+  if (actor != null) {
+      dispo = canvas.tokens.placeables.find(x => x.actor == actor).document.disposition;
+  }
+
+  for (let token of canvas.tokens.placeables.filter(x => x.document.disposition == dispo)) {
+    if (scale(canvas.grid.measureDistance(source, token)) <= radius && token.actor != actor) {
+      actors.push(token.actor);
+    }
+  }
+
+  return actors;
 }
 
 export function getAlliesWithinRadius(actor, radius) {
@@ -450,5 +482,6 @@ const preloadHandlebarsTemplates = async function () {
     'systems/pmttrpg/templates/item/parts/weapon-block.hbs',
     'systems/pmttrpg/templates/item/parts/skill-block.hbs',
     'systems/pmttrpg/templates/item/parts/outfit-block.hbs',
+    'systems/pmttrpg/templates/item/parts/technique-block.hbs',
   ]);
 };

@@ -33,6 +33,10 @@
     }
 
     function toggleID(element) {
+        if (document.activeElement.tagName.toLowerCase() == "input") {
+            return;
+        }
+
         document.getElementById(element).classList.toggle("id-show");
     }
 

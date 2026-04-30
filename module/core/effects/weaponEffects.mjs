@@ -3,6 +3,7 @@ import { handleNegativeText } from "../../core/effects/effectHelpers.mjs";
 import { Conditional } from "../combat/rollContext.mjs";
 import { pollUserInputOptions } from "../helpers/dialog.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
+import { getAlliesWithinRadius, getAlliesWithinRadiusOfTarget } from "../../pmttrpg.mjs";
 
 export const weaponEffects = [
     // Dice Manipulation
@@ -122,12 +123,10 @@ export const weaponEffects = [
             context.triggers["Clash Lose"].applyInfliction("Bleed", -2, true);
         },
         (count) => {
-            return [null, "Inflict 2 [/status/Bleed] Bleed", "Gain 2 Bleed", null, null];
+            return [null, "Inflict 2 [/status/Bleed] Bleed", "Gain 2 [/status/Bleed] Bleed", null, null];
         },
         ["Always Active"],
-        false,
-        1,
-        true
+        false, 1, true
     ),
     new Effect(
         `Gain Haste`,
@@ -375,6 +374,256 @@ export const weaponEffects = [
         ["On Use"],
         false,
         1, false, true
+    ),
+    //
+    new Effect(
+        `Shattershield`,
+        (context, count, trigger) => {},
+        (count) => {
+            return `Inflict 1 [Type] Fragile corresponding to the attack type if the target used a Defensive die.`;
+        },
+        ["Clash Win"],
+        false, 1, false, false
+    ),
+    new Effect(
+        `Backburner`,
+        (context, count, trigger) => {
+            context.triggers["Clash Win"].modify.push((ctx, data) => {
+                let allies = getAlliesWithinRadiusOfTarget(context.actor, context.target, 1);
+
+                if (allies.length > 0) {
+                    data.applyInfliction("Burn", 2, false);
+                }
+            });
+        },
+        (count) => {
+            return `Inflict 2 [/status/Burn] Burn if an ally is adjacent to the target.`;
+        },
+        ["Clash Win"],
+        false, 1, false, true
+    ),
+    new Effect(
+        `Backstabber`,
+        (context, count, trigger) => {},
+        (count) => {
+            return `Inflict 3 [/status/Bleed] Bleed if this attack went unopposed.`;
+        },
+        ["Clash Win"],
+        false, 1, false, false
+    ),
+    new Effect(
+        `Duelist Sidearm`,
+        (context, count, trigger) => {
+            context.conditionals.push(new Conditional("Duelist Sidearm", `Gain 3 Poise if dual wielding.`, (context) => {
+                context.triggers["Clash Win"].modify.push((ctx, data) => {
+                    data.applyInfliction("Poise", -3, false);
+                });
+            }, [], null));
+        },
+        (count) => {
+            return `Gain 3 [/status/Poise] Poise if this attack was due to dual wielding.`;
+        },
+        ["Clash Win"],
+        false, 1, false, true
+    ),
+    new Effect(
+        `Fencer's Implement`,
+        (context, count, trigger) => {
+            context.conditionals.push(new Conditional("Fencer's Implement", `Gain 2 Poise if not dual wielding.`, (context) => {
+                context.triggers["Clash Win"].modify.push((ctx, data) => {
+                    data.applyInfliction("Poise", -2, false);
+                });
+            }, [], null));
+        },
+        (count) => {
+            return `Gain 2 [/status/Poise] Poise if this attack was not due to dual wielding.`;
+        },
+        ["Clash Win"],
+        false, 1, false, true
+    ),
+    new Effect(
+        `Friction Charger`,
+        (context, count, trigger) => {
+            if (context.target && context.target.getStatusCount("Burn") > 0) {
+                context.triggers["Clash Win"].applyInfliction("Charge", -2, false);
+            }
+        },
+        (count) => {
+            return `Gain 2 [/status/Charge] Charge if the target has [/status/Burn] Burn.`;
+        },
+        ["Clash Win"],
+        false, 1, false, false
+    ),
+    new Effect(
+        `Friction Charger`,
+        (context, count, trigger) => {
+            if (context.target && context.target.getStatusCount("Burn") > 0) {
+                context.triggers["Clash Win"].applyInfliction("Charge", -2, false);
+            }
+        },
+        (count) => {
+            return `Gain 2 [/status/Charge] Charge if the target has [/status/Burn] Burn.`;
+        },
+        ["Clash Win"],
+        false, 1, false, false
+    ),
+    new Effect(
+        `Frozen Blade`,
+        (context, count, trigger) => {
+            if (context.actor.getStatusCount("Frostbite") >= 4) {
+                context.triggers["Clash Win"].stHeal -= 4;
+            }
+        },
+        (count) => {
+            return `Deal 4 ST damage if the user has 4+ [/status/Frostbite] Frostbite.`;
+        },
+        ["Clash Win"],
+        false, 1, false, false
+    ),
+    new Effect(
+        `Hooked Barbs`,
+        (context, count, trigger) => {},
+        (count) => {
+            return `Inflict 4 [/status/Rupture] Rupture and 2 [/status/Tremor] Tremor if this attack went unopposed.`;
+        },
+        ["Clash Win"],
+        false, 1, false, false
+    ),
+    new Effect(
+        `Nerve Tap`,
+        (context, count, trigger) => {
+            context.triggers["Devastating Hit"].applyInfliction("Critical", 1, false);
+        },
+        (count) => {
+            return `Gain 1 [/status/Critical] Critical.`;
+        },
+        ["Devastating Hit"],
+        false, 1, false, false
+    ),
+    new Effect(
+        `Panic Guard`,
+        (context, count, trigger) => {},
+        (count) => {
+            return `May spend a use to gain 2 [/status/Protection] Protection and [/status/Stagger_Protection] Stagger Protection immediately.`;
+        },
+        ["Clash Lose"],
+        false, 1, false, false
+    ),
+    new Effect(
+        `Spasmic Loader`,
+        (context, count, trigger) => {
+            context.triggers["Clash Win"].modify.push((ctx, data) => {
+                if (ctx.actor.isMarkedTarget(ctx.target)) {
+                    data.applyInfliction("Tremor", 2, true);
+                    data.applyInfliction("Rupture", 2, true);
+                }
+            });
+        },
+        (count) => {
+            return `Inflict 2 [/status/Rupture] Rupture and [/status/Tremor] Tremor next round if the target is Marked.`;
+        },
+        ["Clash Win"],
+        false, 1, false, true
+    ),
+    new Effect(
+        `Bear Trap`,
+        (context, count, trigger) => {
+            context.conditionals.push(new Conditional("Bear Trap", `Inflict 1 Bind and 3 Bleed on opportunity attack.`, (context) => {
+                context.triggers["Clash Win"].modify.push((ctx, data) => {
+                    data.applyInfliction("Bind", 1, false);
+                    data.applyInfliction("Bleed", 2, false);
+                });
+            }, [], null));
+        },
+        (count) => {
+            return `Inflict 1 [/status/Bind] Bind and 2 [/status/Bleed] Bleed if this is an Opportunity Attack.`;
+        },
+        ["Clash Win"],
+        false, 1, false, true
+    ),
+    new Effect(
+        `Electrified Barrel`,
+        (context, count, trigger) => {
+            context.triggers["Tremor Burst"].applyInfliction("Paralysis", 1, true);
+            context.triggers["Rupture Burst"].applyInfliction("Paralysis", 1, true);
+        },
+        (count) => {
+            return `Inflict 1 [/status/Paralysis] Paralysis next round if [/status/Rupture] Rupture or [/status/Tremor] Tremor were bursted.`;
+        },
+        ["Clash Win"],
+        false, 1, false, false
+    ),
+    new Effect(
+        `Rib Breaker`,
+        (context, count, trigger) => {
+            context.conditionals.push(new Conditional("Rib Breaker", `Inflict 4 Bleed if Force Damage is inflicted.`, (context) => {
+                context.triggers["Clash Win"].modify.push((ctx, data) => {
+                    data.applyInfliction("Bleed", 4, false);
+                });
+            }, [], null));
+        },
+        (count) => {
+            return `Inflict 4 [/status/Bleed] Bleed if the attack causes Force Damage.`;
+        },
+        ["Clash Win"],
+        false, 1, false, true
+    ),
+    new Effect(
+        `Snagging Thorns`,
+        (context, count, trigger) => {},
+        (count) => {
+            return `May apply Rupture Pause if a reaction converted this to a Block.`;
+        },
+        ["Clash Lose"],
+        false, 1, false, false
+    ),
+    new Effect(
+        `Superpositioner`,
+        (context, count, trigger) => {
+            context.triggers["Tremor Burst"].applyInfliction("Rupture", 2, true);
+            context.triggers["Rupture Burst"].applyInfliction("Tremor", 2, true);
+        },
+        (count) => {
+            return `On [/status/Rupture] Rupture or [/status/Tremor] Tremor burst, apply 2 of the opposite status next round.`;
+        },
+        ["Clash Win"],
+        false, 1, false, false
+    ),
+    new Effect(
+        `Ground Rumbler`,
+        (context, count, trigger) => {},
+        (count) => {
+            return `May apply the Earthquake skill effect.`;
+        },
+        ["Clash Win"],
+        false, 1, false, false
+    ),
+    new Effect(
+        `Hooked Lining`,
+        (context, count, trigger) => {
+            context.conditionals.push(new Conditional("Hooked Lining", `Convert 3 Bleed on target into 1 Hemorrhage.`, (context) => {
+                context.triggers["Clash Win"].modify.push(async (ctx, data) => {
+                    if (ctx.target.getStatusCount("Bleed") >= 3) {
+                        data.applyInfliction("Hemorrhage", 1, false);
+                        await ctx.target.reduceStatus("Bleed", 3);
+                    }
+                });
+            }, [], null));
+        },
+        (count) => {
+            return `Convert 3 [/status/Bleed] Bleed on target into 1 [/status/Hemorrhage] Hemorrhage.`;
+        },
+        ["Clash Win"],
+        false, 1, false, true
+    ),
+    new Effect(
+        `Laser Pointer`,
+        (context, count, trigger) => {},
+        (count) => {
+            return `Reduce the [/status/Critical] Critical die to a d8.`;
+        },
+        ["On Use"],
+        false, 1, false, false
     ),
 ]
 

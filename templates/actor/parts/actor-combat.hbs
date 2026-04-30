@@ -5,7 +5,7 @@
       <div class="ac-resource" style="height: 3.5rem; gap: 4rem; width: 16rem;">
         <img class="ac-resource-icon" style="padding: 0px; margin: 1rem;" src="systems/pmttrpg/assets/resources/EmotionIcon.png" width="24" height="24" />
         <div class="ac-resource-xp">
-          <input style="height: 2rem;" onkeypress="unfocus(event)" class="as-resource-input emotion-input" type="text"
+          <input style="height: 2rem;"  class="as-resource-input emotion-input" type="text"
             inputmode="numeric" value="{{system.emotion}}"
             data-dtype="Number" />
         </div>
@@ -13,7 +13,7 @@
 
       <div class="ac-resource" style="height: 3.5rem; gap: 1.5rem; width: 16rem;">
         <label class="ac-item-name">Disposition:</label>
-        <div class="ac-resource-content">
+        <div class="ac-resource-content" style="position: relative;">
             <button onclick="toggleDP(event)" class="ac-dropbtn ac-small-dropdown" style="width: 8rem;">
                 {{system.disposition}}
             </button>
@@ -36,7 +36,7 @@
       {{#if (hasAugment actor "Multifaceted")}}
       <div class="ac-resource" style="height: 3.5rem; gap: 1rem; width: 16rem;">
         <label class="ac-item-name">Multifaceted:</label>
-        <div class="ac-resource-content">
+        <div class="ac-resource-content" style="position: relative;">
             <button onclick="toggleDP2(event)" class="ac-dropbtn ac-small-dropdown" style="width: 8rem;">
                 {{system.secondaryDisposition}}
             </button>
@@ -63,7 +63,7 @@
       <div class="ac-resource ac-stat-holder" title="Temp HP: {{system.attributes.health.temp}}">
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/HPIcon.webp" width="24" height="24" />
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+          <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input ac-nop" type="text"
             inputmode="numeric" name="system.emotion" value="{{system.attributes.health.value}}"
             data-dtype="Number" />
         </div>
@@ -71,7 +71,7 @@
       <div class="ac-resource ac-stat-holder" title="Temp ST: {{system.attributes.stagger.temp}}">
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/StaggerIcon.webp" width="24" height="24" />
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+          <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input ac-nop" type="text"
             inputmode="numeric" name="system.emotion" value="{{system.attributes.stagger.value}}"
             data-dtype="Number" />
         </div>
@@ -79,7 +79,7 @@
       <div class="ac-resource ac-stat-holder" title="Temp SP: {{system.attributes.sanity.temp}}">
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/PanicBlue.png" width="24" height="24" />
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+          <input onclick="setCursorRight()"  class="ac-stat-text as-resource-input ac-nop" type="text"
             inputmode="numeric" name="system.emotion" value="{{system.attributes.sanity.value}}"
             data-dtype="Number" />
         </div>
@@ -87,7 +87,7 @@
       <div class="ac-resource ac-stat-holder">
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/LightIcon.webp" width="24" height="24" />
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()" onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+          <input onclick="setCursorRight()"  class="ac-stat-text as-resource-input ac-nop" type="text"
             inputmode="numeric" name="system.emotion" value="{{system.attributes.light.value}}"
             data-dtype="Number" />
         </div>
@@ -99,7 +99,7 @@
       <div class="ac-resource ac-stat-holder" title="Clashes Won">
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/ClashPowerUp.png" width="24" height="24" />
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+          <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input ac-nop" type="text"
             inputmode="numeric" value="{{system.clashesWon}}"
             data-dtype="Number" />
         </div>
@@ -107,7 +107,7 @@
       <div class="ac-resource ac-stat-holder" title="Clashes Lost">
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/ClashPowerDown.png" width="24" height="24" />
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+          <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input ac-nop" type="text"
             inputmode="numeric" value="{{system.clashesLost}}"
             data-dtype="Number" />
         </div>
@@ -116,7 +116,7 @@
       <div class="ac-resource ac-stat-holder" title="Charge Spent">
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/status/Charge.png" width="24" height="24" />
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+          <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input ac-nop" type="text"
             inputmode="numeric" value="{{system.chargeSpent}}"
             data-dtype="Number" />
         </div>
@@ -125,14 +125,14 @@
       <div class="ac-resource ac-stat-holder" title="Declare Overcharge">
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/status/Overcharge.png" width="24" height="24" />
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-ocDeclare" type="checkbox" />
+          <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input ac-ocDeclare" type="checkbox" />
         </div>
       </div>
       {{/if}}
       <div class="ac-resource ac-stat-holder" title="Consumed Bloodfeast">
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/Bloodfeast.png" width="24" height="24" />
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+          <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input ac-nop" type="text"
             inputmode="numeric" value="{{system.bloodfeastConsumed}}"
             data-dtype="Number" />
         </div>
@@ -144,7 +144,7 @@
       <div class="ac-resource ac-stat-holder ac-damage-stat" title="Total Damage Dealt" style="gap: 1rem !important;">
         <label class="ac-item-name">Damage Dealt:</label>
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+          <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input ac-nop" type="text"
             inputmode="numeric" value="{{system.damageDealt}}"
             data-dtype="Number" style="width: 7rem;" />
         </div>
@@ -152,7 +152,7 @@
       <div class="ac-resource ac-stat-holder ac-damage-stat" title="Total Damage Taken" style="gap: 1rem !important;">
         <label class="ac-item-name">Damage Taken:</label>
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input ac-nop" type="text"
+          <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input ac-nop" type="text"
             inputmode="numeric" value="{{system.damageTaken}}"
             data-dtype="Number" style="width: 7rem;" />
         </div>
@@ -161,28 +161,28 @@
 
     {{!- Actions Panel }}
     <div class="ac-resources-holder ac-grid-object ac-damage-panel" style="width: 35.8rem; height: 4.5rem; grid-template-columns: repeat(2, 1fr); grid-column: 1 / -1 !important;">
-      <div class="ac-resource ac-stat-holder ac-damage-stat" title="Actions Remaining" style="gap: 1rem !important;">
+      <div class="ac-resource ac-stat-holder ac-action-stat" title="Actions Remaining" style="gap: 1rem !important;">
         <label class="ac-item-name">Actions:</label>
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input" type="text"
+          <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input" type="text"
             inputmode="numeric" value="{{system.actions}}"
-            data-dtype="Number" style="width: 7rem;" />
+            data-dtype="Number" style="width: 3rem;" />
         </div>
       </div>
-      <div class="ac-resource ac-stat-holder ac-damage-stat" title="Reactions Remaining" style="gap: 1rem !important;">
+      <div class="ac-resource ac-stat-holder ac-action-stat" title="Reactions Remaining" style="gap: 0.3rem !important;">
         <label class="ac-item-name">Reactions:</label>
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input" type="text"
+          <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input" type="text"
             inputmode="numeric" value="{{system.reactions}}"
-            data-dtype="Number" style="width: 7rem;" />
+            data-dtype="Number" style="width: 3rem;" />
         </div>
       </div>
-      <div class="ac-resource ac-stat-holder ac-damage-stat" title="Reactions Remaining" style="gap: 1rem !important;">
+      <div class="ac-resource ac-stat-holder ac-action-stat" title="Reactions Remaining" style="gap: 0.1rem !important;">
         <label class="ac-item-name">Movement:</label>
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()"  onkeypress="unfocus(event)" class="ac-stat-text as-resource-input" type="text"
+          <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input" type="text"
             inputmode="numeric" value="{{system.movement}}"
-            data-dtype="Number" style="width: 7rem;" />
+            data-dtype="Number" style="width: 3rem;" />
         </div>
       </div>
     </div>
@@ -243,15 +243,19 @@
 
 <script>
     function toggleDP(event) {
-      console.log("dp");
-      console.log(event.currentTarget);
+      if (document.activeElement.tagName.toLowerCase() == "input") {
+        return;
+      }
+
       event.preventDefault();
       document.getElementById('dispodrp').classList.toggle("ac-show");
     }
 
     function toggleDP2(event) {
-      console.log("dp2");
-      console.log(event.currentTarget);
+      if (document.activeElement.tagName.toLowerCase() == "input") {
+        return;
+      }
+
       event.preventDefault();
       document.getElementById('dispodrp2').classList.toggle("ac-show");
     }
@@ -322,6 +326,10 @@
 
   .ac-recycle-panel {
     display: flex;
+  }
+
+  .ac-action-stat {
+    width: 10rem !important;
   }
 
   .ac-damage-stat {

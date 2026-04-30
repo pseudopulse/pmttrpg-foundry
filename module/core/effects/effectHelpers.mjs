@@ -2,6 +2,8 @@ import { outfitEffects } from "./outfitEffects.mjs";
 import { weaponEffects } from "./weaponEffects.mjs";
 import { skillEffects } from "./skillEffects.mjs";
 import { augmentEffects } from "./augmentEffects.mjs";
+import { bulletList } from "./bullets.mjs";
+import { techniqueList } from "./techniques.mjs";
 
 export function handleEffectRemoveButton(event, effects) {
     let index = event.currentTarget.id.split("-")[2];
@@ -23,6 +25,10 @@ export function getEffectsArray(type) {
         case "augment":
         case "augments":
             return augmentEffects;
+        case "bullet":
+            return bulletList;
+        case "technique":
+            return techniqueList;
         default:
             return null;
     }
@@ -32,7 +38,7 @@ export function handleEffectAddButton(event, effects, type) {
     effects.push({
         name: getEffectsArray(type)[0].name,
         trigger: getEffectsArray(type)[0].validTriggers,
-        count: 0,
+        count: 1,
         index: effects.length
     });
 }

@@ -1,5 +1,5 @@
 export class Effect {
-    constructor(name, apply, description, validTriggers = ["Clash Win", "Clash Lose", "On Use", "Always Active"], negativeAllowed = true, maxCount = 5, dontFormat = false, reapply = false) {
+    constructor(name, apply, description, validTriggers = ["Clash Win", "Clash Lose", "On Use", "Always Active"], negativeAllowed = true, maxCount = 5, dontFormat = false, reapply = false, cost = 0) {
         this.name = name;
         this.apply = apply;
         this.description = description;
@@ -8,5 +8,6 @@ export class Effect {
         this.maxCount = maxCount;
         this.dontFormat = dontFormat;
         this.reapply = reapply;
+        this.cost = cost;
     }
 }

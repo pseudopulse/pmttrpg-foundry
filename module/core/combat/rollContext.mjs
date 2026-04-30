@@ -4,6 +4,8 @@ import { outfitEffects } from "../effects/outfitEffects.mjs";
 import { getEffectsArray } from "../effects/effectHelpers.mjs";
 import { currentRound } from "./combatState.mjs";
 import { MARKS } from "../status/mark.mjs";
+import { bulletList } from "../effects/bullets.mjs";
+import { pollUserInputOptions } from "../helpers/dialog.mjs";
 
 const triggerTypes = ["Clash Win", "Clash Lose", "On Use", "Always Active", "On Crit", "Devastating Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Augment Passive", "Combat Start", "Round Start"];
 const eventTypes = ["Kill", "Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Clash Win", "Clash Lose", "On Use", "Clash Win Instant", "Clash Lose Instant"];
@@ -57,6 +59,11 @@ export class RollContext {
         this.bondTarget = false;
         this.defTwoHandedFree = false;
         this.skillUsed = false;
+        this.defFollowup = false;
+        //
+        this.converted = false;
+        //
+        this.isReaction = false;
 
         for (const trigger of triggerTypes) {
             this.triggers[trigger] = new TriggerEvents();
@@ -175,6 +182,20 @@ export class RollContext {
                 if (data.spHeal > 0) {
                     lines.push(`Recover ${spHeal} SP (${psp} -> ${sp})`);
                 }
+            }
+
+            if (data.hpheal < 0) {
+                let php = this.target.system.attributes.health.value;
+                await this.target.takeDamage(0, null, Math.abs(data.hpheal), 0, 0, true);
+                let hp = this.target.system.attributes.health.value;
+                lines.push(`Deal ${Math.abs(hpHeal)} HP damage (${php} -> ${hp})`);
+            }
+
+            if (data.stheal < 0) {
+                let php = this.target.system.attributes.stagger.value;
+                await this.target.takeDamage(0, null, 0, Math.abs(data.stheal), 0, true);
+                let hp = this.target.system.attributes.stagger.value;
+                lines.push(`Deal ${Math.abs(hpHeal)} ST damage (${php} -> ${hp})`);
             }
 
             if (data.emotion > 0) {
@@ -386,8 +407,8 @@ export class RollContext {
                 if (effect.effect.dontFormat) {
                     let desc = effect.effect.description(effect.count);
                     if (desc[0] != null) triggers["On Use"].push(this.format(`<span style="color: ${this.getColor("On Use")} !important;">[On Use]</span>`, desc[0], !postClash));
-                    if (desc[1] != null) triggers["Clash Win"].push(this.format(`<span style="color: ${this.getColor("Clash Win")} !important;">Clash Win</span>`, desc[0], !postClash));
-                    if (desc[2] != null) triggers["Clash Lose"].push(this.format(`<span style="color: ${this.getColor("Clash Lose")} !important;">Clash Lose</span>`, desc[0], !postClash));
+                    if (desc[1] != null) triggers["Clash Win"].push(this.format(`<span style="color: ${this.getColor("Clash Win")} !important;">[Clash Win]</span>`, desc[1], !postClash));
+                    if (desc[2] != null) triggers["Clash Lose"].push(this.format(`<span style="color: ${this.getColor("Clash Lose")} !important;">[Clash Lose]</span>`, desc[2], !postClash));
                     if (desc[3] != null) triggers["Always Active"].push(this.format("", desc[3], false));
                     if (desc[4] != null && fakeFirstRound) triggers["Augment Passive"].push(this.format("", desc[4], false));
                 }
@@ -448,8 +469,10 @@ export class RollContext {
     }
 
     getColor(trigger) {
-        if (trigger == "On Use") {
-            trigger = "On Use";
+        for (let triggerType of triggerTypes) {
+            if (trigger == triggerType) {
+                trigger = triggerType;
+            }
         }
 
         switch (trigger) {
@@ -494,6 +517,29 @@ export class RollContext {
         }
     }
 
+    async loadBullet() {
+        let options = [];
+
+        for (let bullet of bulletList) {
+            options.push({
+                name: bullet.name
+            });
+        }
+
+        let type = await pollUserInputOptions(this.actor, "Select a bullet to use.", options);
+
+        let effect = bulletList.find(x => x.name == type);
+        this.effects.push({
+            effect: effect,
+            count: 1,
+            trigger: effect.validTriggers[0],
+            source: "bullet",
+            name: effect.name
+        });
+
+        return type;
+    }
+
     addEffectsList(effects, category) {
         if (category == "skill" || category == "Skill") {
             this.skillUsed = true;
@@ -523,6 +569,18 @@ export class RollContext {
                     });
                 }
             }
+
+            if (this.modifiers.technique != null) {
+                for (const effect of this.modifiers.technique.system.effects) {
+                    this.effects.push({
+                        effect: getEffectsArray("technique").find(x => x.name == effect.name),
+                        count: effect.count,
+                        trigger: effect.trigger,
+                        source: "technique",
+                        name: effect.name
+                    });
+                }
+            }
             
             for (const conditional of this.modifiers.activeConditionals) {
                 this.activeConditionals.push(conditional);
@@ -530,6 +588,11 @@ export class RollContext {
 
             this.ignoreClashEffects = this.modifiers.ignoreClashEffects;
             this.forcedAdvState = this.modifiers.forcedAdvState;
+            this.defTwoHandedFree = this.modifiers.def2H;
+            this.ignoreEmotionLoss = this.modifiers.ignoreEmotion;
+            this.protect = this.modifiers.protect;
+            this.bondTarget = this.modifiers.bondTarget;
+            this.defFollowup = this.modifiers.defFollowup;
         }
 
         if (this.actor != null && this.actor.augment != null) {

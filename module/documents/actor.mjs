@@ -3,7 +3,7 @@ import { checkDraw, createClashMessage, createEffectsMessage, createResultMessag
 import { createClashResponse, getAttackOptions, getSkillOptions, pollReduceStatus, pollUserInputBurst, pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "../core/helpers/dialog.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
-import { getAlliesWithinRadius, getDistance, playSound, searchByObject } from "../pmttrpg.mjs";
+import { findOfTypeForActor, getAlliesWithinRadius, getDistance, playSound, searchByObject } from "../pmttrpg.mjs";
 import { currentRound } from "../core/combat/combatState.mjs";
 import { getRollContextFromData } from "./item.mjs";
 import { registerEffectMacro } from "../core/combat/macros.mjs";
@@ -163,6 +163,7 @@ export class PTActor extends Actor {
         system.incomingMarks = [];
         system.overheatedWeapons = [];
         system.forceFields = this.augmentEffectCount("Force Fields");
+        system.movementPenalty = 0;
 
         await this.update({ system }, { diff: false, render: true });
     }
@@ -281,11 +282,17 @@ export class PTActor extends Actor {
     }
 
     getCritRoll(ctx) {
-        if (ctx.hasEffect("Precision")) {
-            return "1d10kh";
+        let base = "1d10";
+
+        if (ctx.hasEffect("Laser Pointer")) {
+            base = "1d8";
         }
 
-        return "1d10";
+        if (ctx.hasEffect("Precision")) {
+            return `${base}kh`;
+        }
+
+        return base;
     }
 
     getDevastationRoll(ctx) {
@@ -326,6 +333,19 @@ export class PTActor extends Actor {
             ctx2 = tmp;
         }
 
+        if (ctx2.hasEffect("Snagging Thorns") && ctx2.converted) {
+            let confirm = await pollUserInputConfirm(ctx2.actor, `Apply Rupture Pause effect from Snagging Thorns?`);
+
+            if (confirm) {
+                let rupture = await ctx2.target.getStatusCount("Rupture");
+                if (rupture <= 0) return;
+
+                await ctx2.target.setStatus("Rupture", 0);
+                await ctx2.target.applyStatus("Rupture", 0, rupture);
+                createEffectsMessage(ctx2.target.name, `${rupture} active [/status/Rupture] Rupture moved to next round!`);
+            }
+        }
+
         if (ctx1.target.hasMarkApplied(ctx1.actor, MARKS.Analysis) 
         && (ctx1.target.findResistance(ctx1.damageType, "HP") >= 1.5 || ctx1.target.findResistance(ctx1.damageType, "ST") >= 1.5)) {
             let type = await pollUserInputOptions(ctx1.actor, "Choose Marked for Analysis [Type] Fragility.", [
@@ -350,10 +370,29 @@ export class PTActor extends Actor {
             ctx1.triggers["On Use"].applyInfliction("Charge", -2, false);
         }
 
+        if (ctx1.hasEffect("Shattershield") && (ctx2.type == "Block" || ctx2.type == "Evade")) {
+            ctx1.triggers["Clash Win"].applyInfliction(`${ctx1.damageType}_Fragility`, 1, true);
+        }
+
+        if (ctx1.hasEffect("Backstabber") && ctx2.result == "X") {
+            ctx1.triggers["Clash Win"].applyInfliction("Bleed", 3, false);
+        }
+
+        if (ctx1.hasEffect("Hooked Barbs") && ctx2.result == "X") {
+            ctx1.triggers["Clash Win"].applyInfliction("Rupture", 4, false);
+            ctx1.triggers["Clash Win"].applyInfliction("Tremor", 2, false);
+        }
+
+
         let totalAssassinationDamage = 3;
 
         await ctx1.fireEvent("On Use");
         await ctx2.fireEvent("On Use");
+
+        if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
+            await ctx1.fireEvent("Clash Win Instant");
+            await ctx2.fireEvent("Clash Lose Instant");
+        }
 
         let ruin = ctx2.actor.getStatusCount("Ruin");
         let devastation = ctx2.actor.getStatusCount("Devastation");
@@ -463,11 +502,6 @@ export class PTActor extends Actor {
 
         if (landedDevastating) {
             attackerTriggers.push("Devastating Hit");
-        }
-
-        if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
-            await ctx1.fireEvent("Clash Win Instant");
-            await ctx2.fireEvent("Clash Lose Instant");
         }
 
         if (ctx1.flags.includes("IgnoreInfliction")) {
@@ -946,6 +980,16 @@ export class PTActor extends Actor {
             }
         }
 
+        if (selfCtx != null && selfCtx.hasEffect("Panic Guard")) {
+            let confirm = await pollUserInputConfirm(this, "Trigger Panic Guard to gain 2 [/status/Protection] Protection and [/status/Stagger_Protection] Stagger Protection?");
+
+            if (confirm) {
+                await this.applyStatus("Protection", 2, 0);
+                await this.applyStatus("Stagger_Protection", 2, 0);
+                createEffectsMessage(this.name, `Consumes their Panic Guard to gain 2 [/status/Protection] Protection and [/status/Stagger_Protection] Stagger Protection!`);
+            }
+        }
+
         let snipersMarkLine = "";
         let markDamage = 0;
         if (selfCtx != null && this.hasMarkApplied(context.actor, MARKS.Sniper)) {
@@ -1175,6 +1219,7 @@ export class PTActor extends Actor {
         if (system.mostRecentRoll != null) {
             system.mostRecentRoll.type = "Block";
             system.mostRecentRoll.context.type = "Block";
+            system.mostRecentRoll.context.converted = true;
         }
 
         await this.update({ system }, { diff: false });
@@ -1387,9 +1432,12 @@ export class PTActor extends Actor {
             createEffectsMessage(this.name, "Gains 3 SQR of movement from Deserter!");
         }
 
-        await this.update({ "system.movement": 6 + speed }, { diff: false });
+        speed -= Number(this.system.movementPenalty);
+
+        await this.update({ "system.movement": Math.max(0,  6 + speed) }, { diff: false });
         await this.update({ "system.nextRoundMovement": 0 }, { diff: false });
         await this.update({ "system.kineticStorageMovement": kMovement }, { diff: false });
+        await this.update({ "system.movementPenalty": 0 }, { diff: false });
 
         let reactions = Number(this.system.attributes.rank.value) + this.augmentEffectCount("Additional Reaction") + this.outfitEffectCount("Additional Reaction");
         await this.update({ "system.reactions": reactions }, { diff: false });
@@ -1421,6 +1469,9 @@ export class PTActor extends Actor {
     }
 
     getCanUseItem(item) {
+        if (item.system.effects.find(x => x.name == "Charge Ammo")) {
+            return this.system.overheatedWeapons.filter(x => x.id == item.id).length == 0 && this.getStatusCount("Charge") >= 2;
+        }
         return this.system.overheatedWeapons.filter(x => x.id == item.id).length == 0;
     }
 
@@ -1596,6 +1647,14 @@ export class PTActor extends Actor {
 
         await this.verifyStatusRelation("Poise", "Critical");
         await this.verifyStatusRelation("Ruin", "Devastation");
+    }
+
+    async addMovementPenalty(count) {
+        const system = this.toObject(false).system;
+
+        system.movementPenalty = Number(system.movementPenalty) + count;
+
+        await this.update({ system }, { diff: false, render: true });
     }
 
     async setStatusNext(status, count) {
@@ -1813,6 +1872,17 @@ export class PTActor extends Actor {
         await source.pushToOutgoing(mark);
     }
 
+    async deductLight(cost) {
+        const system = this.toObject(false).system;
+
+        system.attributes.light.value = Number(system.attributes.light.value) - cost;
+        if (Number(system.attributes.light.value) - cost < 0) {
+            system.attributes.light.value = 0;
+        }
+
+        await this.update({ system }, { diff: false, render: true });
+    }
+
     async removeMark(source, markType) {
         const system = this.toObject(false).system;
 
@@ -1911,6 +1981,24 @@ export class PTActor extends Actor {
         const system = this.toObject(false).system;
         system.maintainedBarrier = val;
         await this.update({ system }, { diff: false, render: true });
+    }
+
+    async getTechnique() {
+        let technique = findOfTypeForActor(this, "technique");
+
+        if (technique == null) {
+            technique = await Item.create({
+                name: 'Technique',
+                type: 'technique',
+                system: {
+                    effects: []
+                }
+            }, { parent: this });
+        }
+        
+        await technique.update({ "system.effects": [] }, { diff: false, render: true });
+
+        return technique;
     }
 
     async refreshMacroBar() {

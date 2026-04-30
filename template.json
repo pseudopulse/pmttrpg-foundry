@@ -93,12 +93,13 @@
     }
   },
   "Item": {
-    "types": ["weapon", "tool", "skill", "outfit", "augment"],
+    "types": ["weapon", "tool", "skill", "outfit", "augment", "technique"],
     "weapon": {
       "diceMax": 10,
       "dicePower": 1,
       "type": "Melee",
-      "hand": "Offensive 1-Handed",
+      "attackType": "Melee",
+      "hand": "Offensive 1H",
       "form": "Medium",
       "attachment": "",
       "description": "",
@@ -115,6 +116,9 @@
       "effects": [],
       "type": "Attack",
       "light": 0
+    },
+    "technique": {
+      "effects": []
     },
     "augment": {
       "effects": []

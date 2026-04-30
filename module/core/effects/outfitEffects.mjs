@@ -8,7 +8,7 @@ export const outfitEffects = [
     new Effect(
         "Block Power Up",
         (context, count, trigger) => {
-            if (context.damageType == "Block") {
+            if (context.type == "Block") {
                 context.dicePower = Number(context.dicePower) + Number(count);
             }
         },
@@ -19,7 +19,7 @@ export const outfitEffects = [
     new Effect(
         "Evade Power Up",
         (context, count, trigger) => {
-            if (context.damageType == "Evade") {
+            if (context.type == "Evade") {
                 context.dicePower = Number(context.dicePower) + Number(count);
             }
         },
@@ -30,7 +30,7 @@ export const outfitEffects = [
     new Effect(
         "Block Max Up",
         (context, count, trigger) => {
-            if (context.damageType == "Block") {
+            if (context.type == "Block") {
                 context.diceMax = Number(context.diceMax) + Number(count);
             }
         },
@@ -41,7 +41,7 @@ export const outfitEffects = [
     new Effect(
         "Evade Max Up",
         (context, count, trigger) => {
-            if (context.damageType == "Evade") {
+            if (context.type == "Evade") {
                 context.diceMax = Number(context.diceMax) + Number(count);
             }
         },

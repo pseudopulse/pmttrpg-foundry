@@ -4,6 +4,7 @@ import { weaponEffects } from "../core/effects/weaponEffects.mjs";
 import { RollContext } from "../core/combat/rollContext.mjs";
 import { enrichClashData } from "../core/helpers/clash.mjs";
 import { outfitEffects } from "../core/effects/outfitEffects.mjs";
+import { findItemOwner } from "../pmttrpg.mjs";
 //
 export class PTItemSheet extends ItemSheet {
     /** @override */
@@ -46,6 +47,25 @@ export class PTItemSheet extends ItemSheet {
 
         context.rollContext.addEffectsList(context.system.effects, this.item.type);
         context.rollContext.processEffects();
+
+        if (this.item.type == "technique") {
+            let actor = findItemOwner(this.item);
+            context.emotion = actor.system.emotion;
+
+            let totalCost = 0;
+
+            for (let effect of context.system.effects) {
+                let def = context.effectsList.find(x => x.name == effect.name);
+                if (def.name == "Emotion Level") {
+                    totalCost += (def.cost * (1 + actor.system.emotionLevelUsed)) * effect.count;
+                }
+                else {
+                    totalCost += def.cost * effect.count;
+                }
+            }
+
+            context.totalCost = totalCost;
+        }
 
         context.enrichedClashData = enrichClashData(context.rollContext.getDescription(["Clash Win", "Clash Lose", "On Use"], false, true));
 
@@ -118,7 +138,7 @@ export class PTItemSheet extends ItemSheet {
             let optionsM = ["Small", "Medium", "Sturdy", "Hybrid", "Versatile", "Innate"];
             let optionsR = ["Low Cal", "High Cal", "Reactive", "Hybrid", "Recoil", "Innate"];
 
-            let array = system.type == "Ranged" ? optionsR : optionsM;
+            let array = system.attackType == "Ranged" ? optionsR : optionsM;
             let index = array.findIndex(x => x == system.form);
             if (index == -1) index = 0;
 
@@ -137,7 +157,7 @@ export class PTItemSheet extends ItemSheet {
             let optionsM = ["Offensive 1H", "Offensive 2H", "Defensive 1H", "Defensive 2H"];
             let optionsR = ["Offensive 1H", "Offensive 2H"];
 
-            let array = system.type == "Ranged" ? optionsR : optionsM;
+            let array = system.attackType == "Ranged" ? optionsR : optionsM;
             let index = array.findIndex(x => x == system.hand);
             if (index == -1) index = 0;
 
