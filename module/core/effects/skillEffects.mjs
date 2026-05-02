@@ -1578,7 +1578,7 @@ export const skillEffects = [
         ["On Use"], false, 1, false, true
     ),
     // dummy effects
-    markerEffect("Target Shift", false, 1, ["Clash Win", "Clash Lose"], c => `Transfer your Mark to another target.`),
+    markerEffect("Target Shift", false, 1, "Clash Win", c => `Transfer your Mark to another target.`),
 ]
 
 function healEffect(val, cat) {

@@ -123,7 +123,7 @@ export const outfitEffects = [
         ["Clash Win", "Clash Lose"],
     ),
     //
-    markerEffect("Heavy Material, true, 5"),
+    markerEffect("Heavy Material", true, 5),
     new Effect(
         "Padded Clothing",
         (context, count, trigger) => {

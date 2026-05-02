@@ -161,7 +161,9 @@ export class RollContext {
             let data = this.triggers[trigger];
 
             for (const func of data.modify) {
-                await func(this, data);
+                if (func != null) {
+                    await func(this, data);
+                }
             }
 
             if (data.hpHeal > 0 || data.spHeal > 0 || data.stHeal > 0) {
@@ -441,10 +443,12 @@ export class RollContext {
                 if (this.damageType == "Block") {
                     this.dicePower = this.dicePower + 1;
                 }
+                break;
             case "Swift":
                 if (this.damageType == "Evade") {
                     this.dicePower = this.dicePower + 1;
                 }
+                break;
             default:
                 break;
         }
