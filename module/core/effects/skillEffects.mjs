@@ -447,13 +447,13 @@ export const skillEffects = [
                 req += 3;
             }
 
-            if (context.target != null && context.target.getStatusCount("Poise") >= req) {
+            if (context.actor.getStatusCount("Poise") >= req) {
                 context.dicePower = Number(context.dicePower) + count;
                 context.skillDicePower = Number(context.skillDicePower) + count;
             }
         },
         (count) => {
-            return `If the target has ${count}+ [/status/Poise] Poise, gain ${count} Dice Power. If your augment includes Poise Bonus, increase the requirement by 3.`
+            return `If the user has ${count}+ [/status/Poise] Poise, gain ${count} Dice Power. If your augment includes Poise Bonus, increase the requirement by 3.`
         },
         ["On Use"],
         false, 5
