@@ -1,8 +1,5 @@
 functional parts (there's like 10 left to finish if i have time)
 
-techniques
-/ - finish technique handling for some reason it bricks everything if a technique is active
-
 kill tracking for effects
 
 force damage input
@@ -13,6 +10,25 @@ homebrew effects
 
 add toggle for primary outfit and primary augment
 
+// - unfinished effects
+critical conversion (skill)
+devastation conversion (skill)
+earthquake (skill and weapon)
+cursed (augment)
+
+// - homebrew effects
+
+outfit types are completely missing fix that !!!
+
 //
 
-fix Blo Dice Power / Evd Dice Power effects not working
+bloodfeast 
+
+// stuff on my own sheet
+- update weapons that had long form
+- add ballistic to scateren
+- fix shatter not being 3x count on heavy impact
+- add assist attack to enqueue
+- add earthquake to pressure release
+- add healing weapon and ballistic to ichneumix
+- fix loaded magnet not being 2x count on arclit

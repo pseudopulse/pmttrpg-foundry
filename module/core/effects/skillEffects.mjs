@@ -316,7 +316,7 @@ export const skillEffects = [
             return `Clear up to ${count * 2} [/status/Frostbite] Frostbite from the target, and deal 1d8 Force Damage for every 2 cleared.`
         },
         ["Clash Win"],
-        false, 1, false, true
+        false, 5, false, true
     ),
     new Effect(
         "Chill Out",
@@ -396,6 +396,35 @@ export const skillEffects = [
         ["Clash Win"],
         false, 5, false, true
     ),
+    new Effect(
+        "Disgorge",
+        (context, count, trigger) => {
+            context.triggers[trigger].modify.push(async (ctx, data) => {
+                if (ctx.target.getStatusCount("Bleed") > 0) {
+                    let bleed = ctx.target.getStatusCount("Bleed");
+                    let damage = Math.min(3 * count, bleed);
+
+                    data.hpDamage += damage;
+                }
+            });
+        },
+        (count) => {
+            return `If the target has [/status/Bleed] Bleed, deal ${count * 3} HP damage or HP damage equal to [/status/Bleed] Bleed, whichever is lower.`
+        },
+        ["Clash Win"],
+        false, 5, false, true
+    ),
+    new Effect(
+        "Red Plum Blossom",
+        (context, count, trigger) => {
+            context.triggers["On Crit"].applyInfliction("Bleed", count * 2, false);
+        },
+        (count) => {
+            return `Inflict ${count * 2} [/status/Bleed] Bleed.`
+        },
+        ["On Crit"],
+        false, 5, false, true
+    ),
     //
     new Effect(
         `Gain Poise`,
@@ -409,6 +438,25 @@ export const skillEffects = [
             count);
         },
         ["Clash Win", "Clash Lose"],
+    ),
+    new Effect(
+        `Poise Bonus`,
+        (context, count, trigger) => {
+            let req = count;
+            if (context.actor.augmentEffectCount("Poise Bonus") > 0) {
+                req += 3;
+            }
+
+            if (context.target != null && context.target.getStatusCount("Poise") >= req) {
+                context.dicePower = Number(context.dicePower) + count;
+                context.skillDicePower = Number(context.skillDicePower) + count;
+            }
+        },
+        (count) => {
+            return `If the target has ${count}+ [/status/Poise] Poise, gain ${count} Dice Power. If your augment includes Poise Bonus, increase the requirement by 3.`
+        },
+        ["On Use"],
+        false, 5
     ),
     new Effect(
         `Increase Critical`,
@@ -824,7 +872,9 @@ export const skillEffects = [
         ["Tremor Burst"],
         false, 5, false, true
     ),
-    // earthquake
+    markerEffect("Earthquake", false, 5, ["Tremor Burst"], count => {
+        `Apply the target's [/status/Tremor] Tremor to characters within ${count} SQR. Affected targets receive ${count * 2} [/status/Bind] Bind next round.`
+    }),
     //
     simpleStatusEffect("Sinking", true, true),
     markerEffect("Sinking+", false, 3),
@@ -1128,7 +1178,7 @@ export const skillEffects = [
     allyStatusEffect("Strength", 1, true),
     allyStatusEffect("Endurance", 1, true),
     allyStatusEffect("Haste", 1, true),
-    allyStatusEffect("Poise", 1, true),
+    allyStatusEffect("Poise", 1, false),
     allyStatusEffect("Critical", 1, true),
     new Effect(
         "[Type] Protection",
@@ -1226,6 +1276,12 @@ export const skillEffects = [
         },
         count => `apply ${count * 2} [/status/Bind] Bind and ${count} [/status/Paralysis] Paralysis next round`,
     ),
+    markEffect("Assist Attack",
+        (data, count) => {
+            
+        },
+        count => `allow an ally in attack range to spend a reaction to attack the target.`,
+    ),
     //
     new Effect(
         "Ignore Infliction",
@@ -1257,7 +1313,7 @@ export const skillEffects = [
             context.skillDicePower = Number(context.skillDicePower) - 2;
         },
         (count) => {
-            return `Replace attack with ${1 + count} attacks with -2 Dice Power each.`
+            return `Replace attack with ${1 + Number(count)} attacks with -2 Dice Power each.`
         },
         ["On Use"], false, 2, false, false
     ),
@@ -1287,13 +1343,13 @@ export const skillEffects = [
             context.dicePower = Number(context.dicePower) + count;
             context.skillDicePower = Number(context.skillDicePower) + count;
         },
-        count => `increase Dice Power by ${count}`
+        count => `increase Dice Power by ${count}`, ["On Use"]
     ),
     chargeEffect("Charge - Dice Max Up", 3,
         (context, count, trigger) => {
             context.diceMax = Number(context.diceMax) + count;
         },
-        count => `increase Dice Max by ${count}`
+        count => `increase Dice Max by ${count}`, ["On Use"]
     ),
     chargeEffect("Charge - Regen HP", 2,
         (context, count, trigger) => {
@@ -1521,6 +1577,8 @@ export const skillEffects = [
         },
         ["On Use"], false, 1, false, true
     ),
+    // dummy effects
+    markerEffect("Target Shift", false, 1, ["Clash Win", "Clash Lose"], c => `Transfer your Mark to another target.`),
 ]
 
 function healEffect(val, cat) {

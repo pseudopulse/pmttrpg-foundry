@@ -1,6 +1,6 @@
 import { Effect } from "./effect.mjs";
 import { handleNegativeText } from "../../core/effects/effectHelpers.mjs";
-import { Conditional } from "../combat/rollContext.mjs";
+import { Conditional, RollContext } from "../combat/rollContext.mjs";
 import { pollUserInputOptions } from "../helpers/dialog.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
 import { getAlliesWithinRadius, getAlliesWithinRadiusOfTarget } from "../../pmttrpg.mjs";
@@ -373,7 +373,7 @@ export const weaponEffects = [
         },
         ["On Use"],
         false,
-        1, false, true
+        5, false, true
     ),
     //
     new Effect(
@@ -625,6 +625,40 @@ export const weaponEffects = [
         ["On Use"],
         false, 1, false, false
     ),
+    new Effect(
+        `Singular Strike`,
+        (context, count, trigger) => {
+            context.events["Critical Hit"].push(async (context) => {
+                let poise = context.poise - 10;
+                if (poise > 0) {
+                    let damage = Math.min(poise * 2, 20);
+                    let dummyCtx = new RollContext();
+                    dummyCtx.damageType = "Slash";
+                    dummyCtx.actor = context.actor;
+                    dummyCtx.target = context.target;
+                    let text = await context.target.takeDamage(poise, dummyCtx, 0, 0, 0, true, null);
+                    createEffectsMessage(context.target.name, text);
+                }
+            })
+        },
+        (count) => {
+            return `Deal [/damageTypes/Slash] Slash damage equal to ([/status/Poise] Poise - 10) * 2, max 20.`;
+        },
+        ["On Crit"],
+        false, 1, false, true
+    ),
+    //
+    markerEffect("Ballistic", false, 1),
+    new Effect(
+        `Charged Blade`,
+        (context, count, trigger) => {
+        },
+        (count) => {
+            return `Consume ${1 + Number(count)} [/status/Charge] Charge to use this weapon.`;
+        },
+        ["On Use"],
+        false, 5, false, false
+    ),
 ]
 
 function simpleStatusEffect(status, nextRound, allowNegative) {
@@ -636,8 +670,8 @@ function simpleStatusEffect(status, nextRound, allowNegative) {
         },
         (count) => {
             return handleNegativeText(
-                `Inflict % [/status/${status}] ${status}` + str, 
-                `Gain % [/status/${status}] ${status}` + str, 
+                `Inflict % [/status/${status.replace(" ", "_")}] ${status}` + str, 
+                `Gain % [/status/${status.replace(" ", "_")}] ${status}` + str, 
             count);
         },
         ["Clash Win", "Clash Lose"],

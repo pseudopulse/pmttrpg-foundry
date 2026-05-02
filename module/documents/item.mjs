@@ -57,6 +57,7 @@ export class PTItem extends Item {
         }
 
         context.isReaction = true;
+        await this.actor.spendReaction(true, false);
 
         if (context.forcedAdvState != 0 || this.actor.getStatusCount("Paralysis") > 0) {
             const reroll = await new Roll(`1d${context.diceMax}+${context.dicePower}`, "").evaluate();
@@ -152,6 +153,7 @@ export class PTItem extends Item {
         }
         else {
             context.isReaction = false;
+            await this.actor.spendReaction(true, false);
         }
 
         await this.actor.queueRoll(context);
@@ -228,6 +230,12 @@ export class PTItem extends Item {
             else {
                 await rollContext.loadBullet();
             }
+        }
+
+        if (rollContext.hasEffect("Charged Blade")) {
+            let count = 1 + Number(rollContext.effects.find(x => x.name == "Charged Blade").count);
+            await this.actor.reduceStatus("Charge", count);
+            createEffectsMessage(this.actor.name, `Spends ${count} [/status/Charge] Charge to wield their weapon!`);
         }
 
         return rollContext;
@@ -316,7 +324,32 @@ export function getRollContextFromData(item, def = false, defType = "Block") {
     rollContext.attackType = systemData.type;
     rollContext.form = systemData.form;
     rollContext.hand = systemData.hand;
-    rollContext.processEffects();
+
+    rollContext.processEffectsSync();
+
+    rollContext.mergeCosts();
+    return rollContext;
+}
+
+export async function getRollContextFromDataFull(item, def = false, defType = "Block") {
+    if (item.type == null) {
+        item = item.item;
+    }
+
+    const itemData = item;
+    const systemData = itemData.system;
+    const rollContext = new RollContext();
+    rollContext.addEffectsList(systemData.effects, fixTypeName(item.type));
+    rollContext.actor = findItemOwner(item);
+    rollContext.damageType = def ? defType : systemData.damageType;
+    rollContext.type = def ? defType : systemData.type;
+    rollContext.name = item.name;
+    rollContext.attackType = systemData.type;
+    rollContext.form = systemData.form;
+    rollContext.hand = systemData.hand;
+
+    await rollContext.processEffects();
+
     rollContext.mergeCosts();
     return rollContext;
 }

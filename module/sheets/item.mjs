@@ -6,6 +6,25 @@ import { enrichClashData } from "../core/helpers/clash.mjs";
 import { outfitEffects } from "../core/effects/outfitEffects.mjs";
 import { findItemOwner } from "../pmttrpg.mjs";
 //
+
+export function calculateTechniqueCost(effects, actor) {
+    let effectsList = getEffectsArray("technique");
+    let totalCost = 0;
+
+    for (let effect of effects) {
+        let def = effectsList.find(x => x.name == effect.name);
+        if (def.name == "Emotion Level") {
+            totalCost += (def.cost * (1 + actor.system.emotionLevelUsed)) * effect.count;
+        }
+        else {
+            totalCost += def.cost * effect.count;
+        }
+    }
+
+    return totalCost;
+}
+
+//
 export class PTItemSheet extends ItemSheet {
     /** @override */
     static get defaultOptions() {
@@ -52,19 +71,9 @@ export class PTItemSheet extends ItemSheet {
             let actor = findItemOwner(this.item);
             context.emotion = actor.system.emotion;
 
-            let totalCost = 0;
+            context.totalCost = calculateTechniqueCost(context.system.effects, actor);
 
-            for (let effect of context.system.effects) {
-                let def = context.effectsList.find(x => x.name == effect.name);
-                if (def.name == "Emotion Level") {
-                    totalCost += (def.cost * (1 + actor.system.emotionLevelUsed)) * effect.count;
-                }
-                else {
-                    totalCost += def.cost * effect.count;
-                }
-            }
-
-            context.totalCost = totalCost;
+            context.techniqueTooExpensive = context.totalCost > context.emotion;
         }
 
         context.enrichedClashData = enrichClashData(context.rollContext.getDescription(["Clash Win", "Clash Lose", "On Use"], false, true));
@@ -135,10 +144,28 @@ export class PTItemSheet extends ItemSheet {
 
         html.on('click', '.wb-form-type-button', (event) => {
             const system = this.document.toObject(false).system;
-            let optionsM = ["Small", "Medium", "Sturdy", "Hybrid", "Versatile", "Innate"];
-            let optionsR = ["Low Cal", "High Cal", "Reactive", "Hybrid", "Recoil", "Innate"];
+            let optionsM = ["Small", "Medium", "Long", "Sturdy", "Hybrid", "Versatile", "Innate", "Healing"];
+            let optionsR = ["Low Cal", "High Cal", "Reactive", "Hybrid", "Recoil", "Innate", "Healing"];
 
             let array = system.attackType == "Ranged" ? optionsR : optionsM;
+            let index = array.findIndex(x => x == system.form);
+            if (index == -1) index = 0;
+
+            index++;
+            if (index >= array.length) {
+                index = 0;
+            }
+
+            system.form = array[index];
+
+            this.item.update({ system }, { render: true, diff: false });
+        });
+
+        html.on('click', '.ob-hand-type-button', (event) => {
+            const system = this.document.toObject(false).system;
+            let options = ["Balanced", "Armored", "Swift"];
+
+            let array = options;
             let index = array.findIndex(x => x == system.form);
             if (index == -1) index = 0;
 

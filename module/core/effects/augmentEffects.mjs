@@ -432,7 +432,23 @@ export const augmentEffects = [
     markerEffect(MarkNames[MARKS.Subjugation], false, 5),
     markerEffect(MarkNames[MARKS.Tending], false, 5),
     //
-    markerEffect("Striker Stance", false, 1),
+    new Effect(
+        `Striker Stance`,
+        (context, count, trigger) => {
+            if (context.actor.system.activeStance == "Striker") {
+                context.conditionals.push(new Conditional("Striker Stance", "Applies -2 Dice Power to a Striker Stance attack.", async (ctx) => {
+                    ctx.dicePower = ctx.dicePower - 2;
+                    ctx.nonSkillDicePower = ctx.nonSkillDicePower - 2;
+                }, [], null));
+            }
+        },
+        (count) => {
+            return null;
+        },
+        ["Always Active"],
+        false,
+        1, false, true
+    ),
     markerEffect("Slayer Stance", false, 1),
     markerEffect("Slasher Stance", false, 1),
     markerEffect("Impassioned", true, 1),
@@ -490,7 +506,7 @@ export const augmentEffects = [
     markerEffect("Ice Skater", false, 1),
     //
     markerEffect("Force Fields", false, 5),
-    markerEffect("Companion - Swift"), // X
+    markerEffect("Companion - Swift"),
     markerEffect("Explosive Force", false, 1),
     //
     new Effect(

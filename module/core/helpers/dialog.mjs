@@ -1,4 +1,5 @@
 import { findActorsOfTeam, searchByObject } from "../../pmttrpg.mjs";
+import { calculateTechniqueCost } from "../../sheets/item.mjs";
 import { RollContext } from "../combat/rollContext.mjs";
 import { createClashMessage, enrichClashData } from "../helpers/clash.mjs";
 import { findByID, getActorUser, sendNetworkMessage } from "./netmsg.mjs";
@@ -65,14 +66,24 @@ export async function getActionModifiers(actor, context) {
                     label: "Continue",
                     callback: () => {
                         allowClose = true;
-                        resolve(data);
+                        dialog.close();
                     }
                 }
             },
             close: () => {
+                if (data.technique != null) {
+                    let cost = calculateTechniqueCost(data.technique.system.effects);
+
+                    if (cost > actor.system.emotion) {
+                        data.technique = null;
+                    }
+                }
+
                 if (!allowClose) {
                     throw new Error();
                 }
+
+                resolve(data);
             },
             render: (html) => {
                 $("#amw-tools").hide().removeClass("am-active-tab");
@@ -182,9 +193,11 @@ export async function getActionModifiers(actor, context) {
                     if (data.technique == null) {
                         actor.getTechnique().then((technique) => {
                             data.technique = technique;
-
                             data.technique.sheet.render(true);
                         });
+                    }
+                    else {
+                        data.technique.sheet.render(true);
                     }
                 });
 

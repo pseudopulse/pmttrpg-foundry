@@ -89,7 +89,8 @@
       "outgoingMarks": [],
       "maintainedBarrier": false,
       "overheatedWeapons": [],
-      "forceFields": 0
+      "forceFields": 0,
+      "activeStance": "None"
     }
   },
   "Item": {

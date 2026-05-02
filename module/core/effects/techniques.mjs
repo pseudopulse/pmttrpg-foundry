@@ -31,9 +31,9 @@ export const techniqueList = [
         "Vital Strike",
         (context, trigger, count) => {
             if (context.isReaction) {
-                context.triggers["Clash Win"].hpHeal -= 6 * count;
+                context.triggers["Clash Win"].hpDamage += 6 * count;
             } else {
-                context.triggers["Clash Win"].hpHeal -= 3 * count;
+                context.triggers["Clash Win"].hpDamage += 3 * count;
             }
         },
         (count) => {
@@ -46,9 +46,9 @@ export const techniqueList = [
         "Knockout Strike",
         (context, trigger, count) => {
             if (context.isReaction) {
-                context.triggers["Clash Win"].stHeal -= 2 * count;
+                context.triggers["Clash Win"].stDamage += 2 * count;
             } else {
-                context.triggers["Clash Win"].stHeal -= 1 * count;
+                context.triggers["Clash Win"].stDamage += 1 * count;
             }
         },
         (count) => {

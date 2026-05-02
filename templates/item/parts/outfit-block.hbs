@@ -12,6 +12,7 @@
                 <p class="ob-rollDisplay">{{ctx.diceCount}}d{{ctx.diceMax}}+{{ctx.dicePower}}</p>
             </div>
         {{/with}}
+        <p class="ob-resource-button ob-hand-type-button">{{rollContext.form}}</p>
         <div class="ob-type-container">
             <div class="ob-stats-grid">
                 {{> "systems/pmttrpg/templates/item/parts/resist-type.hbs" item=system type="Slash" cat=""}}
@@ -33,6 +34,12 @@
 </script>
 
 <style>
+    .ob-hand-type-button {
+        width: 8rem;
+        height: 1.5rem;
+        padding: 5%;
+    }
+
     .ob-stats-grid {
         display: grid;
         columns: 2;
@@ -124,7 +131,7 @@
     }
 
     .ob-rollInfo {
-        height: 14rem;
+        height: 17rem;
         width: 14rem;
         padding: 2% 1% !important;
         columns: 1;
