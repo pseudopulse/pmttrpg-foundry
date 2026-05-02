@@ -212,8 +212,8 @@ Hooks.on(`combatRound`, async (combat, data, options) => {
   await roundChange(combat, data.round, data.turn);
 });
 
-Hooks.on(`combatTurn`, async (combat, data, options) => {
-  await turnChange(combat, data.round, data.turn);
+Hooks.on(`combatTurnChange`, async (combat, data, data2) => {
+  await turnChange(combat, 0, data2);
 });
 
 Hooks.on(`combatStart`, async (combat, data) => {

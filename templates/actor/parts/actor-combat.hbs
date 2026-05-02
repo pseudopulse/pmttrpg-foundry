@@ -162,27 +162,27 @@
     {{!- Actions Panel }}
     <div class="ac-resources-holder ac-grid-object ac-damage-panel" style="width: 35.8rem; height: 4.5rem; grid-template-columns: repeat(2, 1fr); grid-column: 1 / -1 !important;">
       <div class="ac-resource ac-stat-holder ac-action-stat" title="Actions Remaining" style="gap: 1rem !important;">
-        <label class="ac-item-name">Actions:</label>
+        <label class="ac-item-name" for="system.actions">Actions:</label>
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input" type="text"
+          <input class="ac-stat-text as-resource-input"
             inputmode="numeric" value="{{system.actions}}"
-            data-dtype="Number" style="width: 3rem;" />
+            data-dtype="Number" style="width: 3rem;" name="system.actions" type="text"/>
         </div>
       </div>
       <div class="ac-resource ac-stat-holder ac-action-stat" title="Reactions Remaining" style="gap: 0.3rem !important;">
-        <label class="ac-item-name">Reactions:</label>
+        <label class="ac-item-name" for="system.reactions">Reactions:</label>
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input" type="text"
+          <input class="ac-stat-text as-resource-input"
             inputmode="numeric" value="{{system.reactions}}"
-            data-dtype="Number" style="width: 3rem;" />
+            data-dtype="Number" style="width: 3rem;" name="system.reactions" type="text"/>
         </div>
       </div>
-      <div class="ac-resource ac-stat-holder ac-action-stat" title="Reactions Remaining" style="gap: 0.1rem !important;">
-        <label class="ac-item-name">Movement:</label>
+      <div class="ac-resource ac-stat-holder ac-action-stat" title="Movement Remaining" style="gap: 0.1rem !important;">
+        <label class="ac-item-name" for="system.movement">Movement:</label>
         <div class="ac-resource-xp">
-          <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input" type="text"
+          <input class="ac-stat-text as-resource-input"
             inputmode="numeric" value="{{system.movement}}"
-            data-dtype="Number" style="width: 3rem;" />
+            data-dtype="Number" style="width: 3rem;" name="system.movement" type="text" />
         </div>
       </div>
     </div>

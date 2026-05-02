@@ -82,7 +82,7 @@ export const weaponEffects = [
             });
         },
         (count) => {
-            return `Apply ${count} [Type] Fragility, chosen on application.`
+            return `Apply ${Number(count)} [Type] Fragility, chosen on application.`
         },
         ["Clash Win", "Clash Lose"],
         false, 5, false, true
@@ -105,7 +105,7 @@ export const weaponEffects = [
     new Effect(
         "Multi-hit",
         (context, count, trigger) => { 
-            context.conditionals.push(new Conditional("Multi-Hit", `Lose 2 Dice Power. Replace attack with ${count + 1} attacks.`, (context) => {
+            context.conditionals.push(new Conditional("Multi-Hit", `Lose 2 Dice Power. Replace attack with ${Number(count) + 1} attacks.`, (context) => {
                 context.dicePower = Number(context.dicePower) - 2;
                 context.diceCount = Number(context.diceCount) + Number(count);
             }));
@@ -119,8 +119,8 @@ export const weaponEffects = [
     new Effect(
         "Double-Edged",
         (context, count, trigger) => { 
-            context.triggers["Clash Win"].applyInfliction("Bleed", 2, true);
-            context.triggers["Clash Lose"].applyInfliction("Bleed", -2, true);
+            context.triggers["Clash Win"].applyInfliction("Bleed", 2, false);
+            context.triggers["Clash Lose"].applyInfliction("Bleed", -2, false);
         },
         (count) => {
             return [null, "Inflict 2 [/status/Bleed] Bleed", "Gain 2 [/status/Bleed] Bleed", null, null];
@@ -189,7 +189,7 @@ export const weaponEffects = [
             context.trigger[trigger].applyInfliction("Bind", count, true);
         },
         (count) => {
-            return `Inflict ${count} [/status/Bind] Bind next round.`
+            return `Inflict ${Number(count)} [/status/Bind] Bind next round.`
         },
         ["Clash Win", "Clash Lose"],
         false
@@ -356,20 +356,20 @@ export const weaponEffects = [
     new Effect(
         `Loaded Magnet`,
         (context, count, trigger) => {
-            context.conditionals.push(new Conditional("Loaded Magnet [C]", `Spend 6 Charge to pull the target ${count} SQR.`, (context) => {
+            context.conditionals.push(new Conditional("Loaded Magnet [C]", `Spend 6 Charge to pull the target ${Number(count)} SQR.`, (context) => {
                 context.triggers[trigger].modify.push((ctx, data) => {
                     createEffectsMessage(context.target.name, `[/status/Aggro] Is pulled ${count} SQR towards ${context.actor.name} by Loaded Magnet!`);
                 });
             }, [{ cost: count * 3, status: "Charge"}], "Loaded Magnet [O]"));
 
-            context.conditionals.push(new Conditional("Loaded Magnet [O]", `Spend 1 Overcharge to pull the target ${count * 3} SQR.`, (context) => {
+            context.conditionals.push(new Conditional("Loaded Magnet [O]", `Spend 1 Overcharge to pull the target ${Number(count) * 3} SQR.`, (context) => {
                 context.triggers[trigger].modify.push((ctx, data) => {
                     createEffectsMessage(context.target.name, `[/status/Aggro] Is pulled ${count * 3} SQR towards ${context.actor.name} by Loaded Magnet!`);
                 });
             }, [{ cost: count, status: "Overcharge"}], "Loaded Magnet [C]"));
         },
         (count) => {
-            return `May spend ${3 * count} [/status/Charge] Charge to pull the target ${count} SQR, or ${count} [/status/Overcharge] Overcharge to pull them ${count * 3}.`;
+            return `May spend ${3 * count} [/status/Charge] Charge to pull the target ${Number(count)} SQR, or ${Number(count)} [/status/Overcharge] Overcharge to pull them ${Number(count) * 3}.`;
         },
         ["On Use"],
         false,
@@ -636,7 +636,7 @@ export const weaponEffects = [
                     dummyCtx.damageType = "Slash";
                     dummyCtx.actor = context.actor;
                     dummyCtx.target = context.target;
-                    let text = await context.target.takeDamage(poise, dummyCtx, 0, 0, 0, true, null);
+                    let text = await context.target.takeDamage(damage, dummyCtx, 0, 0, 0, true, null);
                     createEffectsMessage(context.target.name, text);
                 }
             })

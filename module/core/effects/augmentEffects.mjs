@@ -26,12 +26,12 @@ export const augmentEffects = [
         `Smoke Overflow`,
         (context, count, trigger) => {
             if (context.actor != null && context.actor.getStatusCount("Smoke") >= 4 + (4 * count)) {
-                context.dicePower = Number(context.dicePower) + count;
-                context.nonSkillDicePower = Number(context.nonSkillDicePower) + count;
+                context.dicePower = Number(context.dicePower) + Number(count);
+                context.nonSkillDicePower = Number(context.nonSkillDicePower) + Number(count);
             }
         },
         (count) => {
-            return `Gain ${count} Dice Power while at ${4 + (4 * count)} [/status/Smoke] Smoke.`
+            return `Gain ${Number(count)} Dice Power while at ${4 + (4 * count)} [/status/Smoke] Smoke.`
         },
         ["On Use"],
         false,
@@ -52,7 +52,7 @@ export const augmentEffects = [
             });
         },
         (count) => {
-            return `Gain ${count} Dice Power during the first round of combat.`;
+            return `Gain ${Number(count)} Dice Power during the first round of combat.`;
         },
         ["On Use"],
         false, 3, false, true
@@ -87,7 +87,7 @@ export const augmentEffects = [
             });
         },
         (count) => {
-            return `Gain ${count * 3} [/status/Charge] Charge.`
+            return `Gain ${Number(count) * 3} [/status/Charge] Charge.`
         },
         ["Combat Start"],
         false,
@@ -181,9 +181,9 @@ export const augmentEffects = [
     new Effect(
         "Lone Fighter",
         (context, count, trigger) => {
-            context.conditionals.push(new Conditional("Lone Fighter", `Increase Dice Power by ${count} if the target has not had action taken against them by an ally in 2 rounds.`, (context) => {
-                context.dicePower = Number(context.dicePower) + count;
-                context.nonSkillDicePower = Number(context.nonSkillDicePower) + count;
+            context.conditionals.push(new Conditional("Lone Fighter", `Increase Dice Power by ${Number(count)} if the target has not had action taken against them by an ally in 2 rounds.`, (context) => {
+                context.dicePower = Number(context.dicePower) + Number(count);
+                context.nonSkillDicePower = Number(context.nonSkillDicePower) + Number(count);
             }, [], null));
         },
         null,
@@ -361,10 +361,10 @@ export const augmentEffects = [
         },
         (count) => {
             if (count >= 0) {
-                return `Recover ${count} HP`;
+                return `Recover ${Number(count)} HP`;
             }
             else {
-                return `Lose ${count} HP`
+                return `Lose ${Number(count)} HP`
             }
         },
         ["Clash Win", "Clash Lose"],
@@ -389,10 +389,10 @@ export const augmentEffects = [
         },
         (count) => {
             if (count >= 0) {
-                return `Recover ${count} ST`;
+                return `Recover ${Number(count)} ST`;
             }
             else {
-                return `Lose ${count} ST`
+                return `Lose ${Number(count)} ST`
             }
         },
         ["Clash Win", "Clash Lose"],
@@ -488,12 +488,12 @@ export const augmentEffects = [
         "Slow Start",
         (context, trigger, count) => {
             if (currentRound <= 1) {
-                context.dicePower = Number(context.dicePower) - count;
-                context.nonSkillDicePower = Number(context.nonSkillDicePower) - count;
+                context.dicePower = Number(context.dicePower) - Number(count);
+                context.nonSkillDicePower = Number(context.nonSkillDicePower) - Number(count);
             }
         },
         (count) => {
-            return `Lose ${count} Dice Power during the first round of combat.`
+            return `Lose ${Number(count)} Dice Power during the first round of combat.`
         },
         ["On Use"],
         false, 5, false, false
@@ -681,7 +681,7 @@ function markerEffect(name, negative = false, count = 1) {
         null,
         ["Always Active"],
         negative,
-        count
+        Number(count)
     );
 }
 
@@ -737,7 +737,7 @@ function simpleStatusEffect(status, nextRound, invert = false) {
             context.triggers[trigger].applyInfliction(status, invert ? -count : count, nextRound);
         },
         (count) => {
-            return `${invert ? "Gain" : "Inflict"} ${count} [/status/${status}] ${status}` + str;
+            return `${invert ? "Gain" : "Inflict"} ${Number(count)} [/status/${status}] ${status}` + str;
         },
         ["Clash Win", "Clash Lose"],
         false
@@ -753,7 +753,7 @@ function flashEffect(name, status, allowNegative) {
             }
         },
         (count) => {
-            return `${count < 0 ? "Gain" : "Inflict"} ${Math.abs(count)} [/status/${status}] ${status} during the first round of combat.`;
+            return `${Number(count) < 0 ? "Gain" : "Inflict"} ${Math.abs(count)} [/status/${status}] ${status} during the first round of combat.`;
         },
         ["Clash Win"],
         allowNegative
@@ -766,7 +766,7 @@ function transferEffect(name, status) {
         (context, count, trigger) => {
             if (context.attackType == "Melee" || context.attackType == "Ranged") {
                 context.events["Clash Win"].push(async (context) => {
-                    let stacks = await pollUserInputText(context.actor, `${name}: Transfer up to ${count} [/status/${status}] ${status} from self to target or target to self (negative to transfer to self, positive to target)`, "Stacks Transfered", "number", count, count * -1);
+                    let stacks = await pollUserInputText(context.actor, `${name}: Transfer up to ${Number(count)} [/status/${status}] ${status} from self to target or target to self (negative to transfer to self, positive to target)`, "Stacks Transfered", "number", count, count * -1);
                     stacks = Number(stacks);
 
                     if (stacks < 0) {
@@ -785,7 +785,7 @@ function transferEffect(name, status) {
             }
         },
         (count) => {
-            return `Transfer up to ${count} [/status/${status}] ${status} from self to target or target to self.`;
+            return `Transfer up to ${Number(count)} [/status/${status}] ${status} from self to target or target to self.`;
         },
         ["Clash Win"],
         false,

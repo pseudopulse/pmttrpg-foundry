@@ -14,7 +14,7 @@ export const skillEffects = [
             context.skillDicePower = Number(context.skillDicePower) + Number(count);
         },
         (count) => {
-            return [count < 0 ? `Reduce Dice Power by ${Math.abs(count)}` : `Increase Dice Power by ${count}`, null, null]
+            return [Number(count) < 0 ? `Reduce Dice Power by ${Math.abs(count)}` : `Increase Dice Power by ${Number(count)}`, null, null]
         },
         ["Always Active"],
         true,
@@ -90,7 +90,7 @@ export const skillEffects = [
             }
         },
         (count) => {
-            return `Gain ${count} Dice Power if HP is less than ${(1 - (0.2 * count)) * 100}%`;
+            return `Gain ${Number(count)} Dice Power if HP is less than ${(1 - (0.2 * count)) * 100}%`;
         },
         ["On Use"],
         false,
@@ -105,7 +105,7 @@ export const skillEffects = [
             }
         },
         (count) => {
-            return `Gain ${count} Dice Power if SP is less than ${(1 - (0.2 * count)) * 100}%`;
+            return `Gain ${Number(count)} Dice Power if SP is less than ${(1 - (0.2 * count)) * 100}%`;
         },
         ["On Use"],
         false,
@@ -148,7 +148,7 @@ export const skillEffects = [
             });
         },
         (count) => {
-            return `Apply ${count} [Type] Fragility next round, chosen on application.`
+            return `Apply ${Number(count)} [Type] Fragility next round, chosen on application.`
         },
         ["Clash Win", "Clash Lose"],
         false, 5, false, true
@@ -267,7 +267,7 @@ export const skillEffects = [
             });
         },
         (count) => {
-            return `Trigger [/status/Burn] Burn on target and deal damage equal to [/status/Burn] Burn to all characters within ${count} SQR of the target.`;
+            return `Trigger [/status/Burn] Burn on target and deal damage equal to [/status/Burn] Burn to all characters within ${Number(count)} SQR of the target.`;
         },
         ["Clash Win"],
         false,
@@ -313,7 +313,7 @@ export const skillEffects = [
             });
         },
         (count) => {
-            return `Clear up to ${count * 2} [/status/Frostbite] Frostbite from the target, and deal 1d8 Force Damage for every 2 cleared.`
+            return `Clear up to ${Number(count) * 2} [/status/Frostbite] Frostbite from the target, and deal 1d8 Force Damage for every 2 cleared.`
         },
         ["Clash Win"],
         false, 5, false, true
@@ -329,7 +329,7 @@ export const skillEffects = [
             });
         },
         (count) => {
-            return `If the target has ${3 + count}+ [/status/Frostbite] Frostbite, apply [/status/Bind] Bind next round equal half of the target's [/status/Frostbite] Frostbite, up to ${count * 3}.`
+            return `If the target has ${3 + count}+ [/status/Frostbite] Frostbite, apply [/status/Bind] Bind next round equal half of the target's [/status/Frostbite] Frostbite, up to ${Number(count) * 3}.`
         },
         ["Clash Win"],
         false, 1, false, true
@@ -391,7 +391,7 @@ export const skillEffects = [
             });
         },
         (count) => {
-            return `If the user healed ${2 * count}+ HP during this action, inflict ${count} [/status/Bleed] Bleed.`
+            return `If the user healed ${2 * count}+ HP during this action, inflict ${Number(count)} [/status/Bleed] Bleed.`
         },
         ["Clash Win"],
         false, 5, false, true
@@ -409,7 +409,7 @@ export const skillEffects = [
             });
         },
         (count) => {
-            return `If the target has [/status/Bleed] Bleed, deal ${count * 3} HP damage or HP damage equal to [/status/Bleed] Bleed, whichever is lower.`
+            return `If the target has [/status/Bleed] Bleed, deal ${Number(count) * 3} HP damage or HP damage equal to [/status/Bleed] Bleed, whichever is lower.`
         },
         ["Clash Win"],
         false, 5, false, true
@@ -420,7 +420,7 @@ export const skillEffects = [
             context.triggers["On Crit"].applyInfliction("Bleed", count * 2, false);
         },
         (count) => {
-            return `Inflict ${count * 2} [/status/Bleed] Bleed.`
+            return `Inflict ${Number(count) * 2} [/status/Bleed] Bleed.`
         },
         ["On Crit"],
         false, 5, false, true
@@ -453,7 +453,7 @@ export const skillEffects = [
             }
         },
         (count) => {
-            return `If the user has ${count}+ [/status/Poise] Poise, gain ${count} Dice Power. If your augment includes Poise Bonus, increase the requirement by 3.`
+            return `If the user has ${Number(count)}+ [/status/Poise] Poise, gain ${Number(count)} Dice Power. If your augment includes Poise Bonus, increase the requirement by 3.`
         },
         ["On Use"],
         false, 5
@@ -461,10 +461,10 @@ export const skillEffects = [
     new Effect(
         `Increase Critical`,
         (context, count, trigger) => {
-            context.triggers[trigger].applyInfliction("Poise", -count, false);
+            context.triggers[trigger].applyInfliction("Critical", -count, false);
         },
         (count) => {
-            return `Gain ${count} [/status/Critical] Critical`;
+            return `Gain ${Number(count)} [/status/Critical] Critical`;
         },
         ["Clash Win", "Clash Lose"], false
     ),
@@ -484,7 +484,7 @@ export const skillEffects = [
         ["On Use"], false, 1, false, true
     ),
     markerEffect("Critical DMG+", false, 5, "On Crit", (count) => {
-        return `Deal ${count*3} HP damage.`;
+        return `Deal ${Number(count)*3} HP damage.`;
     }),
     new Effect(
         "Haste Crit",
@@ -495,7 +495,7 @@ export const skillEffects = [
             });
         },
         (count) => {
-            return `Gain ${count * 2} [/status/Haste] Haste next round.`
+            return `Gain ${Number(count) * 2} [/status/Haste] Haste next round.`
         },
         ["On Crit"],
         false, 5, false, true
@@ -506,14 +506,14 @@ export const skillEffects = [
         (context, count, trigger) => {
             context.flags.push("Scattering Dance");
             context.triggers["On Crit"].modify.push(async (ctx, data) => {
-                data.applyInfliction("Hemorrhage", Math.min(ctx.critical, 3), false);
+                data.applyInfliction("Hemorrhage", Math.min(Number(ctx.critical), 3), false);
             });
         },
         (count) => {
             return `Inflict [/status/Hemorrhage] Hemorrhage equal to [/status/Critical] Critical spent, max 3.`
         },
         ["On Crit"],
-        false, 5, false
+        false, 5, false, true
     ),
     new Effect(
         `Elusive`,
@@ -572,7 +572,7 @@ export const skillEffects = [
         ["Clash Win"], false, 1, false, true
     ),
     markerEffect("Devastation DMG+", false, 5, "Devastating Hit", (count) => {
-        return `Deal ${count*3} HP damage.`;
+        return `Deal ${Number(count)*3} HP damage.`;
     }),
     new Effect(
         "Armor Decay",
@@ -582,7 +582,7 @@ export const skillEffects = [
             context.triggers["Devastating Hit"].applyInfliction("Stagger_Fragile", count, false);
         },
         (count) => {
-            return `Inflict ${count} [/status/Disarm] Disarm, [/status/Fragile] Fragile, and [/status/Stagger_Fraggile] Stagger Fragile.`
+            return `Inflict ${Number(count)} [/status/Disarm] Disarm, [/status/Fragile] Fragile, and [/status/Stagger_Fraggile] Stagger Fragile.`
         },
         ["Devastating Hit"],
         false, 5, false
@@ -610,7 +610,7 @@ export const skillEffects = [
             });
         },
         (count) => {
-            return `Apply ${count * 2} [Type] Fragility next round, chosen on application.`
+            return `Apply ${Number(count) * 2} [Type] Fragility next round, chosen on application.`
         },
         ["Devastating Hit"],
         false, 5, false, true
@@ -623,7 +623,7 @@ export const skillEffects = [
             })
         },
         (count) => {
-            return `Push the target a distance equal to [/status/Devastation] Devastation, max ${count}.`
+            return `Push the target a distance equal to [/status/Devastation] Devastation, max ${Number(count)}.`
         },
         ["Devastating Hit"], false, 5, false, true
     ),
@@ -633,7 +633,7 @@ export const skillEffects = [
             context.triggers["Devastating Hit"].applyInfliction("Bind", count * 2, false);
         },
         (count) => {
-            return `Inflict ${count * 2} [/status/Bind] Bind next round.`
+            return `Inflict ${Number(count) * 2} [/status/Bind] Bind next round.`
         },
         ["Devastating Hit"],
         false, 5, false
@@ -646,7 +646,7 @@ export const skillEffects = [
             context.triggers["Devastating Hit"].applyInfliction("Bind", count * 2, true);
         },
         (count) => {
-            return `Inflict ${count} [/status/Feeble] Feeble, [/status/Disarm] Disarm, and ${count * 2} [/status/Bind] Bind next roun.`
+            return `Inflict ${Number(count)} [/status/Feeble] Feeble, [/status/Disarm] Disarm, and ${Number(count) * 2} [/status/Bind] Bind next roun.`
         },
         ["Devastating Hit"],
         false, 5, false
@@ -724,7 +724,7 @@ export const skillEffects = [
             })
         },
         (count) => {
-            return `Inflict [/status/Fragile] Fragile next round equal to half of burst [/status/Rupture] Rupture, max ${count * 3}.`
+            return `Inflict [/status/Fragile] Fragile next round equal to half of burst [/status/Rupture] Rupture, max ${Number(count) * 3}.`
         }, 
         ["Rupture Burst"], false, 5, false, true
     ),
@@ -826,7 +826,7 @@ export const skillEffects = [
             })
         },
         (count) => {
-            return `Inflict [/status/Stagger_Fragile] Stagger Fragile next round equal to half of burst [/status/Tremor] Tremor, max ${count * 3}.`
+            return `Inflict [/status/Stagger_Fragile] Stagger Fragile next round equal to half of burst [/status/Tremor] Tremor, max ${Number(count) * 3}.`
         }, 
         ["Tremor Burst"], false, 5, false, true
     ),
@@ -867,13 +867,13 @@ export const skillEffects = [
             });
         },
         (count) => {
-            return `Push the target 1 SQR for every 2 [/status/Tremor] Tremor bursted, max ${count}.`
+            return `Push the target 1 SQR for every 2 [/status/Tremor] Tremor bursted, max ${Number(count)}.`
         },
         ["Tremor Burst"],
         false, 5, false, true
     ),
     markerEffect("Earthquake", false, 5, ["Tremor Burst"], count => {
-        `Apply the target's [/status/Tremor] Tremor to characters within ${count} SQR. Affected targets receive ${count * 2} [/status/Bind] Bind next round.`
+        `Apply the target's [/status/Tremor] Tremor to characters within ${Number(count)} SQR. Affected targets receive ${Number(count) * 2} [/status/Bind] Bind next round.`
     }),
     //
     simpleStatusEffect("Sinking", true, true),
@@ -926,7 +926,7 @@ export const skillEffects = [
             })
         },
         (count) => {
-            return `Inflict [/status/Paralysis] Paralysis next round equal to half of burst [/status/Sinking] Sinking, max ${count}`
+            return `Inflict [/status/Paralysis] Paralysis next round equal to half of burst [/status/Sinking] Sinking, max ${Number(count)}`
         },
         ["Sinking Burst"], false, 5, false, true
     ),
@@ -941,7 +941,7 @@ export const skillEffects = [
             })
         },
         (count) => {
-            return `Inflict [/status/Smoke] Smoke next round equal to burst [/status/Sinking] Sinking, max ${count * 2}`
+            return `Inflict [/status/Smoke] Smoke next round equal to burst [/status/Sinking] Sinking, max ${Number(count) * 2}`
         },
         ["Sinking Burst"], false, 5, false, true
     ),
@@ -956,7 +956,7 @@ export const skillEffects = [
             })
         },
         (count) => {
-            return `Inflict [/status/Frostbite] Frostbite next round equal to burst [/status/Sinking] Sinking, max ${count * 2}`
+            return `Inflict [/status/Frostbite] Frostbite next round equal to burst [/status/Sinking] Sinking, max ${Number(count) * 2}`
         },
         ["Sinking Burst"], false, 5, false, true
     ),
@@ -981,7 +981,7 @@ export const skillEffects = [
             })
         },
         (count) => {
-            return `Transfer all [/status/Sinking] Sinking from target to self. Gain 1 [/status/Strength] Strength and [/status/Endurance] Endurance next round for every 2 absorbed, max ${count}.`
+            return `Transfer all [/status/Sinking] Sinking from target to self. Gain 1 [/status/Strength] Strength and [/status/Endurance] Endurance next round for every 2 absorbed, max ${Number(count)}.`
         },
         ["Clash Win"], false, 5, false, true
     ),
@@ -999,12 +999,12 @@ export const skillEffects = [
             })
         },
         (count) => {
-            return `Transfer up to ${count} [/status/Sinking] Sinking from self to target, applying next round.`
+            return `Transfer up to ${Number(count)} [/status/Sinking] Sinking from self to target, applying next round.`
         },
         ["Clash Win"], false, 5, false, true
     ),
     markerEffect("Lowered Guard", false, 5, "Clash Lose", (count) => {
-        return `When at ${count}+ [/status/Sinking] Sinking, gain ${count * 2} [/status/Protection] Protection and [/status/Stagger_Protection] Stagger Protection before taking damage.`
+        return `When at ${Number(count)}+ [/status/Sinking] Sinking, gain ${Number(count) * 2} [/status/Protection] Protection and [/status/Stagger_Protection] Stagger Protection before taking damage.`
     }),
     //
     simpleStatusEffect("Smoke", false, true),
@@ -1022,7 +1022,7 @@ export const skillEffects = [
             }
         },
         (count) => {
-            return `Gain ${count} Dice Power if the user has ${2 * count}+ [/status/Smoke] Smoke. Increase requirement by 2 for every count of Smoke Overflow on augment..`
+            return `Gain ${Number(count)} Dice Power if the user has ${2 * count}+ [/status/Smoke] Smoke. Increase requirement by 2 for every count of Smoke Overflow on augment..`
         },
         ["On Use"],
         false,
@@ -1111,7 +1111,7 @@ export const skillEffects = [
             })
         },
         (count) => {
-            return `If at or above ${count} [/status/Haste] Haste, push the target ${count} SQR in any direction.`
+            return `If at or above ${Number(count)} [/status/Haste] Haste, push the target ${Number(count)} SQR in any direction.`
         },
         ["Clash Win"], false, 5, false, true
     ),
@@ -1119,7 +1119,7 @@ export const skillEffects = [
         `Follow Through`,
         (context, count, trigger) => {
             context.conditionals.push(new Conditional(
-                "Follow Through", `When moving ${count * 2} SQR before the attack, deal ${count}d8 Force Damage`,
+                "Follow Through", `When moving ${Number(count) * 2} SQR before the attack, deal ${Number(count)}d8 Force Damage`,
                 (context) => {
                     context.flags.push("Follow Through");
                 },
@@ -1133,7 +1133,7 @@ export const skillEffects = [
             });
         },
         (count) => {
-            return `If at or above ${count} [/status/Haste] Haste and moved ${count * 2} SQR towards the target, deal ${count}d8 Force Damage.`
+            return `If at or above ${Number(count)} [/status/Haste] Haste and moved ${Number(count) * 2} SQR towards the target, deal ${Number(count)}d8 Force Damage.`
         },
         ["Clash Win"], false, 5, false, true
     ),
@@ -1146,7 +1146,7 @@ export const skillEffects = [
             }
         },
         (count) => {
-            return `If at or above ${count * 2} [/status/Haste] Haste, replace attack with ${count} attacks with -2 Dice Power.`
+            return `If at or above ${Number(count) * 2} [/status/Haste] Haste, replace attack with ${Number(count)} attacks with -2 Dice Power.`
         },
         ["On Use"], false, 2, false, false
     ),
@@ -1202,7 +1202,7 @@ export const skillEffects = [
             });
         },
         (count) => {
-            return `Gain ${count} [Type] Protection next round, chosen on application.`
+            return `Gain ${Number(count)} [Type] Protection next round, chosen on application.`
         },
         ["Clash Win", "Clash Lose"],
         false, 5, false, true
@@ -1212,69 +1212,69 @@ export const skillEffects = [
         (data, count) => {
             data.applyInfliction("Stagger_Fragile", 3 * count, true);
         },
-        count => `apply ${count * 3} [/status/Stagger_Fragile] Stagger Fragile next round`,
+        count => `apply ${Number(count) * 3} [/status/Stagger_Fragile] Stagger Fragile next round`,
     ),
     markEffect("Finish them Off",
         (data, count) => {
             data.applyInfliction("Fragile", 3 * count, true);
         },
-        count => `apply ${count * 3} [/status/Fragile] Fragile next round`,
+        count => `apply ${Number(count) * 3} [/status/Fragile] Fragile next round`,
     ),
     markEffect("Ignite the Wound",
         (data, count) => {
             data.applyInfliction("Burn", count, false);
             data.applyInfliction("Bleed", count, false);
         },
-        count => `apply ${count} [/status/Burn] Burn and [/status/Bleed] Bleed`,
+        count => `apply ${Number(count)} [/status/Burn] Burn and [/status/Bleed] Bleed`,
     ),
     markEffect("Hammer the Gap",
         (data, count) => {
             data.applyInfliction("Rupture", count * 2, true);
             data.applyInfliction("Tremor", count, true);
         },
-        count => `apply ${count * 2} [/status/Rupture] Rupture and ${count} [/status/Tremor] Tremornext round`,
+        count => `apply ${Number(count) * 2} [/status/Rupture] Rupture and ${Number(count)} [/status/Tremor] Tremornext round`,
     ),
     markEffect("Make them Cry",
         (data, count) => {
             data.applyInfliction("Sinking", count, false);
             data.applyInfliction("Smoke", count, false);
         },
-        count => `apply ${count} [/status/Sinking] Sinking and [/status/Smoke] Smoke`,
+        count => `apply ${Number(count)} [/status/Sinking] Sinking and [/status/Smoke] Smoke`,
     ),
     markEffect("Freeze in Place",
         (data, count) => {
             data.applyInfliction("Frostbite", count, false);
             data.applyInfliction("Bind", count, true);
         },
-        count => `apply ${count} [/status/Frostbite] Frostbite and [/status/Bind] Bind`,
+        count => `apply ${Number(count)} [/status/Frostbite] Frostbite and [/status/Bind] Bind`,
     ),
     markEffect("Sense their Weakness",
         (data, count) => {
             data.applyInfliction("Ruin", count, false);
             data.applyInfliction("Poise", -count, false);
         },
-        count => `apply ${count} [/status/Ruin] Ruin and gain ${count} [/status/Poise] Poise`,
+        count => `apply ${Number(count)} [/status/Ruin] Ruin and gain ${Number(count)} [/status/Poise] Poise`,
     ),
     markEffect("Exploit the Opportunity",
         (data, count) => {
             data.applyInfliction("Devastation", count, false);
             data.applyInfliction("Critical", -count, false);
         },
-        count => `apply ${count} [/status/Devastation] Devastation and gain ${count} [/status/Critical] Critical`,
+        count => `apply ${Number(count)} [/status/Devastation] Devastation and gain ${Number(count)} [/status/Critical] Critical`,
     ),
     markEffect("Weaken your Quarry",
         (data, count) => {
             data.applyInfliction("Feeble", count, true);
             data.applyInfliction("Disarm", count, true);
         },
-        count => `apply ${count} [/status/Feeble] Feeble and [/status/Disarm] Disarm next round`,
+        count => `apply ${Number(count)} [/status/Feeble] Feeble and [/status/Disarm] Disarm next round`,
     ),
     markEffect("Capture Them",
         (data, count) => {
             data.applyInfliction("Bind", count * 2, true);
             data.applyInfliction("Paralysis", count, true);
         },
-        count => `apply ${count * 2} [/status/Bind] Bind and ${count} [/status/Paralysis] Paralysis next round`,
+        count => `apply ${Number(count) * 2} [/status/Bind] Bind and ${Number(count)} [/status/Paralysis] Paralysis next round`,
     ),
     markEffect("Assist Attack",
         (data, count) => {
@@ -1332,7 +1332,7 @@ export const skillEffects = [
             }
         },
         (count) => {
-            return count < 0 ? `Spend ${Math.abs(count)} [/status/Charge] Charge` : `Gain ${count} [/status/Charge] Charge`;
+            return count < 0 ? `Spend ${Math.abs(count)} [/status/Charge] Charge` : `Gain ${Number(count)} [/status/Charge] Charge`;
         },
         ["On Use"],
         true,
@@ -1340,34 +1340,34 @@ export const skillEffects = [
     ),
     chargeEffect("Charge - Dice Power Up", 6,
         (context, count, trigger) => {
-            context.dicePower = Number(context.dicePower) + count;
-            context.skillDicePower = Number(context.skillDicePower) + count;
+            context.dicePower = Number(context.dicePower) + Number(count);
+            context.skillDicePower = Number(context.skillDicePower) + Number(count);
         },
-        count => `increase Dice Power by ${count}`, ["On Use"]
+        count => `increase Dice Power by ${Number(count)}`, ["On Use"]
     ),
     chargeEffect("Charge - Dice Max Up", 3,
         (context, count, trigger) => {
             context.diceMax = Number(context.diceMax) + count;
         },
-        count => `increase Dice Max by ${count}`, ["On Use"]
+        count => `increase Dice Max by ${Number(count)}`, ["On Use"]
     ),
     chargeEffect("Charge - Regen HP", 2,
         (context, count, trigger) => {
             context.triggers[trigger].hpHeal = Number(context.triggers[trigger].hpHeal) + (count * 3);
         },
-        count => `recover ${count * 3} HP`
+        count => `recover ${Number(count) * 3} HP`
     ),
     chargeEffect("Charge - Regen ST", 2,
         (context, count, trigger) => {
             context.triggers[trigger].stHeal = Number(context.triggers[trigger].stHeal) + (count * 2);
         },
-        count => `recover ${count * 2} ST`
+        count => `recover ${Number(count) * 2} ST`
     ),
     chargeEffect("Charge - Regen SP", 2,
         (context, count, trigger) => {
             context.triggers[trigger].spHeal = Number(context.triggers[trigger].spHeal) + (count * 2);
         },
-        count => `recover ${count * 2} SP`
+        count => `recover ${Number(count) * 2} SP`
     ),
     //
     chargeInflictStatus("Burn", 2),
@@ -1399,7 +1399,7 @@ export const skillEffects = [
             context.dicePower = Number(context.dicePower) - 2;
             context.skillDicePower = Number(context.skillDicePower) - 2;
         },
-        count => `replace attack with ${count} attacks with -2 Dice Power each`
+        count => `replace attack with ${Number(count)} attacks with -2 Dice Power each`
     , ["On Use"], 2),
     chargeEffect("Charge - Shooting Star", 6,
         (context, count, trigger) => {
@@ -1433,7 +1433,7 @@ export const skillEffects = [
             });
         },
         (count) => {
-            return `Push the target a distance equal to [/status/Charge_Barrier] Charge Barrier on self, max ${count} SQR.`
+            return `Push the target a distance equal to [/status/Charge_Barrier] Charge Barrier on self, max ${Number(count)} SQR.`
         },
         ["Clash Win", "Clash Lose"], false, 5, false, true
     ),
@@ -1492,7 +1492,7 @@ export const skillEffects = [
                 await context.actor.takeForceDamage(count, context);
             });
         },
-        count => `deal ${count}d8 Force Damage and push target up to ${count * 2} SQR`,
+        count => `deal ${Number(count)}d8 Force Damage and push target up to ${Number(count) * 2} SQR`,
         ["Clash Win"], 3, false
     ),
     overchargeEffectEvent("Overcharge - Loaded Branding", 2,
@@ -1517,7 +1517,7 @@ export const skillEffects = [
         (context, count, trigger) => {
             
         },
-        count => `create up to ${count * 2} hazards in adjacent tiles`,
+        count => `create up to ${Number(count) * 2} hazards in adjacent tiles`,
         ["Clash Win", "Clash Lose"], 5, true
     ),
     overchargeEffect("Overcharge - Adaptive Shot", 2,
@@ -1547,7 +1547,7 @@ export const skillEffects = [
                 }, context.actor);
             });
         },
-        count => `apply 5 [/status/Charge_Barrier] Charge Barrier next round to up to ${count} allies within 3 SQR`,
+        count => `apply 5 [/status/Charge_Barrier] Charge Barrier next round to up to ${Number(count)} allies within 3 SQR`,
         ["Clash Win", "Clash Lose"], 5, true
     ),
     overchargeEffectEvent("Overcharge - Vulnerability", 4,
@@ -1606,7 +1606,7 @@ function healEffect(val, cat) {
             }
         },
         (count) => {
-            return count < 0 ? `Take ${count * val} ${cat} damage` : `Recover ${count * val} ${cat}`;
+            return count < 0 ? `Take ${Number(count) * val} ${cat} damage` : `Recover ${Number(count) * val} ${cat}`;
         },
         ["Clash Win", "Clash Lose"],
         true, 5, false, true
@@ -1618,7 +1618,7 @@ function chargeInflictStatus(name, cost, nextRound = false) {
         (context, count, trigger) => {
             context.triggers[trigger].applyInfliction(name.replace(" ", "_"), count, nextRound);
         },
-        count => `inflict ${count} [/status/${name.replace(" ", "_")}] ${name}${nextRound ? " next round" : ""}`
+        count => `inflict ${Number(count)} [/status/${name.replace(" ", "_")}] ${name}${nextRound ? " next round" : ""}`
     );
 }
 
@@ -1728,7 +1728,7 @@ function simpleStatusEffectSelf(status, amount) {
             data.applyInfliction(status.replace(" ", "_"), amount, true);
         },
         (count) => {
-            return `Gain ${count} [/status/${status.replace(" ", "_")}] ${status} next round.`;
+            return `Gain ${Number(count)} [/status/${status.replace(" ", "_")}] ${status} next round.`;
         },
         ["Clash Win", "Clash Lose"],
         false, 5, false, false
@@ -1836,7 +1836,7 @@ function chargeAllyStatusEffect(status, cost, mult, nextRound) {
             });
         },
         (count) => {
-            return `Distribute ${count * mult} [/status/${status.replace(" ", "_")}] ${status} ${nextRound ? "next round " : ""}amongst allies.`
+            return `Distribute ${Number(count) * mult} [/status/${status.replace(" ", "_")}] ${status} ${nextRound ? "next round " : ""}amongst allies.`
         },
         ["Clash Win", "Clash Lose"],
         false, 5, false, true
@@ -1879,7 +1879,7 @@ function allyStatusEffect(status, mult, nextRound) {
             });
         },
         (count) => {
-            return `Distribute ${count * mult} [/status/${status.replace(" ", "_")}] ${status} ${nextRound ? "next round " : ""}amongst allies.`
+            return `Distribute ${Number(count) * mult} [/status/${status.replace(" ", "_")}] ${status} ${nextRound ? "next round " : ""}amongst allies.`
         },
         ["Clash Win", "Clash Lose"],
         false, 5, false, true
@@ -1893,7 +1893,7 @@ function statusPauseEffect(status, max = 5) {
             context.triggers[trigger].applyInfliction(status.replace(" ", "_"), count, false);
         },
         (count) => {
-            return `Inflict ${count} [/status/${status.replace(" ", "_")}] ${status}.`
+            return `Inflict ${Number(count)} [/status/${status.replace(" ", "_")}] ${status}.`
         },
         ["Clash Win"],
         false, max
@@ -1941,7 +1941,7 @@ function skillVigorEffect(status, req, dupReq, multReq = 1) {
             }
         },
         (count) => {
-            return `Gain ${count} Dice Power if the user has ${req + (count * multReq)} [/status/${status}] ${status}.`
+            return `Gain ${Number(count)} Dice Power if the user has ${req + (count * multReq)} [/status/${status}] ${status}.`
         },
         ["On Use"],
         false,
@@ -1959,7 +1959,7 @@ function skillBonusEffect(status, req, max = 5, multReq = 1) {
             }
         },
         (count) => {
-            return `If the target has ${(req + (count * multReq)) > 1 ? (req + (count * multReq)) + " " : ""}[/status/${status}] ${status}, gain ${count} Dice Power`
+            return `If the target has ${(req + (count * multReq)) > 1 ? (req + (count * multReq)) + " " : ""}[/status/${status}] ${status}, gain ${Number(count)} Dice Power`
         },
         ["On Use"],
         false,

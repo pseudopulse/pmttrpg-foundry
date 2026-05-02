@@ -66,6 +66,9 @@ export class RollContext {
         this.converted = false;
         //
         this.isReaction = false;
+        //
+        this.minRoll = 0;
+        this.maxRoll = 0;
 
         for (const trigger of triggerTypes) {
             this.triggers[trigger] = new TriggerEvents();
@@ -141,6 +144,83 @@ export class RollContext {
         this.costs = newCosts;
     }
 
+    async resolveInstantCritDeva(triggers) {
+        let lines = [];
+
+        for (const trigger of triggers) {
+            let data = this.triggers[trigger];
+
+            for (const func of data.modify) {
+                if (func != null) {
+                    await func(this, data);
+                }
+            }
+
+            for (const infliction of data.inflictions) {
+                let status = infliction.key;
+                if (status != "Critical" && status != "Devastation") continue;
+                if (status == "Critical" && !this.hasEffect("Instant Crit")) continue;
+                if (status == "Devastation" && !this.hasEffect("Instant Devastation")) continue;
+
+                let cur = Number(infliction.count);
+
+                if (this.flags.includes("Reflective Barrier") && cur > 0) {
+                    cur = -cur;
+                }
+
+                if (this.flags.includes("OC Vuln") && cur > 0) {
+                    cur = 2 * cur;
+                }
+
+                if (this.flags.includes("Refractor-C") && statusPlusValid.includes(status)) {
+                    cur += 1;
+                }
+
+                if (this.flags.includes("Refractor-O") && statusPlusValid.includes(status)) {
+                    cur += 3;
+                }
+
+                let plusEffect = this.effects.find(x => x.name == `${infliction.key}+`);
+                if (plusEffect != null) {
+                    cur += plusEffect.count;
+                }
+
+                if (this.actor.augmentEffectCount("Rekindled Embers") > 0 && infliction.key == "Burn") {
+                    let thresholds = Math.min(Math.floor((max - stat) / (max * 0.25)), 3);
+                    cur += thresholds;
+                }
+
+                if (this.actor.hasMarkApplied(this.target, MARKS.Crippling) && statusPlusValid.includes(status)) {
+                    cur += 1;
+                }
+
+                if (this.hasEffect(`Instant ${infliction.key}`)) {
+                    infliction.nextRound = false;
+                }
+
+                if (cur < 0) {
+                    let prev = infliction.nextRound ? Number(this.actor.getStatusCountNext(status)) : Number(this.actor.getStatusCount(status));
+                    await this.actor.applyStatus(status, infliction.nextRound ? 0 : Math.abs(cur), infliction.nextRound ? Math.abs(cur) : 0);
+                    lines.push(`Gain ${Math.abs(cur)} [/status/${status}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + Math.abs(cur)})`);
+                }
+                else {
+                    if (this.target != null && !this.ignoringInflictions) {
+                        let prev = infliction.nextRound ? Number(this.target.getStatusCountNext(status)) : Number(this.target.getStatusCount(status));
+                        await this.target.applyStatus(status, infliction.nextRound ? 0 : cur, infliction.nextRound ? cur : 0);
+                        if (!alreadyApplied.includes(status)) {
+                            alreadyApplied.push(status);
+                            totalAidHP += 3;
+                        }
+
+                        lines.push(`Inflict ${cur} [/status/${status}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + cur})`);
+                    }
+                }
+            }
+        }
+
+        return this.append("", lines);
+    }
+
     async resolveTriggers(triggers) {
         let lines = [];
         this.mergeCosts();
@@ -165,6 +245,8 @@ export class RollContext {
                     await func(this, data);
                 }
             }
+
+            data.mergeInflictions();
 
             if (data.hpHeal > 0 || data.spHeal > 0 || data.stHeal > 0) {
                 let php = this.actor.system.attributes.health.value;
@@ -219,6 +301,9 @@ export class RollContext {
             for (const infliction of data.inflictions) {
                 let status = infliction.key;
                 let cur = Number(infliction.count);
+
+                if (status == "Critical" && this.hasEffect("Instant Crit")) continue;
+                if (status == "Devastation" && this.hasEffect("Instant Devastation")) continue;
 
                 if (this.flags.includes("Reflective Barrier") && cur > 0) {
                     cur = -cur;
@@ -299,10 +384,10 @@ export class RollContext {
         }
         
         this.alreadyAppliedPowerNull = true;
-        this.dicePower = this.dicePower - this.nonSkillDicePower;
+        this.dicePower = Number(this.dicePower) - this.nonSkillDicePower;
         
         if (nullifySkill) {
-            this.dicePower = this.dicePower - this.skillDicePower;
+            this.dicePower = Number(this.dicePower) - this.skillDicePower;
         }
     }
 
@@ -315,31 +400,31 @@ export class RollContext {
                     case "Slash":
                     case "Blunt":
                     case "Pierce":
-                        this.dicePower = this.dicePower + Number(this.actor.system.attributes.rank.value);
+                        this.dicePower = Number(this.dicePower) + Number(this.actor.system.attributes.rank.value);
                         //
-                        this.dicePower = this.dicePower + await this.actor.getStatusCount("Strength");
-                        this.nonSkillDicePower = this.nonSkillDicePower + await this.actor.getStatusCount("Strength");
+                        this.dicePower = Number(this.dicePower) + await this.actor.getStatusCount("Strength");
+                        this.nonSkillDicePower = Number(this.nonSkillDicePower) + await this.actor.getStatusCount("Strength");
                         //
-                        this.dicePower = this.dicePower - await this.actor.getStatusCount("Feeble");
-                        this.nonSkillDicePower = this.nonSkillDicePower - await this.actor.getStatusCount("Feeble");
+                        this.dicePower = Number(this.dicePower) - await this.actor.getStatusCount("Feeble");
+                        this.nonSkillDicePower = Number(this.nonSkillDicePower) - await this.actor.getStatusCount("Feeble");
                         break;
                     case "Block":
-                        this.dicePower = this.dicePower + Number(this.actor.system.abilities.Temperance.value);
+                        this.dicePower = Number(this.dicePower) + Number(this.actor.system.abilities.Temperance.value);
                         //
-                        this.dicePower = this.dicePower + await this.actor.getStatusCount("Endurance");
-                        this.nonSkillDicePower = this.nonSkillDicePower + await this.actor.getStatusCount("Endurance");
+                        this.dicePower = Number(this.dicePower) + await this.actor.getStatusCount("Endurance");
+                        this.nonSkillDicePower = Number(this.nonSkillDicePower) + await this.actor.getStatusCount("Endurance");
                         //
-                        this.dicePower = this.dicePower - await this.actor.getStatusCount("Disarm");
-                        this.nonSkillDicePower = this.nonSkillDicePower - await this.actor.getStatusCount("Disarm");
+                        this.dicePower = Number(this.dicePower) - await this.actor.getStatusCount("Disarm");
+                        this.nonSkillDicePower = Number(this.nonSkillDicePower) - await this.actor.getStatusCount("Disarm");
                         break;
                     case "Evade":
-                        this.dicePower = this.dicePower + Number(this.actor.system.abilities.Insight.value);
+                        this.dicePower = Number(this.dicePower) + Number(this.actor.system.abilities.Insight.value);
                         //
-                        this.dicePower = this.dicePower + await this.actor.getStatusCount("Endurance");
-                        this.nonSkillDicePower = this.nonSkillDicePower + await this.actor.getStatusCount("Endurance");
+                        this.dicePower = Number(this.dicePower) + await this.actor.getStatusCount("Endurance");
+                        this.nonSkillDicePower = Number(this.nonSkillDicePower) + await this.actor.getStatusCount("Endurance");
                         //
-                        this.dicePower = this.dicePower - await this.actor.getStatusCount("Disarm");
-                        this.nonSkillDicePower = this.nonSkillDicePower - await this.actor.getStatusCount("Disarm");
+                        this.dicePower = Number(this.dicePower) - await this.actor.getStatusCount("Disarm");
+                        this.nonSkillDicePower = Number(this.nonSkillDicePower) - await this.actor.getStatusCount("Disarm");
                         //
                         this.diceMax = this.diceMax + 2;
                         break;
@@ -355,11 +440,11 @@ export class RollContext {
                     break;
                 case "Armored":
                     if (this.damageType == "Block") {
-                        this.dicePower = this.dicePower + 1;
+                        this.dicePower = Number(this.dicePower) + 1;
                     }
                 case "Swift":
                     if (this.damageType == "Evade") {
-                        this.dicePower = this.dicePower + 1;
+                        this.dicePower = Number(this.dicePower) + 1;
                     }
                 default:
                     break;
@@ -367,17 +452,20 @@ export class RollContext {
 
             switch (this.hand) {
                 case "Offensive 1H":
-                    this.dicePower = this.dicePower + 1;
+                    this.dicePower = Number(this.dicePower) + 1;
                     break;
                 case "Offensive 2H":
-                    this.dicePower = this.dicePower + 2;
+                    this.dicePower = Number(this.dicePower) + 2;
                     break;
                 default:
                     break;
             }
             
             for (const effect of this.effects) {
-                effect.effect.apply(this, effect.count, effect.trigger);
+                this.dicePower = Number(this.dicePower);
+                this.nonSkillDicePower = Number(this.nonSkillDicePower);
+                this.skillDicePower = Number(this.skillDicePower);
+                effect.effect.apply(this, Number(effect.count), effect.trigger);
             }
             
             for (const conditional of this.activeConditionals) {
@@ -401,31 +489,31 @@ export class RollContext {
                 case "Slash":
                 case "Blunt":
                 case "Pierce":
-                    this.dicePower = this.dicePower + Number(this.actor.system.attributes.rank.value);
+                    this.dicePower = Number(this.dicePower) + Number(this.actor.system.attributes.rank.value);
                     //
-                    this.dicePower = this.dicePower + this.actor.getStatusCount("Strength");
-                    this.nonSkillDicePower = this.nonSkillDicePower + this.actor.getStatusCount("Strength");
+                    this.dicePower = Number(this.dicePower) + this.actor.getStatusCount("Strength");
+                    this.nonSkillDicePower = Number(this.nonSkillDicePower) + this.actor.getStatusCount("Strength");
                     //
-                    this.dicePower = this.dicePower - this.actor.getStatusCount("Feeble");
-                    this.nonSkillDicePower = this.nonSkillDicePower - this.actor.getStatusCount("Feeble");
+                    this.dicePower = Number(this.dicePower) - this.actor.getStatusCount("Feeble");
+                    this.nonSkillDicePower = Number(this.nonSkillDicePower) - this.actor.getStatusCount("Feeble");
                     break;
                 case "Block":
-                    this.dicePower = this.dicePower + Number(this.actor.system.abilities.Temperance.value);
+                    this.dicePower = Number(this.dicePower) + Number(this.actor.system.abilities.Temperance.value);
                     //
-                    this.dicePower = this.dicePower + this.actor.getStatusCount("Endurance");
-                    this.nonSkillDicePower = this.nonSkillDicePower + this.actor.getStatusCount("Endurance");
+                    this.dicePower = Number(this.dicePower) + this.actor.getStatusCount("Endurance");
+                    this.nonSkillDicePower = Number(this.nonSkillDicePower) + this.actor.getStatusCount("Endurance");
                     //
-                    this.dicePower = this.dicePower - this.actor.getStatusCount("Disarm");
-                    this.nonSkillDicePower = this.nonSkillDicePower - this.actor.getStatusCount("Disarm");
+                    this.dicePower = Number(this.dicePower) - this.actor.getStatusCount("Disarm");
+                    this.nonSkillDicePower = Number(this.nonSkillDicePower) - this.actor.getStatusCount("Disarm");
                     break;
                 case "Evade":
-                    this.dicePower = this.dicePower + Number(this.actor.system.abilities.Insight.value);
+                    this.dicePower = Number(this.dicePower) + Number(this.actor.system.abilities.Insight.value);
                     //
-                    this.dicePower = this.dicePower + this.actor.getStatusCount("Endurance");
-                    this.nonSkillDicePower = this.nonSkillDicePower + this.actor.getStatusCount("Endurance");
+                    this.dicePower = Number(this.dicePower) + this.actor.getStatusCount("Endurance");
+                    this.nonSkillDicePower = Number(this.nonSkillDicePower) + this.actor.getStatusCount("Endurance");
                     //
-                    this.dicePower = this.dicePower - this.actor.getStatusCount("Disarm");
-                    this.nonSkillDicePower = this.nonSkillDicePower - this.actor.getStatusCount("Disarm");
+                    this.dicePower = Number(this.dicePower) - this.actor.getStatusCount("Disarm");
+                    this.nonSkillDicePower = Number(this.nonSkillDicePower) - this.actor.getStatusCount("Disarm");
                     //
                     this.diceMax = this.diceMax + 2;
                     break;
@@ -441,12 +529,12 @@ export class RollContext {
                 break;
             case "Armored":
                 if (this.damageType == "Block") {
-                    this.dicePower = this.dicePower + 1;
+                    this.dicePower = Number(this.dicePower) + 1;
                 }
                 break;
             case "Swift":
                 if (this.damageType == "Evade") {
-                    this.dicePower = this.dicePower + 1;
+                    this.dicePower = Number(this.dicePower) + 1;
                 }
                 break;
             default:
@@ -455,10 +543,10 @@ export class RollContext {
 
         switch (this.hand) {
             case "Offensive 1H":
-                this.dicePower = this.dicePower + 1;
+                this.dicePower = Number(this.dicePower) + 1;
                 break;
             case "Offensive 2H":
-                this.dicePower = this.dicePower + 2;
+                this.dicePower = Number(this.dicePower) + 2;
                 break;
             default:
                 break;
@@ -732,14 +820,14 @@ export class TriggerEvents {
     mergeInflictions() {
         let inflictions2 = [];
 
-        for (const infliction of inflictions) {
+        for (const infliction of this.inflictions) {
             let existing = inflictions2.find(x => x.key == infliction.key && x.nextRound == infliction.nextRound && ((x.count > 0 && infliction.count > 0) || (x.count < 0 && infliction.count < 0)));
 
             if (existing != null) {
                 existing.count += infliction.count;
             }
             else {
-                inflictions2.add(infliction);
+                inflictions2.push(infliction);
             }
         }
 

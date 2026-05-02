@@ -1,4 +1,5 @@
 export function enrichClashData(str) {
+    str = merge(str);
     const parts = str.split("\n");
     let result = "";
 
@@ -17,8 +18,64 @@ export function enrichClashData(str) {
             result = result.replace(match, `<img class="inline-status" src="systems/pmttrpg/assets${index}.png" width="24" height="24" />`);
         }
     }
-
+    
     return result;
+}
+
+function merge(text) {
+  const lines = text.split('\n');
+  if (lines.length == 0) {
+    lines = [text];
+  }
+  const map = {};
+  const swapMap = {};
+  let toReplace = [];
+  let alreadyDone = [];
+  let result = "";
+  let swapIndex = 0;
+  let parser = new DOMParser();
+
+  for (let line of lines) {
+    let cleanLine = parser.parseFromString(line, "text/html");
+    cleanLine.querySelectorAll("span").forEach(span => span.remove());
+    cleanLine = cleanLine.body.textContent;
+
+    let num = cleanLine.match(/\d+/);
+    if (num) {
+        num = num[0];
+        let purged = cleanLine.replace(/\d+/, ``);
+        if (line.includes("</span>")) {
+            let substr = line.substring(0, line.indexOf("</span>", 0) + "</span>".length);
+            line = substr + cleanLine.replace(/\d+/, `%/${swapIndex}%`);
+        }
+        else {
+            line = line.replace(/\d+/, `%/${swapIndex}%`);
+        }
+
+        if (!alreadyDone.find(x => x == purged)) {
+            alreadyDone.push(purged);
+            map[swapIndex] = num;
+            swapMap[purged] = swapIndex;
+            toReplace.push(swapIndex);
+            swapIndex++;
+            result = result + line + "\n";
+        }
+        else {
+            map[swapMap[purged]] = Number(map[swapMap[purged]]) + Number(num);
+        }
+    }
+    else {
+        result = result + line + "\n";
+    }
+  }
+
+  for (let index of toReplace) {
+    result = result.replace(`%/${index}%`, map[index]);
+  }
+
+  result = result.substring(0, result.lastIndexOf("\n") + "\n".length);
+
+  return result;
 }
 
 export function checkDraw(ctx1, ctx2) {
@@ -40,6 +97,7 @@ export async function createResultMessage(ctx1, ctx2) {
 }
 
 export async function createEffectsMessage(subject, effectsData) {
+    console.log(effectsData);
     if (effectsData.trim().length === 0) {
         return;
     }
@@ -57,12 +115,23 @@ export async function createEffectsMessage(subject, effectsData) {
 }
 
 export async function createClashMessage(actor, context) {
+    context.minRoll = Math.max(1 + context.dicePower, 0);
+    context.maxRoll = Math.max(context.diceMax + context.dicePower, 0)
+
+    let rollColor = "cm-col-standard";
+    if (context.result >= context.maxRoll) {
+        rollColor = "cm-col-max";
+    }
+    if (context.result <= context.minRoll) {
+        rollColor = "cm-col-min";
+    }
     const content = await renderTemplate("systems/pmttrpg/templates/dialog/clash-message.hbs", {
         actor: actor,
         rollContext: context,
         enrichedClashData: enrichClashData(context.getDescription()),
         skillName: context.modifiers != null && context.modifiers.item != null ? context.modifiers.item.name : null,
-        skill: context.modifiers != null && context.modifiers.item != null
+        skill: context.modifiers != null && context.modifiers.item != null,
+        rollColor: rollColor,
     });
 
     ChatMessage.create({

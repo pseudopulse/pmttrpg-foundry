@@ -396,7 +396,9 @@ export class PTActor extends Actor {
 
         if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
             await ctx1.fireEvent("Clash Win Instant");
+            createEffectsMessage(ctx1.actor.name, await ctx1.resolveInstantCritDeva(["Clash Win", "On Use"]));
             await ctx2.fireEvent("Clash Lose Instant");
+            createEffectsMessage(ctx2.actor.name, await ctx2.resolveInstantCritDeva(["Clash Lose", "On Use"]));
         }
 
         let ruin = ctx2.actor.getStatusCount("Ruin");
@@ -416,7 +418,7 @@ export class PTActor extends Actor {
                 let damage = tmp.total;
                 await ctx2.actor.setStatus("Ruin", 0);
                 await ctx2.actor.setStatus("Devastation", 0);
-                await ctx2.actor.takeDamageStatus(damage, "Ruin", null, `Received a [/status/Devastation] Devastating hit for %DMG% HP damage! (%PHP% -> %HP%)`);
+                await ctx2.actor.takeDamageStatus(damage, "Ruin", "HP", `Received a [/status/Devastation] Devastating hit for %DMG% HP damage! (%PHP% -> %HP%)`);
                 await ctx2.actor.loadPrimerEffects(ctx1);
                 await ctx1.fireEvent("Devastating Hit");
                 if (ctx1.actor.augmentEffectCount("Open Arteries") > 0) {
@@ -465,13 +467,13 @@ export class PTActor extends Actor {
                 if (this.system.activeStance == "Slasher") {
                     modifier = "kh";
                 }
-
+                
                 tmp = new Roll(`${critical + bonusCritical}d10${modifier}`);
                 await tmp.evaluate();
                 let damage = tmp.total + (3 * ctx1.effectCount("Critical DMG+"));
                 await ctx1.actor.setStatus("Poise", 0);
                 await ctx1.actor.setStatus("Critical", 0);
-                await ctx2.actor.takeDamageStatus(damage, "Poise", null, `Received a [/status/Critical] Critical hit for %DMG% HP damage! (%PHP% -> %HP%)`);
+                await ctx2.actor.takeDamageStatus(damage, "Poise", "HP", `Received a [/status/Critical] Critical hit for %DMG% HP damage! (%PHP% -> %HP%), crit roll was ${critical + bonusCritical}d10${modifier}`);
                 await ctx1.fireEvent("Critical Hit");
                 landedCrit = true;
                 totalAssassinationDamage += 3;
@@ -1639,6 +1641,14 @@ export class PTActor extends Actor {
 
         await this.update({ system }, { diff: false, render: true });
 
+        if (status == "Critical" && this.getStatusCount("Poise") == 0) {
+            await this.applyStatus("Poise", 1, 0);
+        }
+
+        if (status == "Devastation" && this.getStatusCount("Ruin") == 0) {
+            await this.applyStatus("Ruin", 1, 0);
+        }
+
         await this.verifyStatusRelation("Poise", "Critical");
         await this.verifyStatusRelation("Ruin", "Devastation");
     }
@@ -1812,7 +1822,7 @@ export class PTActor extends Actor {
     async spendReaction(triggerBleed = true, free = false) {
         if (!free) {
             let reactions = Number(this.system.reactions);
-            await this.update({ "system.reaction": Math.max(reactions - 1, 0)}, { diff: false });
+            await this.update({ "system.reactions": Math.max(reactions - 1, 0)}, { diff: false });
             createEffectsMessage(this.name, `Spends 1 Reaction! (${reactions} -> ${Math.max(reactions - 1, 0)})`)
         }
 

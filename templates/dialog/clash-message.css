@@ -20,6 +20,24 @@
     border-width: 3px !important;
 }
 
+.cm-col-standard {
+    border-color: rgb(214, 214, 214) !important;
+    border-radius: 2px !important;
+    border-width: 2px !important;
+}
+
+.cm-col-max {
+    border-color: rgb(51, 255, 0) !important;
+    border-radius: 2px !important;
+    border-width: 2px !important;
+}
+
+.cm-col-min {
+    border-color: rgb(255, 0, 0) !important;
+    border-radius: 2px !important;
+    border-width: 2px !important;
+}
+
 .cm-clash-win {
     border-color: rgb(43, 255, 43) !important;
     border-radius: 3px !important;

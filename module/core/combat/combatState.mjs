@@ -1,4 +1,5 @@
 import { searchForActor } from "../../pmttrpg.mjs";
+import { getActorUser } from "../helpers/netmsg.mjs";
 
 export let currentRound = 0;
 export let currentTurn = 0;
@@ -13,7 +14,7 @@ export async function roundChange(combat, round, turn) {
 
     if (round != 1) {
         for (const token of canvas.tokens.placeables) {
-            if (token != null && token.actor != null) {
+            if (token != null && token.actor != null && getActorUser(token.actor) == game.user) {
                 await token.actor.handleNextRound();
             }
         }
@@ -23,8 +24,12 @@ export async function roundChange(combat, round, turn) {
 export async function turnChange(combat, round, turn) {
     currentTurn = turn;
 
+    if (round == 1) return;
+
+    console.log(combat);
+
     for (const token of canvas.tokens.placeables) {
-        if (token != null && token.id == combat.current.tokenId) {
+        if (token != null && token.id == combat.current.tokenId && getActorUser(token.actor) == game.user) {
             await token.actor.handleNextTurn();
         }
     }
@@ -35,5 +40,6 @@ export async function updateCombatant(combatant, data, id) {
 
     if (actor != null) {
         await actor.handleCombatStart();
+        await actor.handleNextTurn();
     }
 }
