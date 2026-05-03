@@ -606,6 +606,8 @@ export const augmentEffects = [
     // markerEffect("Set Example", false, 1), // X
     // markerEffect("Stalwart Wall", false, 1), // X
     // markerEffect("Apathy", false, 1), // X
+    markerEffect("Starved Fiend", false, 1),
+    markerEffect("Rejuvenating Blood - HP", false, 5),
 ]
 
 function augmentThresholdEffect(name, bar, mult, status, negativeStatus = []) {

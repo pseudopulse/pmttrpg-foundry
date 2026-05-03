@@ -659,6 +659,39 @@ export const weaponEffects = [
         ["On Use"],
         false, 5, false, false
     ),
+    new Effect(
+        `Blood-Tinged Blade`,
+        (context, count, trigger) => {
+            context.conditionals.push(new Conditional("Blood-Tinged Blade", `Consume 10 Bloodfeast to repeat attack.`, (context) => {
+                context.events["Clash Win"].push(async (context) => {
+                    createEffectsMessage(context.actor.name, `Spends 10 [/status/Bloodfeast] Bloodfeast to trigger Blood-Tinged Blade!`);
+                })
+            }, [
+                {
+                    status: "Bloodfeast",
+                    cost: 10
+                }
+            ], null));
+        },
+        (count) => {
+            return `May spend 10 [/status/Bloodfeast] Bloodfeast to attack another target with this weapon. This extra attack may not use skills.`;
+        },
+        ["Clash Win"],
+        false, 1, false, true
+    ),
+    new Effect(
+        "Bloodied Amplifier",
+        (context, count, trigger) => { 
+            let consumed = Math.min(Math.floor(context.actor.getSpentBloodfeast() / 20), 3);
+            if (consumed > 0) {
+                context.dicePower = Number(context.dicePower) + Number(consumed); 
+            }
+        },
+        (count) => {
+            return `Gain 1 Dice Power for every 20 [/status/Consumed_Bloodfeast] Consumed Bloodfeast, up to ${count}.`;
+        },
+        ["On Use"]
+    ),
 ]
 
 function simpleStatusEffect(status, nextRound, allowNegative) {

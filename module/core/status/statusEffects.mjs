@@ -1,5 +1,6 @@
-import { createEffectsMessage } from "../helpers/clash.mjs";
 import { StatusEffect, Triggers } from "./statusEffect.mjs";
+import { addBloodfeast, getAlliesWithinRadius, getEnemiesWithinRadius } from "../../pmttrpg.mjs";
+import { createEffectsMessage } from "../helpers/clash.mjs";
 
 export const statusList = [
     new StatusEffect("Burn", Triggers.END, async (actor) => {
@@ -31,6 +32,18 @@ export const statusList = [
     }, (count) => { return count / 2 }),
     new StatusEffect("Bleed", Triggers.ACTION, async (actor) => {
         await actor.takeDamageStatus(actor.getStatusCount("Bleed"), "Bleed", "HP", "[/status/Bleed] Bled for %DMG% HP damage! (%PHP% -> %HP%)")
+
+        await addBloodfeast(actor.getStatusCount("Bleed"));
+
+        let nearby = getEnemiesWithinRadius(actor, 3).concat(getAlliesWithinRadius(actor, 3));
+        for (let target of nearby) {
+            if (target.augmentEffectCount("Blood Cycler") > 0) {
+                let php = target.system.attributes.health.value;
+                await target.heal(2, 0, 0);
+                let hp = target.system.attributes.health.value;
+                createEffectsMessage(target.name, `Recovers 2 HP from Blood Cycler! (${php} -> ${hp})`);
+            }
+        }
 
         let res = actor.augmentEffectCount("Bleed Resistance") + actor.outfitEffectCount("Bleed Resistance");
         let bleed = actor.getStatusCount("Bleed") - res;
@@ -108,6 +121,7 @@ export const statusList = [
     new StatusEffect("Tendon_Slice", Triggers.MOVE, async (actor) => {
         await actor.fireStatusEffect("Bleed");
     }, (count) => { return 0; }),
+    new StatusEffect("Consumed_Bloodfeast", Triggers.NONE, async (actor) => {}, (count) => { return 0; }),
 ];
 
 export function findStatusDef(name) {

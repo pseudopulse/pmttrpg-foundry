@@ -38,8 +38,17 @@ async function drawBars() {
     holder.position.y += ((-25 * (1 - tex.scaleX)) * (1 - h) * grid);
 
     this.bars.addChild(holder);
+    this.bars.visible = false;
 
     if (!game.combat || !game.combat.isActive) return;
+
+    this.bars.visible = true;
+
+    let { width, height } = this.document.getSize();
+
+    this.nameplate.position.set(width / 2, height);
+
+    this.nameplate.position.y -= (height * 1.1);
 
     await this._drawBar(0, getBar(this, "HP", 0, 0, holder), {
         attribute: "attributes.health",

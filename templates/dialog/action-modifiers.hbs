@@ -9,18 +9,17 @@
             <div class="am-block-holder">
                 <div id="amw-skills">
                     {{#each skills as |item id|}}
-                    <li class='item flexrow' data-item-id='{{item._id}}'>
+                    <li class='item flexrow costTogglable' data-type='skill' data-item-id='{{item._id}}'>
                         {{#with (rctx item) as |ctx|}}
-                        {{#if (checkCosts ../../actor ctx.costs ctx.item.system.light)}}
-                        <div class="amw-resource">
+                        <div class="amw-resource costTogglable-valid">
                             <div class='amw-item-name'>
                                 <input class="amw-skill-input skill-toggle" type="checkbox" />
                                 <h4 class="amw-item-text">{{ctx.item.name}}</h4>
                             </div>
                             {{> ptSkillCosts ctx.item context=ctx}}
                         </div>
-                        {{else}}
-                        <div class="amw-resource am-disabled">
+                        
+                        <div class="amw-resource am-disabled costTogglable-invalid">
                             <div class='amw-item-name'>
                                 <input class="amw-skill-input skill-toggle" type="checkbox" />
                                 <h4 class="amw-item-text">{{ctx.item.name}}</h4>
@@ -28,7 +27,6 @@
                             {{> ptSkillCosts ctx.item context=ctx}}
                             <h4 class="amw-item-text am-disabled-text">Can't Afford!</h4>
                         </div>
-                        {{/if}}
                         {{/with}}
                     </li>
                     {{/each}}
@@ -99,17 +97,16 @@
 
                 <div id="amw-conditionals">
                     {{#each conditionals as |item|}}
-                    <li class='item flexrow' data-item-id='{{item.name}}'>
-                        {{#if (checkCosts ../actor item.costs 0)}}
-                        <div class="amw-resource">
+                    <li class='item flexrow costTogglable' data-type='conditional' data-item-id='{{item.name}}'>
+                        <div class="amw-resource costTogglable-valid">
                             <div class='amw-item-name' title="{{item.description}}">
                                 <input class="amw-skill-input conditional-toggle" type="checkbox" />
                                 <h4 class="amw-item-text">{{item.name}}</h4>
                             </div>
                             {{> ptConditionalCosts cost=item.costs}}
                         </div>
-                        {{else}}
-                        <div class="amw-resource am-disabled">
+            
+                        <div class="amw-resource am-disabled costTogglable-invalid">
                             <div class='amw-item-name am-disabled' title="{{item.description}}">
                                 <input class="amw-skill-input conditional-toggle" type="checkbox" />
                                 <h4 class="amw-item-text">{{item.name}}</h4>
@@ -117,7 +114,6 @@
                             {{> ptConditionalCosts cost=item.costs}}
                             <h4 class="amw-item-text am-disabled-text">Can't Afford!</h4>
                         </div>
-                        {{/if}}
                     </li>
                     {{/each}}
                 </div>

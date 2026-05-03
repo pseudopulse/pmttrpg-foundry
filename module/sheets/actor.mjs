@@ -1,4 +1,4 @@
-import { roughSizeOfObject } from "../pmttrpg.mjs";
+import { getBloodfeast, roughSizeOfObject } from "../pmttrpg.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { validate, handleEffectAddButton, handleEffectCounterChange, handleEffectRemoveButton, handleEffectTriggerChange, handleEffectTypeChange, getEffectsArray } from "../core/effects/effectHelpers.mjs";
 import { MarkNames } from "../core/status/mark.mjs";
@@ -53,6 +53,8 @@ export class PTActorSheet extends ActorSheet {
         
         context.incomingMarks = marks2;
         context.hasIncomingMarks = marks2.length > 0;
+
+        context.availableBloodfeast = getBloodfeast();
 
         this.prepareItems(context);
 

@@ -10,20 +10,16 @@ homebrew effects
 
 add toggle for primary outfit and primary augment
 
+add stat override tab
+
+add abnormality parts
+
+make pet act update when owner updates instead of having initiative
+
+add dice power penalty option to attacks
+
 // - unfinished effects
 critical conversion (skill)
 devastation conversion (skill)
 earthquake (skill and weapon)
 cursed (augment)
-
-//
-
-make mark forward a netmessage for the gm client to handle application
-
-//
-
-bloodfeast 
-
-// stuff on my own sheet
-- add target shift
-- make c outfit slash ineff

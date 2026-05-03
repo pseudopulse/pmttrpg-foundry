@@ -1,5 +1,3 @@
-import { PTActor } from "../../documents/actor.mjs"
-
 export class StatusEffect {
     /**
      * @callback trigger

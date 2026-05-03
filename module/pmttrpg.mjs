@@ -15,7 +15,7 @@ import { Triggers } from "./core/status/statusEffect.mjs";
 import { handleBarReplacement } from "./core/combat/bars.mjs";
 // import Hooks from "@client/helpers/hooks.mjs";
 
-Hooks.once("init", () => {
+Hooks.once("init", async () => {
   // debug
   // CONFIG.debug.hooks = true;
 
@@ -25,6 +25,17 @@ Hooks.once("init", () => {
 
   //
   registerMessages();
+
+  //
+  await game.settings.register('pmttrpg', 'bloodfeast', {
+    name: 'bloodfeast',
+    hint: 'internal dont touch',
+    config: false,
+    scope: 'world',
+    type: Number,
+    default: 0,
+    requiresReload: false
+  });
 
   // actor stuff
   CONFIG.Actor.documentClass = PTActor;
@@ -140,8 +151,13 @@ Hooks.once("init", () => {
       }
       
       for (const cost of costs) {
-        if (actor.getStatusCount(cost.status) < cost.cost) {
-          return false;
+        if (cost.status == "Bloodfeast") {
+          return actor.canSpendBloodfeast(actor.getModifiedBloodfeastCost(cost.cost));
+        }
+        else {
+          if (actor.getStatusCount(cost.status) < cost.cost) {
+            return false;
+          }
         }
       }
 
@@ -193,6 +209,28 @@ export function playSound(key, global = true) {
   }
 }
 
+export function getBloodfeast() {
+  return game.settings.get('pmttrpg', 'bloodfeast');
+}
+
+export async function setBloodfeast(val) {
+  if (val < 0) {
+    val = 0;
+  }
+
+  await game.settings.set('pmttrpg', 'bloodfeast', val);
+}
+
+export async function addBloodfeast(val) {
+  let cur = getBloodfeast();
+  await setBloodfeast(cur + val);
+}
+
+export async function reduceBloodfeast(val) {
+  let cur = getBloodfeast();
+  await setBloodfeast(cur - val);
+}
+
 Hooks.on(`createChatMessage`, (message, action, id) => {
   if (message.title == "NETMSGFLAG") {
     handler[message.flavor](JSON.parse(message.content));
@@ -220,6 +258,7 @@ Hooks.on(`combatTurnChange`, async (combat, data, data2) => {
 });
 
 Hooks.on(`combatStart`, async (combat, data) => {
+  setBloodfeast(0);
   await roundChange(combat, data.round, data.turn);
 });
 
@@ -383,7 +422,7 @@ export function getEnemiesWithinRadius(actor, radius) {
   let actors = [];
   let source = canvas.tokens.placeables.find(x => x.actor == actor);
   let dispo = 0;
-  if (user != null) {
+  if (actor != null) {
       dispo = canvas.tokens.placeables.find(x => x.actor == actor).document.disposition;
   }
 

@@ -1,4 +1,5 @@
-import { findActorsOfTeam, searchByObject } from "../../pmttrpg.mjs";
+import { getRollContextFromData } from "../../documents/item.mjs";
+import { findActorsOfTeam, getBloodfeast, searchByObject } from "../../pmttrpg.mjs";
 import { calculateTechniqueCost } from "../../sheets/item.mjs";
 import { RollContext } from "../combat/rollContext.mjs";
 import { createClashMessage, enrichClashData } from "../helpers/clash.mjs";
@@ -66,24 +67,20 @@ export async function getActionModifiers(actor, context) {
                     label: "Continue",
                     callback: () => {
                         allowClose = true;
-                        dialog.close();
+                        if (data.technique != null) {
+                            let cost = calculateTechniqueCost(data.technique.system.effects);
+
+                            if (cost > actor.system.emotion) {
+                                data.technique = null;
+                            }
+                        }
+
+                        resolve(data);
                     }
                 }
             },
             close: () => {
-                if (data.technique != null) {
-                    let cost = calculateTechniqueCost(data.technique.system.effects);
-
-                    if (cost > actor.system.emotion) {
-                        data.technique = null;
-                    }
-                }
-
-                if (!allowClose) {
-                    throw new Error();
-                }
-
-                resolve(data);
+                resolve(null);
             },
             render: (html) => {
                 $("#amw-tools").hide().removeClass("am-active-tab");
@@ -153,31 +150,163 @@ export async function getActionModifiers(actor, context) {
                     }
                 });
 
+                let allCosts = [];
+
+                let addConditional = (c) => {
+                    let conditional = context.conditionals.find(x => x.name == c);
+
+                    for (let cost of conditional.costs) {
+                        allCosts.push({
+                            cost: cost.cost,
+                            status: cost.status,
+                            source: c,
+                        });
+                    }
+
+                    update();
+                }
+
+                let addSkill = (item) => {
+                    let ctx = getRollContextFromData(item);
+
+                    for (let cost of ctx.costs) {
+                        allCosts.push({
+                            cost: cost.cost,
+                            status: cost.status,
+                            source: item._id,
+                        });
+                    }
+
+                    update();
+                }
+
+                let clear = (c) => {
+                    allCosts = allCosts.filter(x => x.source != c);
+
+                    update();
+                }
+
+                let update = () => {
+                    html.find('.costTogglable').each((x, element) => {
+                        let type = element.dataset.type;
+                        let failedAny = false;
+
+                        if (type == "conditional") {
+                            let conditional = context.conditionals.find(x => x.name == element.dataset.itemId);
+                            
+                            for (let cost of conditional.costs) {
+                                let status = cost.status;
+                                let amount = Number(cost.cost);
+                                
+                                let available = 0;
+
+                                for (let ac of allCosts) {
+                                    if (ac.source == conditional.name) continue;
+
+                                    if (ac.status == status) {
+                                        available -= Number(ac.cost);
+                                    }
+                                }
+
+                                if (status == "Bloodfeast") {
+                                    available += Number(getBloodfeast());
+                                }
+                                else {
+                                    available += Number(actor.getStatusCount(status));
+                                }
+
+                                if (available < amount) {
+                                    failedAny = true;
+                                }
+                            }
+                        }
+                        else {
+                            let item = actor.items.get(element.dataset.itemId);
+                            let ctx = getRollContextFromData(item);
+
+                            if (actor.system.light < item.system.light) {
+                                failedAny = true;
+                            }
+
+                            for (let cost of ctx.costs) {
+                                let status = cost.status;
+                                let amount = Number(cost.cost);
+                                
+                                let available = 0;
+
+                                for (let ac of allCosts) {
+                                    if (ac.source == item._id) continue;
+
+                                    if (ac.status == status) {
+                                        available -= Number(ac.cost);
+                                    }
+                                }
+
+                                if (status == "Bloodfeast") {
+                                    available += Number(getBloodfeast());
+                                }
+                                else {
+                                    available += Number(actor.getStatusCount(status));
+                                }
+
+                                if (available < amount) {
+                                    failedAny = true;
+                                }
+                            }
+                        }
+
+                        if (failedAny) {
+                            element.querySelector(".costTogglable-valid").hidden = true;
+                            element.querySelector(".costTogglable-invalid").hidden = false;
+                        }
+                        else {
+                            element.querySelector(".costTogglable-valid").hidden = false;
+                            element.querySelector(".costTogglable-invalid").hidden = true;
+                        }
+                    });
+                };
+
+                update();
+
                 html.on('click', '.skill-toggle', (event) => {
+                    update();
                     if (event.currentTarget.checked) {
                         const itemId = event.currentTarget.closest('.item').dataset.itemId;
                         const item = actor.items.get(itemId);
                         data.item = item;
 
+                        addSkill(item);
+
                         html.find('input').each((x, input) => {
                             if ((input.classList.contains('skill-toggle') || input.classList.contains('tool-toggle')) && input != event.currentTarget) {
+                                let i = actor.items.get(input.closest('.item').dataset.itemId);
+                                if (i) {
+                                    clear(i);
+                                }
                                 input.checked = false;
                             }
                         });
                     }
                     else {
+                        if (data.item != null) {
+                            clear(data.item);
+                        }
+
                         data.item = null;
                     }
                 })
 
                 html.on('click', '.conditional-toggle', (event) => {
+                    update();
                     if (event.currentTarget.checked) {
                         const itemId = event.currentTarget.closest('.item').dataset.itemId;
                         data.activeConditionals.push(itemId);
+                        addConditional(itemId);
 
                         html.find('input').each((x, input) => {
                             if (input.classList.contains('conditional-toggle') && input != event.currentTarget) {
                                 if (context.conditionals.find(x => x.name == itemId).exclusiveWith == input.closest('.item').dataset.itemId) {
+                                    clear(input.closest('.item').dataset.itemId)
                                     input.checked = false;
                                 }
                             }
@@ -185,6 +314,7 @@ export async function getActionModifiers(actor, context) {
                     }
                     else {
                         const itemId = event.currentTarget.closest('.item').dataset.itemId;
+                        clear(itemId);
                         data.activeConditionals = data.activeConditionals.filter(x => x != itemId);
                     }
                 })

@@ -144,8 +144,8 @@ export class PTItemSheet extends ItemSheet {
 
         html.on('click', '.wb-form-type-button', (event) => {
             const system = this.document.toObject(false).system;
-            let optionsM = ["Small", "Medium", "Long", "Sturdy", "Hybrid", "Versatile", "Innate", "Healing"];
-            let optionsR = ["Low Cal", "High Cal", "Reactive", "Hybrid", "Recoil", "Innate", "Healing"];
+            let optionsM = ["Small", "Medium", "Long", "Sturdy", "Hybrid", "Versatile", "Innate", "Healing", "Thirsty"];
+            let optionsR = ["Low Cal", "High Cal", "Reactive", "Hybrid", "Recoil", "Innate", "Healing", "Thirsty"];
 
             let array = system.attackType == "Ranged" ? optionsR : optionsM;
             let index = array.findIndex(x => x == system.form);

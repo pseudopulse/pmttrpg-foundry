@@ -2,7 +2,7 @@ import { Effect } from "./effect.mjs";
 import { handleNegativeText } from "../../core/effects/effectHelpers.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
 import { pollDistributeStatus, pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "../helpers/dialog.mjs";
-import { getActorTeam, scale } from "../../pmttrpg.mjs";
+import { findActorsOfTeam, getActorTeam, scale } from "../../pmttrpg.mjs";
 import { Conditional } from "../combat/rollContext.mjs";
 import { findByID } from "../helpers/netmsg.mjs";
 
@@ -1579,6 +1579,113 @@ export const skillEffects = [
     ),
     // dummy effects
     markerEffect("Target Shift", false, 1, "Clash Win", c => `Transfer your Mark to another target.`),
+    //
+    new Effect(
+        'Consume Bloodfeast',
+        (context, count, trigger) => {
+            context.costs.push({
+                cost: count,
+                status: "Bloodfeast",
+            });
+        },
+        (count) => {
+            return `Consume ${count} [/status/Bloodfeast] Bloodfeast.`
+        },
+        ["On Use"],
+        false, 9999
+    ),
+    new Effect(
+        'Heal HP',
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                let team = findActorsOfTeam(context.actor);
+                let options = [];
+                let map = [];
+
+                for (let member of team) {
+                    options.push({ name: member.id, displayName: member.name });
+                    map[member.id] = member;
+                }
+
+                let target = await pollUserInputOptions(context.actor, "Choose ally to heal.", options);
+                target = map[target];
+                let php = target.system.attributes.health.value;
+                await target.heal(4 * count, 0, 0);
+                let hp = target.system.attributes.health.value;
+                createEffectsMessage(context.actor.name, `Restores ${4 * count} HP to ${target.name}! (${php} -> ${hp})`);
+            });
+        },
+        (count) => {
+            return `Restore ${4 * count} HP to an ally.`;
+        },
+        ["Clash Win", "Clash Lose"],
+        false, 5, false, true
+    ),
+    new Effect(
+        'Piercing Blood',
+        (context, count, trigger) => {
+            let consumed = Math.floor(context.actor.getSpentBloodfeast() / 10);
+            if (consumed > 0) {
+                context.triggers[trigger].applyInfliction("Bleed", consumed, false);
+            }
+        },
+        (count) => {
+            return `Inflict 1 [/status/Bleed] Bleed for every 10 [/status/Consumed_Bloodfeast] Consumed Bloodfeast.`
+        }
+    ),
+    new Effect(
+        'Hardblood - Haste',
+        (context, count, trigger) => {
+            context.costs.push({
+                cost: count * 15,
+                status: "Bloodfeast",
+            });
+        },
+        (count) => {
+            return `Consume ${count * 15} [/status/Bloodfeast] Bloodfeast to gain ${count} [/status/Haste] Haste next round.`
+        },
+        ["Clash Win", "Clash Lose"],
+        false, 5
+    ),
+    new Effect(
+        'Exsanguinate - S',
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                await context.actor.writeExsanguinate("Slash", count * 2);
+            })
+        },
+        (count) => {
+            return `Until your next round, [/damageTypes/Slash] Slash attacks inflict ${count * 2} [/status/Bleed] Bleed.`
+        },
+        ["Clash Win"],
+        false, 5, false, true
+    ),
+    new Effect(
+        'Exsanguinate - P',
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                await context.actor.writeExsanguinate("Pierce", count * 2);
+            })
+        },
+        (count) => {
+            return `Until your next round, [/damageTypes/Pierce] Pierce attacks inflict ${count * 2} [/status/Bleed] Bleed.`
+        },
+        ["Clash Win"],
+        false, 5, false, true
+    ),
+    new Effect(
+        'Exsanguinate - B',
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                await context.actor.writeExsanguinate("Blunt", count * 2);
+            })
+        },
+        (count) => {
+            return `Until your next round, [/damageTypes/Blunt] Blunt attacks inflict ${count * 2} [/status/Bleed] Bleed.`
+        },
+        ["Clash Win"],
+        false, 5, false, true
+    ),
 ]
 
 function healEffect(val, cat) {
@@ -1608,7 +1715,7 @@ function healEffect(val, cat) {
         (count) => {
             return count < 0 ? `Take ${Number(count) * val} ${cat} damage` : `Recover ${Number(count) * val} ${cat}`;
         },
-        ["Clash Win", "Clash Lose"],
+        ["Clash Win", "Clash Lose", "On Use"],
         true, 5, false, true
     );
 }
@@ -1709,7 +1816,7 @@ function markEffect(name, func, desc) {
     return new Effect(
         name,
         (context, count, trigger) => {
-            if (context.actor.isMarkedTarget(context.target)) {
+            if (context.target && context.actor.isMarkedTarget(context.target)) {
                 func(context.triggers[trigger], count);
             }
         },
@@ -1836,7 +1943,7 @@ function chargeAllyStatusEffect(status, cost, mult, nextRound) {
             });
         },
         (count) => {
-            return `Distribute ${Number(count) * mult} [/status/${status.replace(" ", "_")}] ${status} ${nextRound ? "next round " : ""}amongst allies.`
+            return `Spend ${cost * count} to distribute ${Number(count) * mult} [/status/${status.replace(" ", "_")}] ${status} ${nextRound ? "next round " : ""}amongst allies.`
         },
         ["Clash Win", "Clash Lose"],
         false, 5, false, true

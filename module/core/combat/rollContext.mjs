@@ -1,4 +1,4 @@
-import { searchByObject, searchForActor } from "../../pmttrpg.mjs";
+import { getBloodfeast, searchByObject, searchForActor } from "../../pmttrpg.mjs";
 import { weaponEffects } from "../effects/weaponEffects.mjs";
 import { outfitEffects } from "../effects/outfitEffects.mjs";
 import { getEffectsArray } from "../effects/effectHelpers.mjs";
@@ -69,6 +69,9 @@ export class RollContext {
         //
         this.minRoll = 0;
         this.maxRoll = 0;
+        //
+        this.form = "";
+        this.hand = "";
 
         for (const trigger of triggerTypes) {
             this.triggers[trigger] = new TriggerEvents();
@@ -225,9 +228,17 @@ export class RollContext {
         let lines = [];
         this.mergeCosts();
         if (this.costs != null) {
-            for (const costs of this.costs) {
-                for (const cost of costs) {
-                    let status = cost.status;
+            for (const cost of this.costs) {
+                let status = cost.status;
+                if (status == "Bloodfeast") {
+                    if (triggers.includes("Clash Win")) {
+                        let val = this.actor.getModifiedBloodfeastCost(cost.cost);
+                        let prev = getBloodfeast();
+                        await this.actor.spendBloodfeast(val);
+                        lines.push(`Consume ${val} [/status/${status}] ${status} (${prev} -> ${prev - val})`);
+                    }
+                }
+                else {
                     let prev = this.actor.getStatusCount(status);
 
                     await this.actor.reduceStatus(status, cost.cost);
@@ -473,7 +484,9 @@ export class RollContext {
             for (const conditional of this.activeConditionals) {
                 let def = this.conditionals.find(x => x.name == conditional);
                 await def.onUse(this);
-                this.costs.push(def.costs);
+                for (let cost of def.costs) {
+                    this.costs.push(cost);
+                }
             }
 
             return true;
@@ -726,6 +739,16 @@ export class RollContext {
     }
 
     addEffectsList(effects, category) {
+        if (this.form == "Thirsty") {
+            this.conditionals.push(new Conditional("Thirsty", `Consume 10 Bloodfeast.`, (context) => {
+                
+            }, [{
+                status: "Bloodfeast",
+                cost: 10
+            }], null));
+        }
+
+
         if (category == "skill" || category == "Skill") {
             this.skillUsed = true;
         }

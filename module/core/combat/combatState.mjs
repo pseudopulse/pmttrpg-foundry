@@ -26,8 +26,6 @@ export async function turnChange(combat, round, turn) {
 
     if (round == 1) return;
 
-    console.log(combat);
-
     for (const token of canvas.tokens.placeables) {
         if (token != null && token.id == combat.current.tokenId && getActorUser(token.actor) == game.user) {
             await token.actor.handleNextTurn();

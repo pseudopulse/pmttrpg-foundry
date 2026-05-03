@@ -3,7 +3,7 @@ import { checkDraw, createClashMessage, createEffectsMessage, createResultMessag
 import { createClashResponse, getAttackOptions, getSkillOptions, pollReduceStatus, pollUserInputBurst, pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "../core/helpers/dialog.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
-import { findOfTypeForActor, getAlliesWithinRadius, getDistance, playSound, searchByObject } from "../pmttrpg.mjs";
+import { findOfTypeForActor, getAlliesWithinRadius, getBloodfeast, getDistance, playSound, reduceBloodfeast, searchByObject } from "../pmttrpg.mjs";
 import { currentRound } from "../core/combat/combatState.mjs";
 import { getRollContextFromData, getRollContextFromDataFull } from "./item.mjs";
 import { registerEffectMacro } from "../core/combat/macros.mjs";
@@ -165,6 +165,7 @@ export class PTActor extends Actor {
         system.forceFields = this.augmentEffectCount("Force Fields");
         system.movementPenalty = 0;
         system.activeStance = "None";
+        system.exsanguinateData = null;
 
         await this.update({ system }, { diff: false, render: true });
     }
@@ -289,7 +290,7 @@ export class PTActor extends Actor {
             base = "1d8";
         }
 
-        if (this.system.activeStance == "Slayer") {
+        if (ctx.actor.system.activeStance == "Slayer") {
             base = "1d6";
         }
 
@@ -464,7 +465,7 @@ export class PTActor extends Actor {
                     bonusCritical += 1;
                 }
                 let modifier = "";
-                if (this.system.activeStance == "Slasher") {
+                if (ctx1.actor.system.activeStance == "Slasher") {
                     modifier = "kh";
                 }
                 
@@ -573,7 +574,12 @@ export class PTActor extends Actor {
             ctx1.triggers["Clash Win"].applyInfliction("Charge", charge, false);
         }
 
-        if (this.system.activeStance == "Slayer") {
+        let exsang = ctx1.actor.getExsanguinateBonus(ctx1.damageType);
+        if (exsang > 0) {
+            ctx1.triggers["Clash Win"].applyInfliction("Bleed", exsang, 0);
+        }
+
+        if (ctx1.actor.system.activeStance == "Slayer") {
             ctx1.triggers["On Crit"].applyInfliction("Critical", 2, false);
         }
 
@@ -1409,6 +1415,8 @@ export class PTActor extends Actor {
         system.ruinPaused = false;
         system.primerEffectsList = [];
 
+        system.exsanguinateData = null;
+
         for (const status of system.statusEffects) {
             status.count = Number(status.count) + Number(status.nextRoundCount);
             status.nextRoundCount = 0;
@@ -1741,6 +1749,62 @@ export class PTActor extends Actor {
         }
 
         await this.update({ system }, { diff: false, render: true });
+    }
+
+    async spendBloodfeast(val) {
+        await reduceBloodfeast(val);
+
+        let rbhp = this.getSpentBloodfeast();
+        rbhp -= 10 * Math.floor(rbhp / 10);
+        if (rbhp + val >= 10) {
+            let count = Math.floor((rbhp + val) / 10);
+            let heal = this.augmentEffectCount("Rejuvenating Blood - HP") * 4;
+
+            if (heal > 0) {
+                let php = this.system.attributes.health.value;
+                await this.heal(heal * count, 0, 0);
+                let hp = this.system.attributes.health.value;
+                createEffectsMessage(this.name, `Recovers ${heal * count} HP from Rejuvenating Blood! (${php} -> ${hp})`);
+            }
+        }
+
+        await this.applyStatus("Consumed_Bloodfeast", val, 0);
+    }
+
+    getSpentBloodfeast() {
+        return this.getStatusCount("Consumed_Bloodfeast");
+    }
+
+    getModifiedBloodfeastCost(val) {
+        if (this.augmentEffectCount("Starved Fiend") > 0) {
+            return Math.max(Math.floor(val / 2), 1);
+        }
+
+        return val;
+    }
+
+    canSpendBloodfeast(val) {
+        return getBloodfeast() >= val;
+    }
+
+    async writeExsanguinate(type, count) {
+        const system = this.toObject(false).system;
+        system.exsanguinateData = {
+            type: type,
+            count: count,
+        };
+
+        await this.update({ system }, { diff: false, render: true });
+    }
+
+    getExsanguinateBonus(type) {
+        let data = this.system.exsanguinateData;
+
+        if (data != null && data.type == type) {
+            return data.count;
+        }
+
+        return 0;
     }
 
     async fireStatusEffect(status) {

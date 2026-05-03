@@ -46,6 +46,11 @@ export class PTItem extends Item {
 
         const context = defType == "Block" ? await this.getRollContextBlo(game.user.targets.first().actor, true) : await this.getRollContextEvd(game.user.targets.first().actor, true);
 
+        if (context == null) {
+            await this.actor.handlePendingClash(enemyCtx);
+            return;
+        }
+
         const label = `[${item.type}] ${item.name} targeting ${game.user.targets.first().actor.name}`;
 
         const roll = new Roll(`1d${context.diceMax}+${context.dicePower}`, "");
@@ -104,6 +109,16 @@ export class PTItem extends Item {
         }
 
         const context = await this.getRollContext(game.user.targets.first().actor, true);
+
+        if (context == null) {
+            if (initiator) {
+                return;
+            }
+            else {
+                await this.actor.handlePendingClash(enemyCtx);
+                return;
+            }
+        }
 
         const label = `[${item.type}] ${item.name} targeting ${game.user.targets.first().actor.name}`;
 
@@ -183,6 +198,9 @@ export class PTItem extends Item {
             tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
             await tmpCtx.processEffects();
             rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
+            if (rollContext.modifiers == null) {
+                return null;
+            }
             
             if (rollContext.modifiers.item != null) {
                 await this.actor.deductLight(rollContext.modifiers.item.system.light);
@@ -261,6 +279,9 @@ export class PTItem extends Item {
             tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
             await tmpCtx.processEffects();
             rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
+            if (rollContext.modifiers == null) {
+                return null;
+            }
 
             if (rollContext.modifiers.item != null) {
                 await this.actor.deductLight(rollContext.modifiers.item.system.light);
@@ -292,6 +313,9 @@ export class PTItem extends Item {
             tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
             await tmpCtx.processEffects();
             rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
+            if (rollContext.modifiers == null) {
+                return null;
+            }
 
             if (rollContext.modifiers.item != null) {
                 await this.actor.deductLight(rollContext.modifiers.item.system.light);
