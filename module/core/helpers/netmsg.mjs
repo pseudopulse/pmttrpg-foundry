@@ -53,6 +53,15 @@ export function registerMessages() {
         }
     };
 
+    handler["APPLY_MARK"] = async (data) => {
+        const target = searchByObject(data.target);
+        const attacker = searchByObject(data.attacker);
+
+        if (game.user.isGM) {
+            await target.applyMark(attacker, data.mark);
+        }
+    };
+
     handler["OVERWRITE_CLASH"] = async (data) => {
         const target = searchByObject(data.target);
         const attacker = searchByObject(data.attacker);

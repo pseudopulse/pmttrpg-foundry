@@ -2015,7 +2015,12 @@ export class PTActor extends Actor {
         let type = await pollUserInputOptions(this, "Select a Mark to apply.", options, 0);
         type = map[type];
 
-        await target.applyMark(this, type);
+        sendNetworkMessage("APPLY_MARK", {
+            target: target,
+            attacker: this,
+            mark: type
+        });
+        
         createEffectsMessage(this.name, `Applied ${MarkNames[type]} to ${target.name}!`);
     }
 
@@ -2052,7 +2057,12 @@ export class PTActor extends Actor {
         let type = await pollUserInputOptions(this, "Select a Mark to apply.", options, 0);
         type = map[type];
 
-        await target.applyMark(this, type);
+        sendNetworkMessage("APPLY_MARK", {
+            target: target,
+            attacker: this,
+            mark: type
+        });
+
         createEffectsMessage(this.name, `Applied ${MarkNames[type]} to ${target.name}!`);
     }
 

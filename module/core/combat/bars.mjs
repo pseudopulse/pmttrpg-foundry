@@ -17,33 +17,53 @@ export function handleBarReplacement() {
 async function drawBars() {
     this.bars.removeChildren();
 
+    let holder = new PIXI.Container();
+    holder.name = "BarHolder";
+    let tex = this.document.texture;
+    let w = this.document.width;
+    let h = this.document.height;
+    let bounds = this.mesh.canvasBounds;
+
+    holder.scale.x = tex.scaleX * (w);
+    holder.scale.y = tex.scaleY * (h);
+
+    holder.position.set(
+        0 - ((-100 / 2) * (1 - (tex.scaleX))),
+        -10 - (-50 * (1 - (tex.scaleY)))
+    );
+
+    holder.position.x += ((-50 * (1 - tex.scaleX)) * (1 - w));
+    holder.position.y += ((-25 * (1 - tex.scaleX)) * (1 - h));
+
+    this.bars.addChild(holder);
+
     if (!game.combat || !game.combat.isActive) return;
 
-    await this._drawBar(0, getBar(this, "HP", 0, 0), {
+    await this._drawBar(0, getBar(this, "HP", 0, 0, holder), {
         attribute: "attributes.health",
         max: this.actor.system.attributes.health.max,
         value: this.actor.system.attributes.health.value,
     });
 
-    await this._drawBar(0, getBar(this, "ST", 0, 0), {
+    await this._drawBar(0, getBar(this, "ST", 0, 0, holder), {
         attribute: "attributes.stagger",
         max: this.actor.system.attributes.stagger.max,
         value: this.actor.system.attributes.stagger.value,
     });
 
-    await this._drawBar(0, getBar(this, "SP", 0, 0), {
+    await this._drawBar(0, getBar(this, "SP", 0, 0, holder), {
         attribute: "attributes.sanity",
         max: this.actor.system.attributes.sanity.max,
         value: this.actor.system.attributes.sanity.value,
     });
 }
 
-function getBar(token, id, posX, posY) {
+function getBar(token, id, posX, posY, holder) {
     let bar = new PIXI.Container();
     bar.name = id;
     bar.position.set(posX, posY);
 
-    token.bars.addChild(bar);
+    holder.addChild(bar);
 
     return bar;
 }
@@ -88,12 +108,12 @@ async function drawSanity(bar, data) {
 // #ff3c34 - hp fg
 // #61580b - st bg
 // #ecfb64 - st fg
+// #9bb3f3 - sp num
 
 async function addBars(bar, data, type) {
     bar.removeChildren();
 
     let perct = Math.clamp((data.value / data.max), 0, 1);
-    console.log("perct for " + type + " is " + perct);
 
     let texture = await foundry.canvas.loadTexture(
         "systems/pmttrpg/assets/bars/BarSprite.png"
