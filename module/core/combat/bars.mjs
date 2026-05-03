@@ -24,16 +24,18 @@ async function drawBars() {
     let h = this.document.height;
     let bounds = this.mesh.canvasBounds;
 
-    holder.scale.x = tex.scaleX * (w);
-    holder.scale.y = tex.scaleY * (h);
+    let grid = canvas.grid.size / 100;
+
+    holder.scale.x = tex.scaleX * (w) * grid;
+    holder.scale.y = tex.scaleY * (h) * grid;
 
     holder.position.set(
-        0 - ((-100 / 2) * (1 - (tex.scaleX))),
-        -10 - (-50 * (1 - (tex.scaleY)))
+        0 - ((-100 / 2) * (1 - (tex.scaleX)) * grid),
+        -10 - (-50 * (1 - (tex.scaleY)) * grid)
     );
 
-    holder.position.x += ((-50 * (1 - tex.scaleX)) * (1 - w));
-    holder.position.y += ((-25 * (1 - tex.scaleX)) * (1 - h));
+    holder.position.x += ((-50 * (1 - tex.scaleX)) * (1 - w) * grid);
+    holder.position.y += ((-25 * (1 - tex.scaleX)) * (1 - h) * grid);
 
     this.bars.addChild(holder);
 
