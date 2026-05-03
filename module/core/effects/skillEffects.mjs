@@ -1586,7 +1586,7 @@ function healEffect(val, cat) {
         `Regen ${cat}`,
         (context, count, trigger) => {
             if (count < 0) {
-                data.events[trigger].push(async (context) => {
+                context.events[trigger].push(async (context) => {
                     await context.actor.takeDamageStatus(val, "none", cat, `Takes %DMG% ${cat} damage! (%P${cat}% -> %${cat}%)`);
                 });
             }

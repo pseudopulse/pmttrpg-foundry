@@ -12,6 +12,7 @@ import { createAlertBox } from "./core/helpers/dialog.mjs";
 import { PTTokenRuler } from "./documents/tokenRuler.mjs";
 import { macroList } from "./core/combat/macros.mjs";
 import { Triggers } from "./core/status/statusEffect.mjs";
+import { handleBarReplacement } from "./core/combat/bars.mjs";
 // import Hooks from "@client/helpers/hooks.mjs";
 
 Hooks.once("init", () => {
@@ -162,6 +163,8 @@ Hooks.once("init", () => {
       return searchByObject(actor).augmentEffectCount(name) != 0;
     }
   });
+
+  handleBarReplacement();
 
   Handlebars.registerPartial('ptEffect', '{{> systems/pmttrpg/templates/item/parts/effect.hbs}}')
   Handlebars.registerPartial('ptWeaponBlock', '{{> systems/pmttrpg/templates/item/parts/weapon-block.hbs}}')

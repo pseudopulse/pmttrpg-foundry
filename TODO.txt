@@ -18,7 +18,12 @@ cursed (augment)
 
 //
 
+make mark forward a netmessage for the gm client to handle application
+
+//
+
 bloodfeast 
 
 // stuff on my own sheet
 - add target shift
+- make c outfit slash ineff

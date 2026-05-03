@@ -224,13 +224,15 @@ export class RollContext {
     async resolveTriggers(triggers) {
         let lines = [];
         this.mergeCosts();
-        for (const costs of this.costs) {
-            for (const cost of costs) {
-                let status = cost.status;
-                let prev = this.actor.getStatusCount(status);
+        if (this.costs != null) {
+            for (const costs of this.costs) {
+                for (const cost of costs) {
+                    let status = cost.status;
+                    let prev = this.actor.getStatusCount(status);
 
-                await this.actor.reduceStatus(status, cost.cost);
-                lines.push(`Lose ${cost.cost} [/status/${status}] ${status} (${prev} -> ${prev - cost.cost})`);
+                    await this.actor.reduceStatus(status, cost.cost);
+                    lines.push(`Lose ${cost.cost} [/status/${status}] ${status} (${prev} -> ${prev - cost.cost})`);
+                }
             }
         }
 

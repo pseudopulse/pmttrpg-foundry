@@ -97,7 +97,6 @@ export async function createResultMessage(ctx1, ctx2) {
 }
 
 export async function createEffectsMessage(subject, effectsData) {
-    console.log(effectsData);
     if (effectsData.trim().length === 0) {
         return;
     }
