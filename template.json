@@ -90,7 +90,21 @@
       "overheatedWeapons": [],
       "forceFields": 0,
       "activeStance": "None",
-      "exsanguinateData": null
+      "exsanguinateData": null,
+      "settings": {
+        "hpOverride": 0,
+        "useHPOverride": false,
+        "stOverride": 0,
+        "useSTOverride": false,
+        "spOverride": 0,
+        "useSPOverride": false,
+        "lightOverride": 0,
+        "useLightOverride": false,
+        "linkedActor": null,
+        "isAbnormalityPart": false,
+        "initiativeBound": false
+      },
+      "mountedCharacter": null
     }
   },
   "Item": {

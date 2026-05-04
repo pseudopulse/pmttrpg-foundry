@@ -1,4 +1,4 @@
-import { searchForActor } from "../../pmttrpg.mjs";
+import { findBoundActors, searchForActor } from "../../pmttrpg.mjs";
 import { getActorUser } from "../helpers/netmsg.mjs";
 
 export let currentRound = 0;
@@ -16,6 +16,12 @@ export async function roundChange(combat, round, turn) {
         for (const token of canvas.tokens.placeables) {
             if (token != null && token.actor != null && getActorUser(token.actor) == game.user) {
                 await token.actor.handleNextRound();
+
+                let results = findBoundActors(token.actor);
+
+                for (let res of results) {
+                    await res.handleNextRound();
+                }
             }
         }
     }
@@ -29,6 +35,12 @@ export async function turnChange(combat, round, turn) {
     for (const token of canvas.tokens.placeables) {
         if (token != null && token.id == combat.current.tokenId && getActorUser(token.actor) == game.user) {
             await token.actor.handleNextTurn();
+
+            let results = findBoundActors(token.actor);
+
+            for (let res of results) {
+                await res.handleNextTurn();
+            }
         }
     }
 }
@@ -39,5 +51,12 @@ export async function updateCombatant(combatant, data, id) {
     if (actor != null) {
         await actor.handleCombatStart();
         await actor.handleNextTurn();
+
+        let results = findBoundActors(actor);
+
+        for (let res of results) {
+            await res.handleCombatStart();
+            await res.handleNextTurn();
+        }
     }
 }

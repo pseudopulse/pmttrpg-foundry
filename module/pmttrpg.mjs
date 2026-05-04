@@ -15,6 +15,8 @@ import { Triggers } from "./core/status/statusEffect.mjs";
 import { handleBarReplacement } from "./core/combat/bars.mjs";
 // import Hooks from "@client/helpers/hooks.mjs";
 
+let ignoreNextMountFlag = [];
+
 Hooks.once("init", async () => {
   // debug
   // CONFIG.debug.hooks = true;
@@ -271,11 +273,33 @@ Hooks.once('ready', () => {
 });
 
 Hooks.on('preMoveToken', (token, data, action, user) => {
-  let distScale = 100;
+  let distScale = canvas.grid.size;
   let origin = data.origin;
   let dest = data.destination;
   let dist = distanceBetween(origin, dest);
   let sqr = Math.floor(dist / distScale);
+
+  if (token.actor.getRiding()) {
+    if (ignoreNextMountFlag.includes(token.actor)) {
+      ignoreNextMountFlag.remove(token.actor);
+      return false;
+    }
+
+    ignoreNextMountFlag.push(token.actor.getMountedActor());
+    getActorToken(token.actor.getMountedActor()).document.update(canvas.grid.getSnappedPosition(data.destination.x, data.destination.y));
+    return true;
+  }
+
+  if (token.actor.getRidden()) {
+    if (ignoreNextMountFlag.includes(token.actor)) {
+      ignoreNextMountFlag.remove(token.actor);
+      return false;
+    }
+    
+    ignoreNextMountFlag.push(token.actor.getMountedActor());
+    getActorToken(token.actor.getMountedActor()).document.update(canvas.grid.getSnappedPosition(data.destination.x, data.destination.y));
+    return true;
+  }
 
   if (token.movementAction != "blink" && sqr > token.actor.system.movement && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user) {
     ui.notifications.notify(`You cant move that far! You attempted to move ${sqr} SQR, while only having ${token.actor.system.movement} SQR remaining!`);
@@ -284,13 +308,13 @@ Hooks.on('preMoveToken', (token, data, action, user) => {
 });
 
 Hooks.on('moveToken', async (token, data, action, user) => {
-  let distScale = 100;
+  let distScale = canvas.grid.size;
   let origin = data.origin;
   let dest = data.destination;
   let dist = distanceBetween(origin, dest);
   let sqr = Math.floor(dist / distScale);
 
-  if (token.movementAction != "blink" && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user) {
+  if (token.movementAction != "blink" && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user && !token.actor.getRiding()) {
     if (sqr > 6 && token.actor.augmentEffectCount("Velocity Generator") > 0) {
       let movement = sqr - 6;
       await token.actor.applyStatus("Charge", movement);
@@ -306,7 +330,7 @@ function distanceBetween(v1, v2) {
 }
 
 export function scale(distance) {
-  return Math.floor(distance / canvas.grid.distance);
+  return Math.floor(distance / canvas.grid.size);
 }
 
 /**
@@ -365,6 +389,19 @@ export function searchByObject(actor) {
   return game.actors.get(actor._id);
 }
 
+export function getActorToken(actor) {
+  if (canvas.tokens != undefined) {
+    for (let token of canvas.tokens.placeables) {
+      if (token.actor == null) continue;
+      if (token.actor._id == actor._id) {
+        return token;
+      }
+    }
+  }
+
+  return null;
+}
+
 export function searchForActor(id) {
   if (canvas.tokens != undefined) {
     for (let token of canvas.tokens.placeables) {
@@ -376,6 +413,28 @@ export function searchForActor(id) {
   }
 
   return game.actors.get(id);
+}
+
+export function findBoundActors(actor) {
+  let id = actor._id;
+  let results = [];
+
+  if (canvas.tokens != undefined) {
+    for (let token of canvas.tokens.placeables) {
+      if (token.actor == null) continue;
+      if (token.actor.system.settings.linkedActor == id) {
+        results.push(token.actor);
+      }
+    }
+  }
+
+  for (let x of game.actors) {
+    if (!results.includes(x) && x.system.settings.linkedActor == id) {
+      results.push(x);
+    }
+  }
+
+  return results;
 }
 
 export function getDistance(actor1, actor2) {
@@ -394,7 +453,9 @@ export function getAlliesWithinRadiusOfTarget(actor, target, radius) {
 
   for (let token of canvas.tokens.placeables.filter(x => x.document.disposition == dispo)) {
     if (scale(canvas.grid.measureDistance(source, token)) <= radius && token.actor != actor) {
-      actors.push(token.actor);
+      if (!actors.includes(token.actor)) {
+        actors.push(token.actor);
+      }
     }
   }
 
@@ -411,7 +472,9 @@ export function getAlliesWithinRadius(actor, radius) {
 
   for (let token of canvas.tokens.placeables.filter(x => x.document.disposition == dispo)) {
     if (scale(canvas.grid.measureDistance(source, token)) <= radius && token.actor != actor) {
-      actors.push(token.actor);
+      if (!actors.includes(token.actor)) {
+        actors.push(token.actor);
+      }
     }
   }
 
@@ -428,7 +491,9 @@ export function getEnemiesWithinRadius(actor, radius) {
 
   for (let token of canvas.tokens.placeables.filter(x => x.document.disposition != dispo)) {
     if (scale(canvas.grid.measureDistance(source, token)) <= radius) {
-      actors.push(token.actor);
+      if (!actors.includes(token.actor)) {
+        actors.push(token.actor);
+      }
     }
   }
 
@@ -507,6 +572,7 @@ const preloadHandlebarsTemplates = async function () {
     'systems/pmttrpg/templates/actor/parts/actor-status.hbs',
     'systems/pmttrpg/templates/actor/parts/actor-combat.hbs',
     'systems/pmttrpg/templates/actor/parts/actor-augments.hbs',
+    'systems/pmttrpg/templates/actor/parts/actor-settings.hbs',
     //
     'systems/pmttrpg/templates/item/parts/effect.hbs',
     'systems/pmttrpg/templates/item/parts/resist-type.hbs',

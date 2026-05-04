@@ -1,6 +1,6 @@
 // import Actor from "@client/documents/actor.mjs";
 
-import { searchByObject } from "../../pmttrpg.mjs";
+import { getActorToken, searchByObject } from "../../pmttrpg.mjs";
 import { RollContext } from "../combat/rollContext.mjs";
 import { pollUserInputConfirm, pollUserInputOptions, pollUserInputText, pollReduceStatus, pollDistributeStatus, pollUserInputBurst } from "./dialog.mjs";
 
@@ -70,7 +70,23 @@ export function registerMessages() {
             attacker.updateQueuedRoll(target);
         }
     };
-    
+
+    handler["UPDATE_MOUNT"] = async (data) => {
+        const target = searchByObject(data.target);
+        const char = searchByObject(data.char);
+
+        if (game.user.isGM) {
+            await target.update({ "system.mountedCharacter": char._id }, { diff: false, render: true });
+        }
+    };
+
+    handler["CLEAR_MOUNT"] = async (data) => {
+        const target = searchByObject(data.target);
+
+        if (game.user.isGM) {
+            await target.update({ "system.mountedCharacter": null }, { diff: false, render: true });
+        }
+    };
     
 
     CONFIG.queries["pmttrpg.pollUserInputOptions"] = wrapperPollUserInputOptions;

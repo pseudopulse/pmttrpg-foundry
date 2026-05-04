@@ -3,7 +3,7 @@ import { checkDraw, createClashMessage, createEffectsMessage, createResultMessag
 import { createClashResponse, getAttackOptions, getSkillOptions, pollReduceStatus, pollUserInputBurst, pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "../core/helpers/dialog.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
-import { findOfTypeForActor, getAlliesWithinRadius, getBloodfeast, getDistance, playSound, reduceBloodfeast, searchByObject } from "../pmttrpg.mjs";
+import { findActorsOfTeam, findOfTypeForActor, getActorToken, getAlliesWithinRadius, getBloodfeast, getDistance, playSound, reduceBloodfeast, searchByObject } from "../pmttrpg.mjs";
 import { currentRound } from "../core/combat/combatState.mjs";
 import { getRollContextFromData, getRollContextFromDataFull } from "./item.mjs";
 import { registerEffectMacro } from "../core/combat/macros.mjs";
@@ -39,6 +39,18 @@ export class PTActor extends Actor {
         attr.health.max = Math.floor(64 + (stats.Fortitude.value * 8) + (attr.rank.value * 32));
         attr.stagger.max = Math.floor(20 + (stats.Charm.value * 4) + (attr.rank.value * 4));
         attr.sanity.max = Math.floor(15 + (stats.Prudence.value * 3) + (attr.rank.value * 3));
+
+        if (systemData.settings.useHPOverride) {
+            attr.health.max = systemData.settings.hpOverride;
+        }
+
+        if (systemData.settings.useSTOverride) {
+            attr.stagger.max = systemData.settings.stOverride;
+        }
+
+        if (systemData.settings.useSPOverride) {
+            attr.sanity.max = systemData.settings.spOverride;
+        }
 
         //
         if (attr.health.value == null) attr.health.value = 0;
@@ -83,6 +95,10 @@ export class PTActor extends Actor {
 
         attr.light.max = light;
 
+        if (systemData.settings.useLightOverride) {
+            attr.light.max = systemData.settings.lightOverride;
+        }
+
         if (systemData.emotion == null || Object.is(Number(systemData.emotion), NaN)) {
             systemData.emotion = 0;
         }
@@ -108,6 +124,10 @@ export class PTActor extends Actor {
             target: target,
             item: item,
         });
+    }
+
+    hasNoSanity() {
+        return this.system.settings.useSPOverride && this.system.settings.spOverride == 0;
     }
 
     async processActionSkill(item, target) {
@@ -673,6 +693,10 @@ export class PTActor extends Actor {
             ignoreLoss = true;
         }
 
+        if (actor.checkDisposition("Anxious") && context.converted) {
+            ignoreLoss = true;
+        }
+
         if (actor.checkDisposition("Possessive")) {
             if (context.protect) {
                 triggers["On Use"].emotion += 1;
@@ -735,6 +759,38 @@ export class PTActor extends Actor {
                 triggers["Clash Win"].emotion += 1;
             }
         }
+    }
+
+    getMountedActor() {
+        if (this.system.mountedCharacter != null) {
+            return findByID(this.system.mountedCharacter);
+        }
+
+        return null;
+    }
+
+    getRidden() {
+        return this.augmentEffectCount("Companion - Swift") > 0 && this.getMountedActor() != null;
+    }
+
+    getRiding() {
+        return this.getMountedActor() != null && this.augmentEffectCount("Companion - Swift") <= 0;
+    }
+
+    getLinkedActor() {
+        if (this.system.settings.linkedActor != null) {
+            return findByID(this.system.settings.linkedActor);
+        }
+
+        return null;
+    }
+
+    getAbnoPart() {
+        return this.system.settings.isAbnormalityPart;
+    }
+
+    getInitiativeBound() {
+        return this.system.settings.initiativeBound;
     }
 
     /**
@@ -851,6 +907,11 @@ export class PTActor extends Actor {
         let hp = this.system.attributes.health.value;
         let st = this.system.attributes.stagger.value;
         let sp = this.system.attributes.sanity.value;
+
+        if (cat == "SP" && this.hasNoSanity()) {
+            cat = "HP";
+            string = string.replace("SP", "HP");
+        }
 
         let resist = this.augmentEffectCount(`${status} Resistance`) + this.outfitEffectCount(`${status} Resistance`);
         if (status == "Ruin" || status == "Poise") {
@@ -2307,7 +2368,90 @@ export class PTActor extends Actor {
                     ui.notifications.info(`You have no Charge!`);
                 }
             },
-        "icons/Detox");
+        "icons/Detox.png");
+        }
+
+        if (this.getRidden() || this.getRiding()) {
+            await registerEffectMacro("Dismount", async (actor) => {
+                if (!actor.getRidden() && !actor.getRiding()) {
+                    ui.notifications.info("You arent riding anything!");
+                    return;
+                }
+                
+                if (actor.getRidden()) {
+                    let ridden = actor.getRidden();
+                    await actor.update({ "system.mountedCharacter": null }, { diff: false, render: true })
+                    sendNetworkMessage("CLEAR_MOUNT", { target: ridden });
+                    createEffectsMessage(ridden.name, `Is dismounted from ${actor.name}!`);
+                }
+
+                if (actor.getRiding()) {
+                    let ridden = actor.getRiding();
+                    await actor.update({ "system.mountedCharacter": null }, { diff: false, render: true })
+                    sendNetworkMessage("CLEAR_MOUNT", { target: ridden });
+                    createEffectsMessage(actor.name, `Dismounts from ${ridden.name}!`);
+                }
+            },
+        "icons/Dismount.png");
+        }
+
+        let nearbyAllies = getAlliesWithinRadius(this, 1);
+        let ridableAllies = nearbyAllies.filter(x => !x.getRidden() && x.augmentEffectCount("Companion - Swift") > 0);
+
+        if (this.augmentEffectCount("Companion - Swift") > 0 && nearbyAllies.length > 0 && !this.getRidden()) {
+            await registerEffectMacro("Allow Mount", async (actor) => {
+                let nearbyAllies = getAlliesWithinRadius(actor, 1);
+                let ridableAllies = nearbyAllies.filter(x => !x.getRidden() && x.augmentEffectCount("Companion - Swift") > 0);
+                let target = nearbyAllies[0];
+                if (nearbyAllies.length > 0) {
+                    let options = [];
+                    let map = {};
+                    for (let ally of nearbyAllies) {
+                        options.push({
+                            name: ally._id,
+                            displayName: ally.name
+                        });
+
+                        map[ally._id] = ally;
+                    }
+
+                    target = map[await pollUserInputOptions(actor, "Choose ally to mount.", options)];
+                }
+
+                await actor.update({ "system.mountedCharacter": target._id }, { diff: false, render: true });
+                sendNetworkMessage("UPDATE_MOUNT", { target: target, char: actor });
+                await this.spendAction(false, false);
+                createEffectsMessage(actor.name, `Begins carrying ${target.name}!`);
+            },
+        "icons/Mount.png");
+        }
+
+        if (this.augmentEffectCount("Companion - Swift") <= 0 && ridableAllies.length > 0) {
+            await registerEffectMacro("Mount", async (actor) => {
+                let nearbyAllies = getAlliesWithinRadius(actor, 1);
+                let ridableAllies = nearbyAllies.filter(x => !x.getRidden() && x.augmentEffectCount("Companion - Swift") > 0);
+                let target = ridableAllies[0];
+                if (ridableAllies.length > 0) {
+                    let options = [];
+                    let map = {};
+                    for (let ally of ridableAllies) {
+                        options.push({
+                            name: ally._id,
+                            displayName: ally.name
+                        });
+
+                        map[ally._id] = ally;
+                    }
+
+                    target = map[await pollUserInputOptions(actor, "Choose ally to mount.", options)];
+                }
+
+                await actor.update({ "system.mountedCharacter": target._id }, { diff: false, render: true });
+                sendNetworkMessage("UPDATE_MOUNT", { target: target, char: actor });
+                await this.spendAction(false, false);
+                createEffectsMessage(actor.name, `Mounts onto ${target.name}!`);
+            },
+        "icons/Mount.png");
         }
 
         for (const macro of oCtx.macros) {
@@ -2317,5 +2461,9 @@ export class PTActor extends Actor {
         for (const macro of aCtx.macros) {
             await registerEffectMacro(macro.name, macro.callback, macro.img);
         }
+    }
+
+    modifyScale() {
+        getActorToken();
     }
 }

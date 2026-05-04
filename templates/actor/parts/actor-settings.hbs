@@ -1,0 +1,447 @@
+<div class="ase-main-holder">
+    {{!-- stat overrides --}}
+    <div class="ase-resources-holder grid-2col ase-grid-object" style="width: 100%; padding: 3%;">
+        <div class="ase-resource ase-stat-holder" title="Max Health Override">
+            <div style="display: flex;">
+                <img class="ase-resource-icon ase-stat-icon" src="systems/pmttrpg/assets/resources/HPIcon.webp" width="24"
+                height="24" />
+                <div class="ase-resource-xp">
+                    <input onclick="setCursorRight()" class="ase-stat-text as-resource-input" type="text"
+                        inputmode="numeric" name="system.settings.hpOverride" value="{{system.settings.hpOverride}}"
+                        data-dtype="Number" />
+                </div>
+            </div>
+            <div style="display: flex;">
+                <label style="margin: auto">Active</label>
+                <input class="ase-setting-toggle" id="useHPOverride" type="checkbox" />
+            </div>
+        </div>
+        <div class="ase-resource ase-stat-holder" title="Max Stagger Override">
+            <div style="display: flex;">
+                <img class="ase-resource-icon ase-stat-icon" src="systems/pmttrpg/assets/resources/StaggerIcon.webp"
+                width="24" height="24" />
+                <div class="ase-resource-xp">
+                    <input onclick="setCursorRight()" class="ase-stat-text as-resource-input" type="text"
+                        inputmode="numeric" name="system.settings.stOverride" value="{{system.settings.stOverride}}"
+                        data-dtype="Number" />
+                </div>
+            </div>
+            <div style="display: flex;">
+                <label style="margin: auto">Active</label>
+                <input class="ase-setting-toggle" id="useSTOverride" type="checkbox" />
+            </div>
+        </div>
+        <div class="ase-resource ase-stat-holder" title="Max Sanity Override">
+            <div style="display: flex;">
+                <img class="ase-resource-icon ase-stat-icon" src="systems/pmttrpg/assets/resources/PanicBlue.png" width="24"
+                height="24" />
+                <div class="ase-resource-xp">
+                    <input onclick="setCursorRight()" class="ase-stat-text as-resource-input" type="text"
+                        inputmode="numeric" name="system.settings.spOverride" value="{{system.settings.spOverride}}"
+                        data-dtype="Number" />
+                </div>
+            </div>
+            <div style="display: flex;">
+                <label style="margin: auto">Active</label>
+                <input class="ase-setting-toggle" id="useSPOverride" type="checkbox" />
+            </div>
+        </div>
+        <div class="ase-resource ase-stat-holder">
+            <div style="display: flex;">
+                <img class="ase-resource-icon ase-stat-icon" src="systems/pmttrpg/assets/resources/LightIcon.webp"
+                width="24" height="24" />
+                <div class="ase-resource-xp">
+                    <input onclick="setCursorRight()" class="ase-stat-text as-resource-input" type="text"
+                        inputmode="numeric" name="system.settings.lightOverride" value="{{system.settings.lightOverride}}"
+                        data-dtype="Number" />
+                </div>
+            </div>
+            <div style="display: flex;">
+                <label style="margin: auto">Active</label>
+                <input class="ase-setting-toggle" id="useLightOverride" type="checkbox" />
+            </div>
+        </div>
+    </div>
+
+    {{! -- actor link }}
+    <div class="ase-resources-holder ase-grid-object" style="width: 100%; gap: 2rem;">
+        <div class="ase-resource-content" style="position: relative;" title="Linked Actor">
+            <div class="ase-resource" style="padding: 5%">
+                <button onclick="toggleSDP(event)" class="ase-dropbtn ase-small-dropdown" style="width: 13rem; height: 3rem">
+                    {{linkedActorName}}
+                </button>
+                <div id="link-drp" class="ase-dropdown-content">
+                    <a class="ase-link-option" data-id="None">None</a>
+                    {{#each actorOptions as |option|}}
+                    <a class="ase-link-option" data-id="{{option.id}}">{{option.name}}</a>
+                    {{/each}}
+                </div>
+            </div>
+        </div>
+        <div>
+            <div class="ase-resource" style="height: 3.5rem; gap: 4rem; width: 16rem; position: relative;" title="Damage taken will also be dealt to the linked actor.">
+                <label class="ase-item-name">Is Abno Part:</label>
+                <div class="ase-resource-xp">
+                    <input style="height: 2rem; position: absolute; top: 15%; right: -3%;" class="as-resource-input ase-setting-toggle" type="checkbox" id="isAbnormalityPart" />
+                </div>
+            </div>
+
+            <div class="ase-resource" style="height: 3.5rem; gap: 4rem; width: 16rem; position: relative;" title="Will act on the linked actor's initiative instead of having it's own.">
+                <label class="ase-item-name">Initiative Bound:</label>
+                <div class="ase-resource-xp">
+                    <input style="height: 2rem; position: absolute; top: 15%; right: -3%;" class="as-resource-input ase-setting-toggle" type="checkbox" id="initiativeBound" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleSDP(event) {
+        if (document.activeElement.tagName.toLowerCase() == "input") {
+            return;
+        }
+
+        event.preventDefault();
+        document.getElementById('link-drp').classList.toggle("ase-show");
+    }
+
+    function preventDefault(event) {
+        event.preventDefault();
+    }
+
+    function filterFunction(element1, element2) {
+        let input = document.getElementById(element1);
+        let filter = input.value.toUpperCase();
+        let div = document.getElementById(element2);
+        let a = div.getElementsByTagName("a");
+
+        for (let i = 0; i < a.length; i++) {
+            let txtValue = a[i].textContent || a[i].innerText;
+            a[i].style.display =
+                txtValue.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+        }
+    }
+</script>
+
+<style>
+    .ase-main-holder {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ase-mark-holder {
+        height: 7rem !important;
+        width: 9rem !important;
+    }
+
+    .ase-marks {
+        display: flex !important;
+        padding: 2% !important;
+        height: 8rem !important;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 0.5rem;
+    }
+
+    .ase-mark-remove {
+        width: 2rem;
+        height: 2rem;
+        justify-content: center;
+        text-align: center;
+        margin: auto;
+        padding: 0%;
+        background: #f94343;
+        border: 2px solid red;
+    }
+
+    .ase-mark-block {
+        display: flex;
+        align-content: center;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        padding: 5% !important;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .ase-clashDescription {
+        overflow-y: scroll;
+        width: 100%;
+        padding: 2% 2% !important;
+        text-wrap-mode: wrap;
+        display: block !important;
+        height: 100%;
+    }
+
+    .ase-recycle-panel {
+        display: flex;
+    }
+
+    .ase-action-stat {
+        width: 10rem !important;
+    }
+
+    .ase-damage-stat {
+        width: 18rem !important;
+    }
+
+    .ase-damage-panel {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 1rem !important;
+    }
+
+    .ase-grid-object {
+        grid-column: auto !important;
+    }
+
+    .ase-stat-holder {
+        height: 5rem;
+        gap: 0rem !important;
+        width: 10rem;
+        flex-direction: column;
+    }
+
+    .ase-stat-icon {
+        padding: 2% !important;
+    }
+
+    .ase-stat-text {
+        height: 2rem;
+        width: 3rem;
+        margin: 0.5rem;
+    }
+
+    .ase-item-name {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        justify-items: center;
+        gap: 2rem;
+        margin: 0px;
+        padding: 2%;
+        font-size: 1.4rem;
+        text-wrap: nowrap;
+    }
+
+    .ase-controls {
+        position: absolute;
+        right: 3%;
+    }
+
+    .ase-font-button {
+        font-size: 20px;
+    }
+
+    .ase-item-icon {}
+
+    .ase-type-img {
+        width: 2.5rem;
+        height: 2.5rem;
+        background-color: slategray;
+        border: 1px solid gray;
+    }
+
+    .ase-type-img:hover {
+        background: rgb(147, 161, 175);
+    }
+
+    .ase-dropdown-holder {}
+
+    .ase-item-text {
+        text-wrap-mode: nowrap;
+        margin: 0px;
+        font-size: 20px;
+        color: black;
+    }
+
+    .ase-attack-type-button {
+        width: 5rem;
+        height: 2.5rem;
+        stats align-items: center;
+        justify-content: center;
+        text-align: center;
+        justify-items: middle;
+        display: flex;
+        padding: 2%;
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    .ase-type-container {
+        display: flex;
+        gap: 1rem;
+        align-content: center;
+        align-items: center;
+        justify-items: center;
+        margin: auto;
+    }
+
+    .ase-dropdownIcon {
+        margin: 0px !important;
+        padding: 10% !important;
+    }
+
+    .ase-resource-button {
+        background-color: slategray;
+        border: 1px solid gray;
+        text-align: center;
+    }
+
+    .ase-resource-button:hover {
+        background: rgb(147, 161, 175);
+    }
+
+    .ase-clashDescription {
+        overflow-y: scroll;
+        width: 100%;
+        padding: 2% 2% !important;
+        text-wrap-mode: wrap;
+        display: block !important;
+    }
+
+    .ase-statblock-container {
+        padding: 2% !important;
+        columns: 2;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .ase-rollInfo {
+        height: 9rem;
+        width: 14rem;
+        padding: 0% !important;
+        columns: 1;
+        display: flex !important;
+        gap: 0rem !important;
+    }
+
+    .ase-resource {
+        background-color: cadetblue;
+        border: 2px solid black;
+        23 border-radius: 1px;
+        display: flex;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 4rem;
+        padding: 5% 2%;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .ase-resource-input {
+        background-color: slategray;
+        border: 1px solid silver;
+        text-align: center;
+        width: 4rem;
+    }
+
+    .ase-nop {
+        pointer-events: none;
+    }
+
+    .ase-resource-content {
+        display: flexbox;
+        justify-content: center;
+        align-items: center;
+        flex-direction: row;
+        grid: 1 / span 3;
+        gap: 0;
+        this.actor. margin: auto;
+    }
+
+    .ase-resource-divider {
+        text-align: center;
+    }
+
+    .ase-resource-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border: none;
+        margin: auto;
+        padding: 10%;
+    }
+
+    .ase-resources-holder {
+        background-color: #1d1b22;
+        border: 2px solid slategray;
+        padding: 2%;
+        align-items: center;
+        justify-content: center;
+        display: flex;
+        margin: 0 !important;
+    }
+
+    .ase-padding-t2 {
+        padding-top: 2%;
+        padding-bottom: 2%;
+    }
+
+    .ase-padding-0 {
+        padding: 0;
+    }
+
+    .ase-dropbtn {
+        background-color: #1d1b22;
+        border: 1px solid white !important;
+        color: white;
+        padding: 16px;
+        font-size: 16px;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+        justify-content: center;
+        width: 9rem;
+        height: 2rem;
+        line-height: 0;
+        text-wrap-mode: nowrap;
+    }
+
+    .ase-dropbtn-small {
+        width: 3rem;
+        height: 2rem;
+        line-height: 0;
+    }
+
+    .ase-dropbtn:hover,
+    .ase-dropbtn:focus {
+        background-color: slategray;
+    }
+
+    .ase-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .ase-dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #f6f6f6;
+        border: 1px solid #ddd;
+        z-index: 1;
+        max-height: 15rem;
+        overflow-y: scroll;
+        scrollbar-width: none;
+        top: 85%;
+    }
+
+    .ase-dropdown-content a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        text-align: center;
+        width: 11.5rem;
+    }
+
+    .ase-dropdown-content a:hover {
+        background-color: #f1f1f1;
+    }
+
+    .ase-show {
+        display: block !important;
+    }
+</style>

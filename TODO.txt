@@ -10,13 +10,11 @@ homebrew effects
 
 add toggle for primary outfit and primary augment
 
-add stat override tab
-
-add abnormality parts
-
-make pet act update when owner updates instead of having initiative
-
 add dice power penalty option to attacks
+
+//
+
+implement abno part in the settings tab
 
 // - unfinished effects
 critical conversion (skill)

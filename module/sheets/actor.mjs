@@ -1,4 +1,4 @@
-import { getBloodfeast, roughSizeOfObject } from "../pmttrpg.mjs";
+import { findActorsOfTeam, getBloodfeast, roughSizeOfObject } from "../pmttrpg.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { validate, handleEffectAddButton, handleEffectCounterChange, handleEffectRemoveButton, handleEffectTriggerChange, handleEffectTypeChange, getEffectsArray } from "../core/effects/effectHelpers.mjs";
 import { MarkNames } from "../core/status/mark.mjs";
@@ -55,6 +55,28 @@ export class PTActorSheet extends ActorSheet {
         context.hasIncomingMarks = marks2.length > 0;
 
         context.availableBloodfeast = getBloodfeast();
+
+        //
+
+        context.linkedActorName = "None";
+        let options = [];
+        let team = findActorsOfTeam(this.document);
+        for (let member of team) {
+            options.push({
+                id: member._id,
+                name: member.name,
+            })
+        }
+
+        if (this.document.system.settings.linkedActor != null) {
+            let curTarget = findByID(this.document.system.settings.linkedActor);
+
+            if (curTarget) {
+                context.linkedActorName = curTarget.name;
+            }
+        }
+
+        context.actorOptions = options;
 
         this.prepareItems(context);
 
@@ -137,6 +159,12 @@ export class PTActorSheet extends ActorSheet {
             this.actor.update({ system }, { diff: false, render: true });
         });
 
+        html.on('click', '.ase-link-option', (ev) => {
+            const system = this.actor.toObject(false).system;
+            system.settings.linkedActor = ev.currentTarget.dataset.id;
+            this.actor.update({ system }, { diff: false, render: true });
+        });
+
         html.on('click', '.ac-mark-remove', (ev) => {
             ev.preventDefault();
             let target = ev.currentTarget.closest('.ac-mark-holder').dataset.target;
@@ -150,6 +178,16 @@ export class PTActorSheet extends ActorSheet {
             const system = this.actor.toObject(false).system;
             system.emotion = ev.currentTarget.value;
             this.actor.update({ system }, { diff: false, render: true });
+        });
+
+        html.find('.ase-setting-toggle').each((x, element) => {
+            element.checked = this.actor.system.settings[element.id];
+        });
+
+        html.on('click', '.ase-setting-toggle', (ev) => {
+            const system = this.actor.toObject(false).system;
+            system.settings[ev.currentTarget.id] = ev.currentTarget.checked;
+            this.actor.update({ system }, { diff: false, render: false });
         });
 
         // Drag events for macros.

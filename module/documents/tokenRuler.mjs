@@ -1,3 +1,5 @@
+import { getActorToken } from "../pmttrpg.mjs";
+
 export class PTTokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
     _preMove(token) {
 
@@ -32,8 +34,15 @@ export class PTTokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
 
         let actor = this.token.actor;
         let movement = actor.system.movement;
+        let token = this.token;
+
+        if (actor.getRiding()) {
+            actor = actor.getMountedActor();
+            movement = actor.system.movement;
+            token = getActorToken(actor);
+        }
         
-        let cost = Math.floor(this.distanceBetween(this.token.transform.position, waypoint) / 100);
+        let cost = Math.floor(this.distanceBetween(token.transform.position, waypoint) / canvas.grid.size);
 
         if (cost > movement && (game.combat != null && game.combat.isActive)) {
             return 0xaa0000;
@@ -44,7 +53,6 @@ export class PTTokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
     }
 
     distanceBetween(v1, v2) {
-        
         return Math.hypot(v2.x - v1.x, v2.y - v1.y);
     }
 }

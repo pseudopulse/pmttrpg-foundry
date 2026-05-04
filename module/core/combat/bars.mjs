@@ -62,11 +62,13 @@ async function drawBars() {
         value: this.actor.system.attributes.stagger.value,
     });
 
-    await this._drawBar(0, getBar(this, "SP", 0, 0, holder), {
-        attribute: "attributes.sanity",
-        max: this.actor.system.attributes.sanity.max,
-        value: this.actor.system.attributes.sanity.value,
-    });
+    if (!this.actor.hasNoSanity()) {
+        await this._drawBar(0, getBar(this, "SP", 0, 0, holder), {
+            attribute: "attributes.sanity",
+            max: this.actor.system.attributes.sanity.max,
+            value: this.actor.system.attributes.sanity.value,
+        });
+    }
 }
 
 function getBar(token, id, posX, posY, holder) {

@@ -16,6 +16,7 @@
         <a class="item" data-tab="stats">Stats</a>
         <a class="item" data-tab="items">Items</a>
         <a class="item" data-tab="status">Status</a>
+        <a class="item" data-tab="settings">Settings</a>
     </nav>
 
     {{!-- Sheet Body --}}
@@ -32,6 +33,11 @@
 
         {{! -- Combat}}
         {{> "systems/pmttrpg/templates/actor/parts/actor-combat.hbs"}}
+
+        {{!-- Settings --}}
+        <div class="tab settings" data-group="primary" data-tab="settings">
+            {{> "systems/pmttrpg/templates/actor/parts/actor-settings.hbs"}}
+        </div>
 
         <div class="tab stats" data-group="primary" data-tab="items">
             <nav class="sheet-tabs2 tabs" data-group="secondary" style="height: 2rem; pointer-events: none;">
