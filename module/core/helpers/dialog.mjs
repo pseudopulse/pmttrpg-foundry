@@ -120,6 +120,8 @@ export async function getActionModifiers(actor, context) {
                                 data.protect = true;
                             case "IgnoreEmotion":
                                 data.ignoreEmotion = true;
+                            case "Reactive":
+                                data.reactive = true;
                             default:
                                 break;
                         }
@@ -144,6 +146,8 @@ export async function getActionModifiers(actor, context) {
                                 data.protect = false;
                             case "IgnoreEmotion":
                                 data.ignoreEmotion = false;
+                            case "Reactive":
+                                data.reactive = false;
                             default:
                                 break;
                         }

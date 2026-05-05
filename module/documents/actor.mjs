@@ -353,6 +353,8 @@ export class PTActor extends Actor {
             ctx2 = tmp;
         }
 
+        let doDamageEffects = getDistance(ctx1.actor, ctx2.actor) <= ctx1.getRange() && !ctx2.reactive;
+
         if (ctx2.hasEffect("Snagging Thorns") && ctx2.converted) {
             let confirm = await pollUserInputConfirm(ctx2.actor, `Apply Rupture Pause effect from Snagging Thorns?`);
 
@@ -422,7 +424,7 @@ export class PTActor extends Actor {
 
         let landedDevastating = false;
 
-        if (ruin > 0 && !ctx2.actor.system.ruinPaused && ctx1.actor.damageType != "Block" && ctx1.actor.damageType != "Evade") {
+        if (ruin > 0 && !ctx2.actor.system.ruinPaused && ctx1.actor.damageType != "Block" && ctx1.actor.damageType != "Evade" && doDamageEffects) {
             let tmp = new Roll(this.getDevastationRoll(ctx1));
             await tmp.evaluate();
             let roll = tmp.total;
@@ -459,7 +461,7 @@ export class PTActor extends Actor {
 
         let landedCrit = false;
 
-        if (poise > 0 && !ctx1.actor.system.poisePaused && ctx1.actor.damageType != "Block" && ctx1.actor.damageType != "Evade") {
+        if (poise > 0 && !ctx1.actor.system.poisePaused && ctx1.actor.damageType != "Block" && ctx1.actor.damageType != "Evade" && doDamageEffects) {
             let tmp = new Roll(this.getCritRoll(ctx1));
             await tmp.evaluate();
             let roll = tmp.total;
@@ -500,7 +502,7 @@ export class PTActor extends Actor {
 
         let smoke = ctx2.actor.getStatusCount("Smoke");
 
-        if (smoke > 0) {
+        if (smoke > 0 && doDamageEffects) {
             let damage = Math.max(Math.floor(smoke / 2), 1);
             await ctx2.actor.takeDamageStatus(damage, "Smoke", null, `Takes %DMG% extra HP damage from [/status/Smoke] Smoke! (%PHP% -> %HP%)`);
             if (ctx1.actor.augmentEffectCount("Dizzying Smog") > 0) {
@@ -509,13 +511,13 @@ export class PTActor extends Actor {
             }
         }
 
-        if (ctx1.actor.augmentEffectCount("Puffy Brume") > 0) {
+        if (ctx1.actor.augmentEffectCount("Puffy Brume") > 0 && doDamageEffects) {
             let smoke = ctx1.actor.getStatusCount("Smoke");
             let damage = Math.max(Math.floor(smoke / 2), 1);
             await ctx2.actor.takeDamageStatus(damage, "none", null, `Takes %DMG% extra HP damage from [/status/Smoke] Smoke due to Puffy Brume! (%PHP% -> %HP%)`);
         }
 
-        if (ctx1.hasEffect("Fumigate")) {
+        if (ctx1.hasEffect("Fumigate") && doDamageEffects) {
             let smoke = ctx1.actor.getStatusCount("Smoke");
             if (smoke > 0) {
                 await ctx1.actor.setStatus("Smoke", 0);
@@ -555,20 +557,20 @@ export class PTActor extends Actor {
 
         let bursts = await pollUserInputBurst(ctx1.actor, ctx2.actor);
 
-        if (bursts.sinkingBurst) {
+        if (bursts.sinkingBurst && doDamageEffects) {
             await ctx1.fireEvent("Sinking Burst");
             await ctx2.actor.fireStatusEffect("Sinking");
             attackerTriggers.push("Sinking Burst");
         }
 
-        if (bursts.tremorBurst) {
+        if (bursts.tremorBurst && doDamageEffects) {
             await ctx1.fireEvent("Tremor Burst");
             await ctx2.actor.fireStatusEffect("Tremor");
             attackerTriggers.push("Tremor Burst");
             totalAssassinationDamage += 3;
         }
 
-        if (bursts.ruptureBurst) {
+        if (bursts.ruptureBurst && doDamageEffects) {
             await ctx1.fireEvent("Rupture Burst");
             await ctx2.actor.fireStatusEffect("Rupture");
             attackerTriggers.push("Rupture Burst");
@@ -640,11 +642,11 @@ export class PTActor extends Actor {
             }
         }
 
-        if (ctx1.target.hasMarkApplied(ctx1.actor, MARKS.Assassination)) {
+        if (ctx1.target.hasMarkApplied(ctx1.actor, MARKS.Assassination) && doDamageEffects) {
             await ctx2.actor.takeDamageStatus(totalAssassinationDamage, "none", "HP", `Takes %DMG% HP damage from Target for Assassination! (%PHP% -> %HP%)`);
         }
 
-        if (ctx1.target.hasMarkApplied(ctx1.actor, MARKS.Subjugation)) {
+        if (ctx1.target.hasMarkApplied(ctx1.actor, MARKS.Subjugation) && doDamageEffects) {
             await ctx2.actor.takeDamageStatus(2, "none", "SP", `Takes %DMG% SP damage from Target for Subjugation! (%PSP% -> %SP%)`);
             await ctx1.actor.heal(0, 0, 2, ctx1.actor);
         }
@@ -780,11 +782,11 @@ export class PTActor extends Actor {
     }
 
     getAbnoPart() {
-        return this.system.settings.isAbnormalityPart;
+        return this.system.settings.isAbnormalityPart && this.getLinkedActor() != null;
     }
 
     getInitiativeBound() {
-        return this.system.settings.initiativeBound;
+        return this.system.settings.initiativeBound && this.getLinkedActor() != null;
     }
 
     /**
@@ -888,7 +890,7 @@ export class PTActor extends Actor {
                         let range = respCtx.getRange();
                         
                         if (getDistance(context.actor, respCtx.actor) <= range) {
-                            await context.actor.sendAttackRoll(true);
+                            await context.actor.receiveAttackRoll(respCtx, false);
                         }
                     }
                 }
@@ -1088,6 +1090,14 @@ export class PTActor extends Actor {
     }
 
     async takeDamage(damage, context, flatHP = 0, flatST = 0, flatSP = 0, silent = false, selfCtx = null) {
+        if (selfCtx != null && selfCtx.reactive) {
+            return;
+        }
+
+        if (this.getAbnoPart()) {
+            this.getLinkedActor().takeDamage(damage, context, flatHP, flatST, flatSP, silent);
+        }
+
         let hp = this.system.attributes.health.value + this.system.attributes.health.temp;
         let st = this.system.attributes.stagger.value + this.system.attributes.stagger.temp;
         let sp = this.system.attributes.sanity.value + this.system.attributes.sanity.temp;

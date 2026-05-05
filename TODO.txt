@@ -4,18 +4,13 @@ force damage input
 
 implement earthquake and make ground rumbler count as it
 
-add toggle for primary outfit and primary augment
-
 add dice power penalty option to attacks
 
 add the homebrew effects creepz mentioned in dms
 
-add a flag for reactive that makes the defender not take damage from a clash lose
-
 //
 
 implement abno part in the settings tab
-
 
 // - unfinished effects
 critical conversion (skill)
