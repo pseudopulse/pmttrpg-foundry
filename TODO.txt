@@ -2,16 +2,6 @@ functional parts (there's like 10 left to finish if i have time)
 
 force damage input
 
-implement earthquake and make ground rumbler count as it
-
 add dice power penalty option to attacks
 
 add the homebrew effects creepz mentioned in dms
-
-//
-
-implement abno part in the settings tab
-
-// - unfinished effects
-earthquake (skill and weapon) ! PRIORITY
-cursed (augment)

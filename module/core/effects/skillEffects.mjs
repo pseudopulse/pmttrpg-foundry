@@ -896,25 +896,27 @@ export const skillEffects = [
                     let blocked = false;
 
                     if (option == "Block") {
+                        await target.spendReaction(false, false);
                         let bCtx = await target.outfit.getRollContextBlo(ctx.actor, false);
                         let roll = new Roll(`1d${bCtx.diceMax}+${bCtx.dicePower}`, "");
                         let result = await roll.evaluate();
 
                         if (result.total >= ctx.result) {
                             blocked = true;
-                            text += `${target.name} blocks the Earthquake with a roll of ${result.total}!`;
+                            text += `${target.name} blocks the Earthquake with a roll of ${result.total}!\n`;
                         }
                         else {
                             text += `${target.name} rolls ${result.total}, failing to block the Earthquake. Gains ${tremor} [/status/Tremor] Tremor and ${2 * count} [/status/Bind] Bind next round.\n`
                         }
                     } else if (option == "Evade") {
+                        await target.spendReaction(false, false);
                         let eCtx = await target.outfit.getRollContextEvd(ctx.actor, false);
                         let roll = new Roll(`1d${eCtx.diceMax}+${eCtx.dicePower}`, "");
                         let result = await roll.evaluate();
 
                         if (result.total >= ctx.result) {
                             blocked = true;
-                            text += `${target.name} evades the Earthquake with a roll of ${result.total}!`;
+                            text += `${target.name} evades the Earthquake with a roll of ${result.total}!\n`;
                         }
                         else {
                             text += `${target.name} rolls ${result.total}, failing to evade the Earthquake. Gains ${tremor} [/status/Tremor] Tremor and ${2 * count} [/status/Bind] Bind next round.\n`
