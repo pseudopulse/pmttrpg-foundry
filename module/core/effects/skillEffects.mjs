@@ -1832,7 +1832,7 @@ function simpleStatusEffectSelf(status, amount) {
     return new Effect(
         `${status}`,
         (context, count, trigger) => {
-            data.applyInfliction(status.replace(" ", "_"), amount, true);
+            context.triggers[trigger].applyInfliction(status.replace(" ", "_"), amount, true);
         },
         (count) => {
             return `Gain ${Number(count)} [/status/${status.replace(" ", "_")}] ${status} next round.`;

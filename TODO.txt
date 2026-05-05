@@ -12,9 +12,16 @@ add toggle for primary outfit and primary augment
 
 add dice power penalty option to attacks
 
+make emotion level actually regen light and inc the emotion level used counter
+
+add heal efficiency
+
+add the homebrew effects creepz mentioned in dms
+
 //
 
 implement abno part in the settings tab
+
 
 // - unfinished effects
 critical conversion (skill)

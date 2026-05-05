@@ -149,6 +149,8 @@ export class RollContext {
 
     async resolveInstantCritDeva(triggers) {
         let lines = [];
+        let alreadyApplied = [];
+        let totalAidHP = 0;
 
         for (const trigger of triggers) {
             let data = this.triggers[trigger];
@@ -161,9 +163,9 @@ export class RollContext {
 
             for (const infliction of data.inflictions) {
                 let status = infliction.key;
-                if (status != "Critical" && status != "Devastation") continue;
-                if (status == "Critical" && !this.hasEffect("Instant Crit")) continue;
-                if (status == "Devastation" && !this.hasEffect("Instant Devastation")) continue;
+                if (status != "Critical" && status != "Devastation" && status != "Poise" && status != "Ruin") continue;
+                if ((status == "Critical" || status == "Poise") && !this.hasEffect("Instant Crit")) continue;
+                if ((status == "Devastation" || status == "Ruin") && !this.hasEffect("Instant Devastation")) continue;
 
                 let cur = Number(infliction.count);
 
@@ -204,7 +206,7 @@ export class RollContext {
                 if (cur < 0) {
                     let prev = infliction.nextRound ? Number(this.actor.getStatusCountNext(status)) : Number(this.actor.getStatusCount(status));
                     await this.actor.applyStatus(status, infliction.nextRound ? 0 : Math.abs(cur), infliction.nextRound ? Math.abs(cur) : 0);
-                    lines.push(`Gain ${Math.abs(cur)} [/status/${status}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + Math.abs(cur)})`);
+                    lines.push(`Gain ${Math.abs(cur)} [/status/${status.replace(" ", "_")}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + Math.abs(cur)})`);
                 }
                 else {
                     if (this.target != null && !this.ignoringInflictions) {
@@ -215,10 +217,14 @@ export class RollContext {
                             totalAidHP += 3;
                         }
 
-                        lines.push(`Inflict ${cur} [/status/${status}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + cur})`);
+                        lines.push(`Inflict ${cur} [/status/${status.replace(" ", "_")}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + cur})`);
                     }
                 }
             }
+        }
+
+        if (this.target != null && totalAidHP > 0) {
+            await this.actor.handleMarkAid(this.target, totalAidHP);
         }
 
         return this.append("", lines);
@@ -235,20 +241,22 @@ export class RollContext {
                         let val = this.actor.getModifiedBloodfeastCost(cost.cost);
                         let prev = getBloodfeast();
                         await this.actor.spendBloodfeast(val);
-                        lines.push(`Consume ${val} [/status/${status}] ${status} (${prev} -> ${prev - val})`);
+                        lines.push(`Consume ${val} [/status/${status.replace(" ", "_")}] ${status.replace("_", " ")} (${prev} -> ${prev - val})`);
                     }
                 }
                 else {
                     let prev = this.actor.getStatusCount(status);
 
                     await this.actor.reduceStatus(status, cost.cost);
-                    lines.push(`Lose ${cost.cost} [/status/${status}] ${status} (${prev} -> ${prev - cost.cost})`);
+                    lines.push(`Lose ${cost.cost} [/status/${status.replace(" ", "_")}] ${status.replace("_", " ")} (${prev} -> ${prev - cost.cost})`);
                 }
             }
         }
 
         let alreadyApplied = [];
         let totalAidHP = 0;
+
+        let totalEmotion = 0;
 
         for (const trigger of triggers) {
             let data = this.triggers[trigger];
@@ -297,26 +305,14 @@ export class RollContext {
                 lines.push(`Deal ${Math.abs(hpDamage)} ST damage (${php} -> ${hp})`);
             }
 
-            if (data.emotion > 0) {
-                let pe = this.actor.system.emotion;
-                await this.actor.gainEmotion(data.emotion);
-                let e = this.actor.system.emotion;
-                lines.push(`Gain ${data.emotion} [/resources/EmotionIcon] Emotion (${pe} -> ${e})`);
-            }
-
-            if (data.emotion < 0) {
-                let pe = this.actor.system.emotion;
-                await this.actor.loseEmotion(Math.abs(data.emotion));
-                let e = this.actor.system.emotion;
-                lines.push(`Lose ${Math.abs(data.emotion)} [/resources/EmotionIcon] Emotion (${pe} -> ${e})`);
-            }
+            totalEmotion += data.emotion;
 
             for (const infliction of data.inflictions) {
                 let status = infliction.key;
                 let cur = Number(infliction.count);
 
-                if (status == "Critical" && this.hasEffect("Instant Crit")) continue;
-                if (status == "Devastation" && this.hasEffect("Instant Devastation")) continue;
+                if ((status == "Critical" || status == "Poise") && this.hasEffect("Instant Crit")) continue;
+                if ((status == "Devastation" || status == "Ruin") && this.hasEffect("Instant Devastation")) continue;
 
                 if (this.flags.includes("Reflective Barrier") && cur > 0) {
                     cur = -cur;
@@ -355,7 +351,7 @@ export class RollContext {
                 if (cur < 0) {
                     let prev = infliction.nextRound ? Number(this.actor.getStatusCountNext(status)) : Number(this.actor.getStatusCount(status));
                     await this.actor.applyStatus(status, infliction.nextRound ? 0 : Math.abs(cur), infliction.nextRound ? Math.abs(cur) : 0);
-                    lines.push(`Gain ${Math.abs(cur)} [/status/${status}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + Math.abs(cur)})`);
+                    lines.push(`Gain ${Math.abs(cur)} [/status/${status.replace(" ", "_")}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + Math.abs(cur)})`);
                 }
                 else {
                     if (this.target != null && !this.ignoringInflictions) {
@@ -366,10 +362,24 @@ export class RollContext {
                             totalAidHP += 3;
                         }
 
-                        lines.push(`Inflict ${cur} [/status/${status}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + cur})`);
+                        lines.push(`Inflict ${cur} [/status/${status.replace(" ", "_")}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + cur})`);
                     }
                 }
             }
+        }
+
+        if (totalEmotion > 0) {
+            let pe = this.actor.system.emotion;
+            await this.actor.gainEmotion(totalEmotion);
+            let e = this.actor.system.emotion;
+            lines.push(`Gain ${totalEmotion} [/resources/EmotionIcon] Emotion (${pe} -> ${e})`);
+        }
+
+        if (totalEmotion < 0) {
+            let pe = this.actor.system.emotion;
+            await this.actor.loseEmotion(Math.abs(totalEmotion));
+            let e = this.actor.system.emotion;
+            lines.push(`Lose ${Math.abs(totalEmotion)} [/resources/EmotionIcon] Emotion (${pe} -> ${e})`);
         }
 
         if (this.target != null && totalAidHP > 0) {

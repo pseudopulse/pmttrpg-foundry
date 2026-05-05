@@ -279,7 +279,12 @@ Hooks.on('preMoveToken', (token, data, action, user) => {
   let dist = distanceBetween(origin, dest);
   let sqr = Math.floor(dist / distScale);
 
-  if (token.actor.getRiding()) {
+  if (token.movementAction != "blink" && sqr > token.actor.system.movement && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user) {
+    ui.notifications.notify(`You cant move that far! You attempted to move ${sqr} SQR, while only having ${token.actor.system.movement} SQR remaining!`);
+    return false;
+  }
+
+  if (token.actor.getRiding() && (sqr <= token.actor.getMountedActor().system.movement || (game.combat == null || !game.combat.isActive)) && getActorUser(token.actor) == game.user) {
     if (ignoreNextMountFlag.includes(token.actor)) {
       ignoreNextMountFlag.remove(token.actor);
       return false;
@@ -290,7 +295,7 @@ Hooks.on('preMoveToken', (token, data, action, user) => {
     return true;
   }
 
-  if (token.actor.getRidden()) {
+  if (token.actor.getRidden() && (sqr <= token.actor.system.movement || (game.combat == null || !game.combat.isActive)) && getActorUser(token.actor) == game.user) {
     if (ignoreNextMountFlag.includes(token.actor)) {
       ignoreNextMountFlag.remove(token.actor);
       return false;
@@ -299,11 +304,6 @@ Hooks.on('preMoveToken', (token, data, action, user) => {
     ignoreNextMountFlag.push(token.actor.getMountedActor());
     getActorToken(token.actor.getMountedActor()).document.update(canvas.grid.getSnappedPosition(data.destination.x, data.destination.y));
     return true;
-  }
-
-  if (token.movementAction != "blink" && sqr > token.actor.system.movement && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user) {
-    ui.notifications.notify(`You cant move that far! You attempted to move ${sqr} SQR, while only having ${token.actor.system.movement} SQR remaining!`);
-    return false;
   }
 });
 
@@ -330,7 +330,7 @@ function distanceBetween(v1, v2) {
 }
 
 export function scale(distance) {
-  return Math.floor(distance / canvas.grid.size);
+  return Math.floor(distance / canvas.grid.distance);
 }
 
 /**

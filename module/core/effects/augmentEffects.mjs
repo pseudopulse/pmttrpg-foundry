@@ -123,7 +123,7 @@ export const augmentEffects = [
         "Wasting Curse",
         (context, count, trigger) => {
             context.events["Devastating Hit"].push(async (context) => {
-                applyInAoe(context.target, 1, async (actor) => {
+                await applyInAoe(context.target, 1, async (actor) => {
                     await actor.applyStatus("Feeble", 0, 1);
                     createEffectsMessage(actor.name, "Gains 1 [/status/Feeble] Feeble next round from Wasting Curse!");
                 }, context.actor);
@@ -135,7 +135,7 @@ export const augmentEffects = [
         "Slowing Curse",
         (context, count, trigger) => {
             context.events["Devastating Hit"].push(async (context) => {
-                applyInAoe(context.target, 1, async (actor) => {
+                await applyInAoe(context.target, 1, async (actor) => {
                     await actor.applyStatus("Bind", 0, 2);
                     createEffectsMessage(actor.name, "Gains 2 [/status/Bind] Bind next round from Slowing Curse!");
                 }, context.actor);
@@ -147,7 +147,7 @@ export const augmentEffects = [
         "Exposing Curse",
         (context, count, trigger) => {
             context.events["Devastating Hit"].push(async (context) => {
-                applyInAoe(context.target, 1, async (actor) => {
+                await applyInAoe(context.target, 1, async (actor) => {
                     await actor.applyStatus("Fragile", 0, 1);
                     await actor.applyStatus("Stagger_Fragile", 0, 1);
                     createEffectsMessage(actor.name, "Gains 1 [/status/Fragile] Fragile and [/status/Stagger_Fragile] Stagger Fragile next round from Exposing Curse!");
@@ -160,7 +160,7 @@ export const augmentEffects = [
         "Spreading Curse",
         (context, count, trigger) => {
             context.events["Devastating Hit"].push(async (context) => {
-                applyInAoe(context.target, 1, async (actor) => {
+                await applyInAoe(context.target, 1, async (actor) => {
                     await actor.applyStatus("Ruin", 0, 3);
                     createEffectsMessage(actor.name, "Gains 3 [/status/Ruin] Ruin next round from Spreading Curse!");
                 }, context.actor);
@@ -330,7 +330,7 @@ export const augmentEffects = [
         "Terrorize",
         (context, count, trigger) => {
             context.events["Kill"].push(async (context) => {
-                applyInAoe(context.target, 1, async (actor) => {
+                await applyInAoe(context.target, 1, async (actor) => {
                     if (actor != context.target) {
                         await actor.takeDamage(0, context, 0, 0, 5, true);
                         createEffectsMessage(actor.name, "[/status/Panic] Took 5 SP damage from Terrorize!");

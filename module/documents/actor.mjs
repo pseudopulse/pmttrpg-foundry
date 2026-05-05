@@ -132,7 +132,7 @@ export class PTActor extends Actor {
 
     async processActionSkill(item, target) {
         let ctx = await getRollContextFromDataFull(item);
-        
+
         createEffectsMessage(ctx.actor.name, `Uses the skill ${item.name} on ${target == this ? "self" : target.name}!`);
         createEffectsMessage(ctx.actor.name, await ctx.resolveTriggers(["On Use", "Clash Win"]));
     }
@@ -288,7 +288,7 @@ export class PTActor extends Actor {
                 }
             }
 
-            this.processClashResolution(ctx1, ctx2);
+            await this.processClashResolution(ctx1, ctx2);
         }
         else {
             const respCtx = new RollContext();
@@ -343,7 +343,7 @@ export class PTActor extends Actor {
 
     async processClashResolution(ctx1, ctx2) {
         this.processIgnorePower(ctx1, ctx2);
-        
+
         createResultMessage(ctx1, ctx2);
 
         if (checkDraw(ctx1, ctx2)) {
@@ -372,8 +372,8 @@ export class PTActor extends Actor {
             }
         }
 
-        if (ctx1.target.hasMarkApplied(ctx1.actor, MARKS.Analysis) 
-        && (ctx1.target.findResistance(ctx1.damageType, "HP") >= 1.5 || ctx1.target.findResistance(ctx1.damageType, "ST") >= 1.5)) {
+        if (ctx1.target.hasMarkApplied(ctx1.actor, MARKS.Analysis)
+            && (ctx1.target.findResistance(ctx1.damageType, "HP") >= 1.5 || ctx1.target.findResistance(ctx1.damageType, "ST") >= 1.5)) {
             let type = await pollUserInputOptions(ctx1.actor, "Choose Marked for Analysis [Type] Fragility.", [
                 {
                     name: "Slash Fragility",
@@ -428,7 +428,7 @@ export class PTActor extends Actor {
 
         let landedDevastating = false;
 
-        if (ruin > 0 && !ctx2.actor.system.ruinPaused) {
+        if (ruin > 0 && !ctx2.actor.system.ruinPaused && ctx1.actor.damageType != "Block" && ctx1.actor.damageType != "Evade") {
             let tmp = new Roll(this.getDevastationRoll(ctx1));
             await tmp.evaluate();
             let roll = tmp.total;
@@ -465,7 +465,7 @@ export class PTActor extends Actor {
 
         let landedCrit = false;
 
-        if (poise > 0 && (ctx1.attackType == "Melee" || ctx1.attackType == "Ranged") && !ctx1.actor.system.poisePaused) {
+        if (poise > 0 && !ctx1.actor.system.poisePaused && ctx1.actor.damageType != "Block" && ctx1.actor.damageType != "Evade") {
             let tmp = new Roll(this.getCritRoll(ctx1));
             await tmp.evaluate();
             let roll = tmp.total;
@@ -488,7 +488,7 @@ export class PTActor extends Actor {
                 if (ctx1.actor.system.activeStance == "Slasher") {
                     modifier = "kh";
                 }
-                
+
                 tmp = new Roll(`${critical + bonusCritical}d10${modifier}`);
                 await tmp.evaluate();
                 let damage = tmp.total + (3 * ctx1.effectCount("Critical DMG+"));
@@ -558,7 +558,7 @@ export class PTActor extends Actor {
             ctx2.flags = ctx2.flags.filter(x => x != "Reflective Barrier");
             ctx1.flags.push("Reflective Barrier");
         }
-        
+
         let bursts = await pollUserInputBurst(ctx1.actor, ctx2.actor);
 
         if (bursts.sinkingBurst) {
@@ -701,7 +701,7 @@ export class PTActor extends Actor {
             if (context.protect) {
                 triggers["On Use"].emotion += 1;
             }
-            
+
             if (context.bondTarget) {
                 triggers["Clash Win"].emotion += 1;
             }
@@ -899,7 +899,7 @@ export class PTActor extends Actor {
         }
 
         if (canRespond) {
-            context.actor.sendAttackRoll(true);
+            await context.actor.sendAttackRoll(true);
         }
     }
 
@@ -1007,7 +1007,7 @@ export class PTActor extends Actor {
             .replace("%DMG%", `${damage}${resText}`)
         );
 
-        await this.update({ "system.damageTaken": Number(this.system.damageTaken) + (prevHP - hp)});
+        await this.update({ "system.damageTaken": Number(this.system.damageTaken) + (prevHP - hp) });
 
         if (this.system.attributes.stagger.value <= 0 && !this.system.staggered) {
             await this.stagger();
@@ -1059,7 +1059,7 @@ export class PTActor extends Actor {
         let st = this.system.attributes.stagger.value + this.system.attributes.stagger.temp;
         let sp = this.system.attributes.sanity.value + this.system.attributes.sanity.temp;
 
-        if (context.form == "Healing" && !context.isReaction) {
+        if (context != null && context.form == "Healing" && !context.isReaction) {
             let prevhp = this.system.attributes.health.value;
             await this.heal(damage, 0, 0);
             let posthp = this.system.attributes.health.value;
@@ -1103,7 +1103,7 @@ export class PTActor extends Actor {
                 snipersMarkLine = `Increased by ${markDamage} from Sniper's Mark`;
             }
         }
-        
+
         let smokeVeilLine = "";
         let veilResistance = 0;
         if (selfCtx != null && this.augmentEffectCount("Smoke Veil") > 0) {
@@ -1111,7 +1111,7 @@ export class PTActor extends Actor {
             if (await pollUserInputConfirm(this, "Spend all [/status/Smoke] Smoke to reduce incoming stagger damage by half?")) {
                 veilResistance = Math.floor(smoke / 2);
                 await this.setStatus("Smoke", 0);
-                
+
                 if (veilResistance > 0) {
                     smokeVeilLine = `Reduced by ${veilResistance} from Smoke Veil`;
                 }
@@ -1246,9 +1246,9 @@ export class PTActor extends Actor {
             await this.update({ "system.attributes.sanity.value": sp }, { diff: false });
         }
 
-        await this.update({ "system.damageTaken": Number(this.system.damageTaken) + (prevHP - hp)}, { diff: false });
+        await this.update({ "system.damageTaken": Number(this.system.damageTaken) + (prevHP - hp) }, { diff: false });
         if (context != null && context.actor != null) {
-            await context.actor.update({ "system.damageDealt": Number(context.actor.system.damageDealt) + (prevHP - hp)}, { diff: false });
+            await context.actor.update({ "system.damageDealt": Number(context.actor.system.damageDealt) + (prevHP - hp) }, { diff: false });
         }
 
         if (this.system.attributes.stagger.value <= 0 && !this.system.staggered) {
@@ -1321,7 +1321,7 @@ export class PTActor extends Actor {
 
     async updateQueuedRoll(target) {
         const system = this.toObject(false).system;
-        
+
         if (system.mostRecentRoll != null) {
             system.mostRecentRoll.context.target = target.id;
         }
@@ -1331,7 +1331,7 @@ export class PTActor extends Actor {
 
     async convertQueuedRoll() {
         const system = this.toObject(false).system;
-        
+
         if (system.mostRecentRoll != null) {
             system.mostRecentRoll.type = "Block";
             system.mostRecentRoll.context.type = "Block";
@@ -1438,7 +1438,7 @@ export class PTActor extends Actor {
                 createEffectsMessage(this.name, `Recovered ${smoke} HP from Soothing Mist! (${php} -> ${hp})`);
             }
         }
-        
+
         if (this.augmentEffectCount("Thermal Generator") > 2) {
             let burn = Math.floor(this.getStatusCount("Burn") / 2);
 
@@ -1522,7 +1522,7 @@ export class PTActor extends Actor {
     async loseEmotion(count) {
         const system = this.toObject(false).system;
 
-        system.emotion = Number(system.disposition) - count;
+        system.emotion = Number(system.emotion) - count;
         if (system.emotion < 0) {
             system.emotion = 0;
         }
@@ -1556,7 +1556,7 @@ export class PTActor extends Actor {
 
         speed -= Number(this.system.movementPenalty);
 
-        await this.update({ "system.movement": Math.max(0,  6 + speed) }, { diff: false });
+        await this.update({ "system.movement": Math.max(0, 6 + speed) }, { diff: false });
         await this.update({ "system.nextRoundMovement": 0 }, { diff: false });
         await this.update({ "system.kineticStorageMovement": kMovement }, { diff: false });
         await this.update({ "system.movementPenalty": 0 }, { diff: false });
@@ -1672,7 +1672,7 @@ export class PTActor extends Actor {
         }
 
         let modifier = this.outfitEffectCount("Impact Guard") + this.augmentEffectCount("Steady");
-        let damage = new Roll(`${dice}d${8+modifier}`);
+        let damage = new Roll(`${dice}d${8 + modifier}`);
         await damage.evaluate();
         await this.takeDamageStatus(damage.total, "Force", "HP", "Received %DMG% HP in Force Damage! (%PHP% -> %HP%)");
     }
@@ -1884,7 +1884,7 @@ export class PTActor extends Actor {
         }
 
         await def.activation(this);
-        
+
         if (status == "Bleed" && this.getStatusCount("Hemorrhage") > 0) {
             await this.reduceStatus("Hemorrhage", 1);
             return;
@@ -1936,7 +1936,7 @@ export class PTActor extends Actor {
     async spendAction(triggerBleed = true, free = false) {
         if (!free) {
             let actions = Number(this.system.actions);
-            await this.update({ "system.actions": Math.max(actions - 1, 0)}, { diff: false });
+            await this.update({ "system.actions": Math.max(actions - 1, 0) }, { diff: false });
             createEffectsMessage(this.name, `Spends 1 Action! (${actions} -> ${Math.max(actions - 1, 0)})`)
         }
         if (triggerBleed) {
@@ -1947,7 +1947,7 @@ export class PTActor extends Actor {
     async spendReaction(triggerBleed = true, free = false) {
         if (!free) {
             let reactions = Number(this.system.reactions);
-            await this.update({ "system.reactions": Math.max(reactions - 1, 0)}, { diff: false });
+            await this.update({ "system.reactions": Math.max(reactions - 1, 0) }, { diff: false });
             createEffectsMessage(this.name, `Spends 1 Reaction! (${reactions} -> ${Math.max(reactions - 1, 0)})`)
         }
 
@@ -2124,7 +2124,7 @@ export class PTActor extends Actor {
             if (target.hasMarkApplied(this, mark)) {
                 continue;
             }
-            
+
             map[MarkNames[mark]] = mark;
             options.push({
                 name: MarkNames[mark],
@@ -2145,7 +2145,7 @@ export class PTActor extends Actor {
             attacker: this,
             mark: type
         });
-        
+
         createEffectsMessage(this.name, `Applied ${MarkNames[type]} to ${target.name}!`);
     }
 
@@ -2166,7 +2166,7 @@ export class PTActor extends Actor {
             if (target.hasMarkApplied(this, mark)) {
                 continue;
             }
-            
+
             map[MarkNames[mark]] = mark;
             options.push({
                 name: MarkNames[mark],
@@ -2209,7 +2209,7 @@ export class PTActor extends Actor {
                 }
             }, { parent: this });
         }
-        
+
         await technique.update({ "system.effects": [] }, { diff: false, render: true });
 
         return technique;
@@ -2298,14 +2298,14 @@ export class PTActor extends Actor {
 
                 if (charge >= cost) {
                     await actor.reduceStatus("Charge", cost);
-                    await actor.update({ "system.movement": Number(actor.system.movement) + (cost / 3)}, { render: true, diff: false });
+                    await actor.update({ "system.movement": Number(actor.system.movement) + (cost / 3) }, { render: true, diff: false });
                     createEffectsMessage(actor.name, `Spends ${cost} [/status/Charge] Charge to gain ${cost / 3} SQR of movement!`)
                 }
                 else {
                     ui.notifications.info(`You need at least ${cost} Charge, but you only have ${charge}!`);
                 }
             },
-        "icons/Integrated_Boosters.png");
+                "icons/Integrated_Boosters.png");
         }
 
         if (this.augmentEffectCount("Striker Stance") > 0 || this.augmentEffectCount("Slasher Stance") > 0 || this.augmentEffectCount("Slayer Stance") > 0) {
@@ -2333,7 +2333,7 @@ export class PTActor extends Actor {
 
                 await actor.spendReaction(false, false);
             },
-        "icons/Stance_Change.png");
+                "icons/Stance_Change.png");
         }
 
         if (this.augmentEffectCount("Ice Skater") > 0) {
@@ -2343,14 +2343,14 @@ export class PTActor extends Actor {
 
                 if (frostbite >= cost) {
                     await actor.reduceStatus("Frostbite", cost);
-                    await actor.update({ "system.movement": Number(actor.system.movement) + cost}, { render: true, diff: false });
+                    await actor.update({ "system.movement": Number(actor.system.movement) + cost }, { render: true, diff: false });
                     createEffectsMessage(actor.name, `Burns ${cost} [/status/Frostbite] Frostbite to gain ${cost} SQR of movement!`)
                 }
                 else {
                     ui.notifications.info(`You need at least ${cost} Frostbite, but you only have ${frostbite}!`);
                 }
             },
-        "icons/Ice_Skater.png");
+                "icons/Ice_Skater.png");
         }
 
         if (this.augmentEffectCount("Detox") > 0) {
@@ -2368,7 +2368,7 @@ export class PTActor extends Actor {
                     ui.notifications.info(`You have no Charge!`);
                 }
             },
-        "icons/Detox.png");
+                "icons/Detox.png");
         }
 
         if (this.getRidden() || this.getRiding()) {
@@ -2377,22 +2377,24 @@ export class PTActor extends Actor {
                     ui.notifications.info("You arent riding anything!");
                     return;
                 }
-                
+
                 if (actor.getRidden()) {
-                    let ridden = actor.getRidden();
+                    let ridden = actor.getMountedActor();
                     await actor.update({ "system.mountedCharacter": null }, { diff: false, render: true })
                     sendNetworkMessage("CLEAR_MOUNT", { target: ridden });
+                    sendNetworkMessage("EDIT_SCALE", { target: ridden, scale: 2 });
                     createEffectsMessage(ridden.name, `Is dismounted from ${actor.name}!`);
                 }
 
                 if (actor.getRiding()) {
-                    let ridden = actor.getRiding();
+                    let ridden = actor.getMountedActor();
                     await actor.update({ "system.mountedCharacter": null }, { diff: false, render: true })
+                    actor.modifyScale(2);
                     sendNetworkMessage("CLEAR_MOUNT", { target: ridden });
                     createEffectsMessage(actor.name, `Dismounts from ${ridden.name}!`);
                 }
             },
-        "icons/Dismount.png");
+                "icons/Dismount.png");
         }
 
         let nearbyAllies = getAlliesWithinRadius(this, 1);
@@ -2420,10 +2422,11 @@ export class PTActor extends Actor {
 
                 await actor.update({ "system.mountedCharacter": target._id }, { diff: false, render: true });
                 sendNetworkMessage("UPDATE_MOUNT", { target: target, char: actor });
+                sendNetworkMessage("EDIT_SCALE", { target: target, scale: 0.5 });
                 await this.spendAction(false, false);
                 createEffectsMessage(actor.name, `Begins carrying ${target.name}!`);
             },
-        "icons/Mount.png");
+                "icons/Mount.png");
         }
 
         if (this.augmentEffectCount("Companion - Swift") <= 0 && ridableAllies.length > 0) {
@@ -2448,10 +2451,11 @@ export class PTActor extends Actor {
 
                 await actor.update({ "system.mountedCharacter": target._id }, { diff: false, render: true });
                 sendNetworkMessage("UPDATE_MOUNT", { target: target, char: actor });
+                this.modifyScale(0.5);
                 await this.spendAction(false, false);
                 createEffectsMessage(actor.name, `Mounts onto ${target.name}!`);
             },
-        "icons/Mount.png");
+                "icons/Mount.png");
         }
 
         for (const macro of oCtx.macros) {
@@ -2463,7 +2467,8 @@ export class PTActor extends Actor {
         }
     }
 
-    modifyScale() {
-        getActorToken();
+    modifyScale(scale) {
+        let token = getActorToken(this);
+        token.document.update({ "texture.scaleX": token.document.texture.scaleX * scale, "texture.scaleY": token.document.texture.scaleY * scale });
     }
 }

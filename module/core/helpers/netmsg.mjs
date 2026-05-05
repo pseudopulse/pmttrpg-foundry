@@ -87,6 +87,14 @@ export function registerMessages() {
             await target.update({ "system.mountedCharacter": null }, { diff: false, render: true });
         }
     };
+
+    handler["EDIT_SCALE"] = async (data) => {
+        const target = searchByObject(data.target);
+
+        if (game.user.isGM) {
+            await target.modifyScale(data.scale);
+        }
+    };
     
 
     CONFIG.queries["pmttrpg.pollUserInputOptions"] = wrapperPollUserInputOptions;
