@@ -481,6 +481,21 @@ export function getAlliesWithinRadius(actor, radius) {
   return actors;
 }
 
+export function getCharactersWithinRadius(actor, radius) {
+  let actors = [];
+  let source = canvas.tokens.placeables.find(x => x.actor == actor);
+
+  for (let token of canvas.tokens.placeables) {
+    if (scale(canvas.grid.measureDistance(source, token)) <= radius) {
+      if (!actors.includes(token.actor) && token.actor != actor) {
+        actors.push(token.actor);
+      }
+    }
+  }
+
+  return actors;
+}
+
 export function getEnemiesWithinRadius(actor, radius) {
   let actors = [];
   let source = canvas.tokens.placeables.find(x => x.actor == actor);

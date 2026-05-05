@@ -593,7 +593,7 @@ export const weaponEffects = [
         `Ground Rumbler`,
         (context, count, trigger) => {},
         (count) => {
-            return `May apply the Earthquake skill effect.`;
+            return null;
         },
         ["Clash Win"],
         false, 1, false, false
@@ -636,7 +636,7 @@ export const weaponEffects = [
                     dummyCtx.damageType = "Slash";
                     dummyCtx.actor = context.actor;
                     dummyCtx.target = context.target;
-                    let text = await context.target.takeDamage(damage, dummyCtx, 0, 0, 0, true, null);
+                    let text = await context.target.takeDamage(damage, dummyCtx, 0, 0, 0, true, null, "[Singular Strike of the Blade]");
                     createEffectsMessage(context.target.name, text);
                 }
             })

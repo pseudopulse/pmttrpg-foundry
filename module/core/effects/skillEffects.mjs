@@ -2,9 +2,10 @@ import { Effect } from "./effect.mjs";
 import { handleNegativeText } from "../../core/effects/effectHelpers.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
 import { pollDistributeStatus, pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "../helpers/dialog.mjs";
-import { findActorsOfTeam, getActorTeam, scale } from "../../pmttrpg.mjs";
+import { findActorsOfTeam, getActorTeam, getAlliesWithinRadiusOfTarget, getCharactersWithinRadius, getEnemiesWithinRadius, scale } from "../../pmttrpg.mjs";
 import { Conditional } from "../combat/rollContext.mjs";
 import { findByID } from "../helpers/netmsg.mjs";
+import { getRollContextFromData } from "../../documents/item.mjs";
 
 export const skillEffects = [
     new Effect(
@@ -470,7 +471,9 @@ export const skillEffects = [
     ),
     markerEffect("Instant Crit", false, 1),
     markerEffect("Precision", 0, 1),
-    // -- critical conversion
+    markerEffect("Critical Conversion", 0, 1, ["On Use"], (count) => {
+        return `If the character would exceed 10 [/status/Poise] Poise from this skill, set [/status/Poise] Poise to 1 and gain 1 [/status/Critical] Critical.`
+    }),
     new Effect(
         `Poise Pause`,
         (context, count, trigger) => {
@@ -558,7 +561,9 @@ export const skillEffects = [
     simpleStatusEffect("Devastation", false, true, "Increase Devastation"),
     markerEffect("Instant Devastation"),
     markerEffect("Ruination"),
-    // - devastation conversion
+    markerEffect("Devastation Conversion", 0, 1, ["On Use"], (count) => {
+        return `If the target would exceed 10 [/status/Ruin] Ruin from this skill, set [/status/Ruin] Ruin to 1 and apply 1 [/status/Devastation] Devastation.`
+    }),
     new Effect(
         `Ruin Pause`,
         (context, count, trigger) => {
@@ -872,9 +877,72 @@ export const skillEffects = [
         ["Tremor Burst"],
         false, 5, false, true
     ),
-    markerEffect("Earthquake", false, 5, ["Tremor Burst"], count => {
-        `Apply the target's [/status/Tremor] Tremor to characters within ${Number(count)} SQR. Affected targets receive ${Number(count) * 2} [/status/Bind] Bind next round.`
-    }),
+    new Effect(
+        "Earthquake",
+        (context, count, trigger) => {
+            context.events["Tremor Burst"].push(async (ctx) => {
+                let tremor = await ctx.target.getStatusCount("Tremor");
+                if (tremor <= 0) return;
+
+                let text = "";
+                let targets = getCharactersWithinRadius(ctx.target, Number(count)).filter(x => x != ctx.actor);
+                for (let target of targets) {
+                    let option = await pollUserInputOptions(target, `Spend a reaction to try and block Earthquake?`, [
+                        { name: "Take Unopposed" },
+                        { name: "Block", icon: "/damageTypes/Block.png" },
+                        { name: "Evade", icon: "/damageTypes/Evade.png" },
+                    ]);
+
+                    let blocked = false;
+
+                    if (option == "Block") {
+                        let bCtx = await target.outfit.getRollContextBlo(ctx.actor, false);
+                        let roll = new Roll(`1d${bCtx.diceMax}+${bCtx.dicePower}`, "");
+                        let result = await roll.evaluate();
+
+                        if (result.total >= ctx.result) {
+                            blocked = true;
+                            text += `${target.name} blocks the Earthquake with a roll of ${result.total}!`;
+                        }
+                        else {
+                            text += `${target.name} rolls ${result.total}, failing to block the Earthquake. Gains ${tremor} [/status/Tremor] Tremor and ${2 * count} [/status/Bind] Bind next round.\n`
+                        }
+                    } else if (option == "Evade") {
+                        let eCtx = await target.outfit.getRollContextEvd(ctx.actor, false);
+                        let roll = new Roll(`1d${eCtx.diceMax}+${eCtx.dicePower}`, "");
+                        let result = await roll.evaluate();
+
+                        if (result.total >= ctx.result) {
+                            blocked = true;
+                            text += `${target.name} evades the Earthquake with a roll of ${result.total}!`;
+                        }
+                        else {
+                            text += `${target.name} rolls ${result.total}, failing to evade the Earthquake. Gains ${tremor} [/status/Tremor] Tremor and ${2 * count} [/status/Bind] Bind next round.\n`
+                        }
+                    }
+                    else {
+                        text += `${target.name} gains ${tremor} [/status/Tremor] Tremor and ${2 * count} [/status/Bind] Bind next round.\n`;
+                    }
+
+                    if (!blocked) {
+                        await target.applyStatus("Tremor", 0, tremor);
+                        await target.applyStatus("Bind", 0, 2 * count);
+                    }
+                }
+
+                text += `${ctx.target.name} gains ${2 * count} [/status/Bind] Bind next round.`
+
+                await ctx.target.applyStatus("Bind", 0, 2 * count);
+
+                createEffectsMessage(ctx.actor.name, text);
+            });
+        },
+        (count) => {
+            return `Apply the target's [/status/Tremor] Tremor to characters within ${Number(count)} SQR. Affected targets receive [/status/Bind] Bind equal to double the target's [/status/Tremor] Tremor next round. Can be blocked.`
+        },
+        ["Tremor Burst"],
+        false, 5, false, true
+    ),
     //
     simpleStatusEffect("Sinking", true, true),
     markerEffect("Sinking+", false, 3),

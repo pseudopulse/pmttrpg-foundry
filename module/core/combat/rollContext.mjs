@@ -168,13 +168,58 @@ export class RollContext {
         this.costs = newCosts;
     }
 
-    async resolveInstantCritDeva(triggers) {
+    shouldApplyCriticalConversion(triggers) {
+        if (this.hasEffect("Critical Conversion")) {
+            let poise = this.actor.getStatusCount("Poise");
+            
+            for (const trigger of triggers) { 
+                let data = this.triggers[trigger];
+
+                for (const infliction of data.inflictions) {
+                    if (infliction.key == "Poise" && infliction.count < 0) {
+                        poise += Number(Math.abs(infliction.count)); 
+                    }
+                }
+            }
+
+            if (poise >= 10) {
+                this.negatePoise = true;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    shouldApplyDevastationConversion(triggers) {
+        if (this.hasEffect("Devastation Conversion")) {
+            let ruin = this.target.getStatusCount("Ruin");
+            for (const trigger of triggers) {
+                let data = this.triggers[trigger];
+
+                for (const infliction of data.inflictions) {
+                    if (infliction.key == "Ruin" && infliction.count > 0) {
+                        ruin += Number(infliction.count);
+                    }
+                }
+            }
+
+            if (ruin >= 10) {
+                this.negateRuin = true;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    async resolveInstantStatus(triggers) {
         let lines = [];
         let alreadyApplied = [];
         let totalAidHP = 0;
 
         for (const trigger of triggers) {
-            let data = this.triggers[trigger];
+            let data = structuredClone(this.triggers[trigger]);
 
             for (const func of data.modify) {
                 if (func != null) {
@@ -184,9 +229,12 @@ export class RollContext {
 
             for (const infliction of data.inflictions) {
                 let status = infliction.key;
-                if (status != "Critical" && status != "Devastation" && status != "Poise" && status != "Ruin") continue;
-                if ((status == "Critical" || status == "Poise") && !this.hasEffect("Instant Crit")) continue;
-                if ((status == "Devastation" || status == "Ruin") && !this.hasEffect("Instant Devastation")) continue;
+                if (this.negatePoise && status == "Poise") continue;
+                if (this.negateRuin && status == "Ruin") continue;
+
+                if ((status == "Critical" || status == "Poise") && !this.hasEffect("Instant Crit")) { continue; }
+                else if ((status == "Devastation" || status == "Ruin") && !this.hasEffect("Instant Devastation")) { continue; }
+                else if (!this.hasEffect(`Instant ${status}`)) { continue; }
 
                 let cur = Number(infliction.count);
 
@@ -334,6 +382,9 @@ export class RollContext {
 
                 if ((status == "Critical" || status == "Poise") && this.hasEffect("Instant Crit")) continue;
                 if ((status == "Devastation" || status == "Ruin") && this.hasEffect("Instant Devastation")) continue;
+                if (this.hasEffect(`Instant ${status}`)) continue;
+                if (this.negatePoise && status == "Poise") continue;
+                if (this.negateRuin && status == "Ruin") continue;
 
                 if (this.flags.includes("Reflective Barrier") && cur > 0) {
                     cur = -cur;
@@ -846,6 +897,23 @@ export class RollContext {
                     trigger: effect.trigger,
                     source: "augment",
                     name: effect.name
+                });
+            }
+        }
+
+        if (this.hasEffect("Ground Rumbler")) {
+            let earthquake = this.effects.find(x => x.name == "Earthquake");
+
+            if (earthquake != null) {
+                earthquake.count = Number(earthquake.count) + 1;
+            } else {
+                let def = getEffectsArray("skill").find(x => x.name == "Earthquake");
+                this.effects.push({
+                    effect: def,
+                    count: 1,
+                    trigger: "Tremor Burst",
+                    source: "skill",
+                    name: def.name
                 });
             }
         }

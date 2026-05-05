@@ -13,7 +13,5 @@ add the homebrew effects creepz mentioned in dms
 implement abno part in the settings tab
 
 // - unfinished effects
-critical conversion (skill)
-devastation conversion (skill)
-earthquake (skill and weapon)
+earthquake (skill and weapon) ! PRIORITY
 cursed (augment)

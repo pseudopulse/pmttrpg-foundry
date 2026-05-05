@@ -345,7 +345,11 @@ export class PTActor extends Actor {
         }
 
         if (ctx1.result >= ctx2.result || ctx2.result == "X") {
-
+            if (ctx1.result == ctx2.result && ctx2.damageType == "Evade") {
+                let tmp = ctx1;
+                ctx1 = ctx2;
+                ctx2 = tmp;
+            }
         }
         else if (ctx2.result >= ctx1.result || ctx1.result == "X") {
             let tmp = ctx1;
@@ -413,9 +417,15 @@ export class PTActor extends Actor {
 
         if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
             await ctx1.fireEvent("Clash Win Instant");
-            createEffectsMessage(ctx1.actor.name, await ctx1.resolveInstantCritDeva(["Clash Win", "On Use"]));
             await ctx2.fireEvent("Clash Lose Instant");
-            createEffectsMessage(ctx2.actor.name, await ctx2.resolveInstantCritDeva(["Clash Lose", "On Use"]));
+            
+            await ctx1.resolveInstantStatus(["Clash Win", "On Use"]);
+            await ctx2.resolveInstantStatus(["Clash Lose", "On Use"]);
+        }
+
+        if (ctx1.shouldApplyDevastationConversion(["Clash Win", "On Use"])) {
+            await ctx1.target.applyStatus("Devastation", 1);
+            await ctx1.target.setStatus("Ruin", 1);
         }
 
         let ruin = ctx2.actor.getStatusCount("Ruin");
@@ -452,6 +462,11 @@ export class PTActor extends Actor {
 
         if (!landedDevastating && ctx1.hasEffect("Primer")) {
             await ctx2.actor.cachePrimerEffects(ctx1);
+        }
+
+        if (ctx1.shouldApplyCriticalConversion(["Clash Win", "On Use"])) {
+            await ctx1.actor.applyStatus("Critical", 1);
+            await ctx1.actor.setStatus("Poise", 1);
         }
 
         let poise = ctx1.actor.getStatusCount("Poise");
@@ -685,6 +700,10 @@ export class PTActor extends Actor {
 
     async handleClashEmotion(actor, triggers, target, oneSided, context) {
         let ignoreLoss = context.ignoreEmotionLoss;
+        if (context.result == "X") {
+            ignoreLoss = true;
+        
+        }
         if (actor.checkDisposition("Protective") && context.protect) {
             ignoreLoss = true;
         }
@@ -834,6 +853,10 @@ export class PTActor extends Actor {
                         await this.gainEmotion(2);
                         let e = this.system.emotion;
                         createEffectsMessage(this.name, `Gains 2 Emotion from Anxious! (${pe} -> ${e})`)
+
+                        if (!this.checkImpassioned("Anxious")) {
+                            this.spendReaction(false, false);
+                        }
                     }
                     else {
                         this.spendReaction(false, false);
@@ -1089,7 +1112,7 @@ export class PTActor extends Actor {
         createEffectsMessage(this.name, `Gains 1 Light from Emotion Level! (${prevlight} -> ${postlight})`);
     }
 
-    async takeDamage(damage, context, flatHP = 0, flatST = 0, flatSP = 0, silent = false, selfCtx = null) {
+    async takeDamage(damage, context, flatHP = 0, flatST = 0, flatSP = 0, silent = false, selfCtx = null, header = "()") {
         if (selfCtx != null && selfCtx.reactive) {
             return;
         }
@@ -1325,7 +1348,12 @@ export class PTActor extends Actor {
             }
         }
         else {
+            if (context == null) {
+                return "";
+            }
+
             return this.removeLinesWithString(`
+            ${header}
             ${damage}${resText} x ${this.findResistance(context.damageType, null)} = ${this.getModifiedDamage(context, damage, null)} HP damage taken. (${prevHP} -> ${hp})
             (${snipersMarkLine})
             (${protTextHP[0] != null ? protTextHP[0] : ""})
