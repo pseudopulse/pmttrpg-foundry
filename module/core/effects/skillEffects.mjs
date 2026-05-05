@@ -349,7 +349,7 @@ export const skillEffects = [
                 let bleed = ctx.target.getStatusCount("Bleed");
                 if (bleed > 0) {
                     let php = Number(ctx.actor.system.attributes.health.value);
-                    await ctx.actor.heal(bleed, 0, 0);
+                    await ctx.actor.heal(bleed, 0, 0, ctx.actor);
                     let hp = Number(ctx.actor.system.attributes.health.value);
                     createEffectsMessage(ctx.actor.name, `Heals ${bleed} HP from Vampiric Gash! (${php} -> ${hp})`);
                 }
@@ -1610,7 +1610,7 @@ export const skillEffects = [
                 let target = await pollUserInputOptions(context.actor, "Choose ally to heal.", options);
                 target = map[target];
                 let php = target.system.attributes.health.value;
-                await target.heal(4 * count, 0, 0);
+                await target.heal(4 * count, 0, 0, context.actor);
                 let hp = target.system.attributes.health.value;
                 createEffectsMessage(context.actor.name, `Restores ${4 * count} HP to ${target.name}! (${php} -> ${hp})`);
             });
@@ -1640,6 +1640,8 @@ export const skillEffects = [
                 cost: count * 15,
                 status: "Bloodfeast",
             });
+
+            context.triggers[trigger].applyInfliction("Haste", count, true);
         },
         (count) => {
             return `Consume ${count * 15} [/status/Bloodfeast] Bloodfeast to gain ${count} [/status/Haste] Haste next round.`
@@ -1686,6 +1688,26 @@ export const skillEffects = [
         ["Clash Win"],
         false, 5, false, true
     ),
+    new Effect(
+        'Gain Heal Efficiency',
+        (context, count, trigger) => {
+            context.triggers[trigger].applyInfliction("Heal_Efficiency", -count, false);
+        },
+        (count) => {
+            return `Gain ${count} [/status/Heal_Efficiency] Heal Efficiency.`;
+        },
+        ["Clash Win", "Clash Lose"], false, 5
+    ),
+    new Effect(
+        'Consume SP',
+        (context, count, trigger) => {
+            context.triggers[trigger].spHeal = Number(context.triggers[trigger].spHeal) - count;
+        },
+        (count) => {
+            return `Take ${count} SP damage.`
+        },
+        ["On Use"], false, 5
+    )
 ]
 
 function healEffect(val, cat) {

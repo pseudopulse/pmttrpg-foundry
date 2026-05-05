@@ -103,12 +103,6 @@ export class PTActor extends Actor {
             systemData.emotion = 0;
         }
 
-        if (systemData.augment == null) {
-            systemData.augment = {
-                effects: []
-            }
-        }
-
         if (this.outfit != null) {
             let effect = this.outfit.effects.find(x => x.name == "Comfy Clothes");
 
@@ -652,7 +646,7 @@ export class PTActor extends Actor {
 
         if (ctx1.target.hasMarkApplied(ctx1.actor, MARKS.Subjugation)) {
             await ctx2.actor.takeDamageStatus(2, "none", "SP", `Takes %DMG% SP damage from Target for Subjugation! (%PSP% -> %SP%)`);
-            await ctx1.actor.heal(0, 0, 2);
+            await ctx1.actor.heal(0, 0, 2, ctx1.actor);
         }
 
         if (pendingStagger[ctx2.actor.name] != null) {
@@ -839,6 +833,9 @@ export class PTActor extends Actor {
                         let e = this.system.emotion;
                         createEffectsMessage(this.name, `Gains 2 Emotion from Anxious! (${pe} -> ${e})`)
                     }
+                    else {
+                        this.spendReaction(false, false);
+                    }
                 }
             }
 
@@ -876,7 +873,7 @@ export class PTActor extends Actor {
 
                 if (respCtx.result >= context.result) {
                     let pst = this.system.attributes.stagger.value;
-                    await this.heal(0, respCtx.result, 0);
+                    await this.heal(0, respCtx.result, 0, this);
                     let st = this.system.attributes.stagger.value;
                     createEffectsMessage(this.name, `Recovers ${respCtx.result} ST from Evade! (${pst} -> ${st})`);
                 }
@@ -887,7 +884,13 @@ export class PTActor extends Actor {
 
             if (systemData.mostRecentRoll.type == "Counter") {
                 if (respCtx.result > context.result) {
-                    if (canRespond) context.actor.receiveAttackRoll(respCtx, false);
+                    if (canRespond) {
+                        let range = respCtx.getRange();
+                        
+                        if (getDistance(context.actor, respCtx.actor) <= range) {
+                            await context.actor.sendAttackRoll(true);
+                        }
+                    }
                 }
                 else {
                     await this.takeDamage(damage, context, 0, 0, 0, false, respCtx);
@@ -1014,9 +1017,25 @@ export class PTActor extends Actor {
         }
     }
 
-    async heal(fhp = 0, fst = 0, fsp = 0) {
+    async heal(fhp = 0, fst = 0, fsp = 0, source = null) {
         if (this.system.staggered) {
             fst = 0;
+        }
+
+        if (this.system.panic || this.hasNoSanity()) {
+            fsp = 0;
+        }
+
+        if (source != null && source.getStatusCount("Heal_Efficiency") > 0 && fhp > 0) {
+            let count = source.getStatusCount("Heal_Efficiency");
+
+            let resp = await pollUserInputConfirm(source, `Consume ${count} [/status/Heal_Efficiency] Heal Efficiency to perform an Effective Heal?`);
+
+            if (resp) {
+                fhp += count * 2;
+                await source.setStatus("Heal_Efficiency", 0);
+                createEffectsMessage(source.name, `Consumes their [/status/Heal_Efficiency] Heal Efficiency to increase healing by ${count * 2}!`);
+            }
         }
 
         let hp = this.system.attributes.health.value;
@@ -1054,6 +1073,20 @@ export class PTActor extends Actor {
         await this.update({ "system.attributes.sanity.temp": sp }, { diff: false });
     }
 
+    async triggerEmotionLevel() {
+        let system = this.toObject(false).system;
+        system.emotionLevelUsed = Number(system.emotionLevelUsed) + 1;
+        let prevlight = system.attributes.light.value;
+        system.attributes.light.value = Number(system.attributes.light.value) + 1;
+        if (system.attributes.light.value > system.attributes.light.max) {
+            system.attributes.light.value = system.attributes.light.max;
+        }
+        let postlight = system.attributes.light.value;
+
+        await this.update(system, { diff: false, render: true });
+        createEffectsMessage(this.name, `Gains 1 Light from Emotion Level! (${prevlight} -> ${postlight})`);
+    }
+
     async takeDamage(damage, context, flatHP = 0, flatST = 0, flatSP = 0, silent = false, selfCtx = null) {
         let hp = this.system.attributes.health.value + this.system.attributes.health.temp;
         let st = this.system.attributes.stagger.value + this.system.attributes.stagger.temp;
@@ -1061,7 +1094,7 @@ export class PTActor extends Actor {
 
         if (context != null && context.form == "Healing" && !context.isReaction) {
             let prevhp = this.system.attributes.health.value;
-            await this.heal(damage, 0, 0);
+            await this.heal(damage, 0, 0, context.actor);
             let posthp = this.system.attributes.health.value;
 
             pending[this.name] =
@@ -1260,6 +1293,10 @@ export class PTActor extends Actor {
             }
         }
 
+        if (this.system.attributes.sanity.value <= 0 && !this.system.panic) {
+            await this.panic();
+        }
+
         if (!silent) {
             pending[this.name] =
             {
@@ -1295,6 +1332,12 @@ export class PTActor extends Actor {
         const lines = inputText.split('\n');
         const filteredLines = lines.filter(line => !line.includes(targetString));
         return filteredLines.join('\n');
+    }
+
+    async panic() {
+        if (this.system.panic) return;
+        await this.update({ "system.panic": true }, { diff: false });
+        createEffectsMessage(this.name, `[/status/Panic] ${this.name} has entered a state of panic!`);
     }
 
     /**
@@ -1433,7 +1476,7 @@ export class PTActor extends Actor {
             let smoke = Math.floor(this.getStatusCount("Smoke") / 4);
             if (smoke > 0) {
                 let php = this.system.attributes.health.value;
-                await this.heal(0, 0, smoke);
+                await this.heal(0, 0, smoke, this);
                 let hp = this.system.attributes.health.value;
                 createEffectsMessage(this.name, `Recovered ${smoke} HP from Soothing Mist! (${php} -> ${hp})`);
             }
@@ -1591,6 +1634,10 @@ export class PTActor extends Actor {
     }
 
     getCanUseItem(item) {
+        if (!item.system.active) {
+            return false;
+        }
+
         if (item.system.effects.find(x => x.name == "Charge Ammo")) {
             return this.system.overheatedWeapons.filter(x => x.id == item.id).length == 0 && this.getStatusCount("Charge") >= 2;
         }
@@ -1823,7 +1870,7 @@ export class PTActor extends Actor {
 
             if (heal > 0) {
                 let php = this.system.attributes.health.value;
-                await this.heal(heal * count, 0, 0);
+                await this.heal(heal * count, 0, 0, this);
                 let hp = this.system.attributes.health.value;
                 createEffectsMessage(this.name, `Recovers ${heal * count} HP from Rejuvenating Blood! (${php} -> ${hp})`);
             }
@@ -1928,7 +1975,7 @@ export class PTActor extends Actor {
 
     async handleMarkAid(actor, hp = 3) {
         if (actor.hasMarkApplied(this, MARKS.Aid)) {
-            await actor.heal(hp, 0, 0);
+            await actor.heal(hp, 0, 0, this);
             createEffectsMessage(actor.name, `Recovers ${hp} HP from ${this.name}'s Target for Aid!`);
         }
     }
@@ -2456,6 +2503,19 @@ export class PTActor extends Actor {
                 createEffectsMessage(actor.name, `Mounts onto ${target.name}!`);
             },
                 "icons/Mount.png");
+        }
+
+        if (this.system.panic) {
+            await registerEffectMacro("Resolve Panic", async (actor) => {
+                if (!actor.system.panic) {
+                    ui.notifications.info("You aren't in panic!");
+                    return;
+                }
+
+                await actor.update({ "system.panic": false }, { diff: false });
+                await actor.update({ "system.attributes.sanity.value": actor.system.attributes.sanity.max }, { diff: false, render: true });
+                createEffectsMessage(actor.name, `[/status/Panic] ${actor.name} snaps out of their panic!`);
+            }, "status/PanicBlue.png");
         }
 
         for (const macro of oCtx.macros) {

@@ -1,22 +1,16 @@
 functional parts (there's like 10 left to finish if i have time)
 
-kill tracking for effects
-
 force damage input
 
 implement earthquake and make ground rumbler count as it
-
-homebrew effects
 
 add toggle for primary outfit and primary augment
 
 add dice power penalty option to attacks
 
-make emotion level actually regen light and inc the emotion level used counter
-
-add heal efficiency
-
 add the homebrew effects creepz mentioned in dms
+
+add a flag for reactive that makes the defender not take damage from a clash lose
 
 //
 

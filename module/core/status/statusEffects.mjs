@@ -10,7 +10,7 @@ export const statusList = [
         res = Math.min(res, burn);
         if (res > 0 && actor.augmentEffectCount("Restorative Warmth") > 0) {
             let php = actor.system.attributes.health.value;
-            await actor.heal(res, 0, 0);
+            await actor.heal(res, 0, 0, actor);
             let hp = actor.system.attributes.health.value;
             createEffectsMessage(actor.name, `Heals ${res} HP from Restorative Warmth! (${php} -> ${hp})`);
         }
@@ -39,7 +39,7 @@ export const statusList = [
         for (let target of nearby) {
             if (target.augmentEffectCount("Blood Cycler") > 0) {
                 let php = target.system.attributes.health.value;
-                await target.heal(2, 0, 0);
+                await target.heal(2, 0, 0, target);
                 let hp = target.system.attributes.health.value;
                 createEffectsMessage(target.name, `Recovers 2 HP from Blood Cycler! (${php} -> ${hp})`);
             }
@@ -122,6 +122,7 @@ export const statusList = [
         await actor.fireStatusEffect("Bleed");
     }, (count) => { return 0; }),
     new StatusEffect("Consumed_Bloodfeast", Triggers.NONE, async (actor) => {}, (count) => { return 0; }),
+    new StatusEffect("Heal_Efficiency", Triggers.END, async (actor) => {}, (count) => { return count / 2; }),
 ];
 
 export function findStatusDef(name) {

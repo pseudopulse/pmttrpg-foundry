@@ -5,9 +5,9 @@
       <div class="ac-resource" style="height: 3.5rem; gap: 4rem; width: 16rem;">
         <img class="ac-resource-icon" style="padding: 0px; margin: 1rem;" src="systems/pmttrpg/assets/resources/EmotionIcon.png" width="24" height="24" />
         <div class="ac-resource-xp">
-          <input style="height: 2rem;"  class="as-resource-input emotion-input" type="text"
-            inputmode="numeric" value="{{system.emotion}}"
-            data-dtype="Number" />
+          <input style="height: 2rem;"  class="as-resource-input"
+            inputmode="numeric" name="system.emotion" value="{{system.emotion}}"
+            data-dtype="Number"  type="text" />
         </div>
       </div>
 
@@ -64,7 +64,7 @@
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/HPIcon.webp" width="24" height="24" />
         <div class="ac-resource-xp">
           <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input ac-nop" type="text"
-            inputmode="numeric" name="system.emotion" value="{{system.attributes.health.value}}"
+            inputmode="numeric" value="{{system.attributes.health.value}}"
             data-dtype="Number" />
         </div>
       </div>
@@ -72,7 +72,7 @@
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/StaggerIcon.webp" width="24" height="24" />
         <div class="ac-resource-xp">
           <input onclick="setCursorRight()"   class="ac-stat-text as-resource-input ac-nop" type="text"
-            inputmode="numeric" name="system.emotion" value="{{system.attributes.stagger.value}}"
+            inputmode="numeric" value="{{system.attributes.stagger.value}}"
             data-dtype="Number" />
         </div>
       </div>
@@ -80,7 +80,7 @@
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/PanicBlue.png" width="24" height="24" />
         <div class="ac-resource-xp">
           <input onclick="setCursorRight()"  class="ac-stat-text as-resource-input ac-nop" type="text"
-            inputmode="numeric" name="system.emotion" value="{{system.attributes.sanity.value}}"
+            inputmode="numeric" value="{{system.attributes.sanity.value}}"
             data-dtype="Number" />
         </div>
       </div>
@@ -88,7 +88,7 @@
         <img class="ac-resource-icon ac-stat-icon"  src="systems/pmttrpg/assets/resources/LightIcon.webp" width="24" height="24" />
         <div class="ac-resource-xp">
           <input onclick="setCursorRight()"  class="ac-stat-text as-resource-input ac-nop" type="text"
-            inputmode="numeric" name="system.emotion" value="{{system.attributes.light.value}}"
+            inputmode="numeric" value="{{system.attributes.light.value}}"
             data-dtype="Number" />
         </div>
       </div>

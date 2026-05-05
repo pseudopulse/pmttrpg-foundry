@@ -173,11 +173,54 @@ export class PTActorSheet extends ActorSheet {
             findByID(target).removeMark(this.actor, mark);
         });
 
-        html.on('change', '.emotion-input', (ev) => {
-            ev.preventDefault();
-            const system = this.actor.toObject(false).system;
-            system.emotion = ev.currentTarget.value;
-            this.actor.update({ system }, { diff: false, render: true });
+        html.on('click', '.aw-active-toggle', (ev) => {
+            const target = ev.currentTarget.closest('.item');
+            const item = this.actor.items.get(target.dataset.itemId);
+            item.update({ "system.active": ev.currentTarget.checked }, { diff: false, render: false });
+        });
+
+        html.on('click', '.ao-active-toggle', (ev) => {
+            const target = ev.currentTarget.closest('.item');
+            const item = this.actor.items.get(target.dataset.itemId);
+            this.actor.update({ "system.currentOutfitId": item.id }, { diff: false, render: false });
+            this.actor.outfit = item;
+
+            html.find('.ao-active-toggle').each((x, element) => {
+                if (element.closest('.item').dataset.itemId != item.id) {
+                    element.checked = false;
+                }
+            });
+        });
+
+        html.on('click', '.aa-active-toggle', (ev) => {
+            const target = ev.currentTarget.closest('.item');
+            const item = this.actor.items.get(target.dataset.itemId);
+            this.actor.update({ "system.currentAugmentId": item.id }, { diff: false, render: false });
+            this.actor.augment = item;
+
+            html.find('.aa-active-toggle').each((x, element) => {
+                if (element.closest('.item').dataset.itemId != item.id) {
+                    element.checked = false;
+                }
+            });
+        });
+
+        html.find('.ao-active-toggle').each((x, element) => {
+            const target = element.closest('.item');
+            const item = this.actor.items.get(target.dataset.itemId);
+            element.checked = this.actor.system.currentOutfitId == item.id;
+        });
+
+        html.find('.aa-active-toggle').each((x, element) => {
+            const target = element.closest('.item');
+            const item = this.actor.items.get(target.dataset.itemId);
+            element.checked = this.actor.system.currentAugmentId == item.id;
+        });
+
+        html.find('.aw-active-toggle').each((x, element) => {
+            const target = element.closest('.item');
+            const item = this.actor.items.get(target.dataset.itemId);
+            element.checked = item.system.active;
         });
 
         html.find('.ase-setting-toggle').each((x, element) => {

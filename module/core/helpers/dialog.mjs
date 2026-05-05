@@ -1,5 +1,5 @@
 import { getRollContextFromData } from "../../documents/item.mjs";
-import { findActorsOfTeam, getBloodfeast, searchByObject } from "../../pmttrpg.mjs";
+import { findActorsOfTeam, getBloodfeast, getDistance, searchByObject } from "../../pmttrpg.mjs";
 import { calculateTechniqueCost } from "../../sheets/item.mjs";
 import { RollContext } from "../combat/rollContext.mjs";
 import { createClashMessage, enrichClashData } from "../helpers/clash.mjs";
@@ -68,7 +68,7 @@ export async function getActionModifiers(actor, context) {
                     callback: () => {
                         allowClose = true;
                         if (data.technique != null) {
-                            let cost = calculateTechniqueCost(data.technique.system.effects);
+                            let cost = calculateTechniqueCost(data.technique.system.effects, actor);
 
                             if (cost > actor.system.emotion) {
                                 data.technique = null;
@@ -937,6 +937,7 @@ export async function getAttackOptions(actor) {
         }
         else {
             target.token.setTarget(true, { releaseOthers: true });
+            target = target.token;
         }
     }
 
@@ -965,6 +966,26 @@ export async function getAttackOptions(actor) {
         },
         render: async (html) => {
             $("#at-targetButton").text(target.name);
+
+            let updateWeapons = () => {
+                html.find('.rollable').each((x, element) => {
+                    const itemId = element.closest('.item').dataset.itemId;
+                    if (itemId != "recycle") {
+                        const item = actor.items.get(itemId);
+                        let ctx = getRollContextFromData(item);
+
+                        if (target && target.actor && getDistance(actor, target.actor) > ctx.getRange()) {
+                            element.closest('.item').querySelector(".at-range-indicator").hidden = false;
+                            element.closest('.item').querySelector(".at-range-indicator").title = `${getDistance(actor, target.actor) - ctx.getRange()} SQR out of range`;  
+
+                        } else {
+                            element.closest('.item').querySelector(".at-range-indicator").hidden = true;
+                        }
+                    }
+                });
+            };
+
+            updateWeapons();
 
             html.on('click', '.rollable', async (event) => {
                 const element = event.currentTarget;
@@ -1003,6 +1024,9 @@ export async function getAttackOptions(actor) {
                 let token = canvas.tokens.placeables.find(x => x.actor._id == id);
                 token.setTarget(true, { releaseOthers: true });
                 $("#at-targetButton").text(token.actor.name);
+                target = token;
+
+                updateWeapons();
             });
         }
     }, {
@@ -1018,7 +1042,7 @@ export async function createClashResponse(actor, context) {
     const desc = context.getDescription();
     const content = await renderTemplate("systems/pmttrpg/templates/dialog/clash-response.hbs", {
         weapons: actor.items.filter(x => x.type == "weapon" && actor.getCanUseItem(x)),
-        outfits: actor.items.filter(x => x.type == "outfit"),
+        outfits: actor.items.filter(x => x.type == "outfit" && (x._id == actor.system.currentOutfitId)),
         rollContext: context,
         enrichedClashData: enrichClashData(desc),
         actor: actor,

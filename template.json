@@ -75,6 +75,7 @@
       "initiativeModifier": 0,
       "movement": 0,
       "staggered": false,
+      "panic": false,
       "staggerRounds": 0,
       "actions": 0,
       "reactions": 0,
@@ -121,7 +122,8 @@
       "rank": 1,
       "damageType": "Slash",
       "effects": [
-      ]
+      ],
+      "active": false
     },
     "tool": {
       "effects": [],

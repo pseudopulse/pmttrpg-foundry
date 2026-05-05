@@ -350,7 +350,7 @@ export const augmentEffects = [
                 if (hp <= 0) return;
 
                 if (count >= 0) {
-                    await context.actor.heal(count, 0, 0);
+                    await context.actor.heal(count, 0, 0, context.actor);
                     createEffectsMessage(context.actor.name, `Recovered ${Math.abs(count)} HP! (${hp} -> ${context.actor.system.attributes.health.value})`);
                 }
                 else {
@@ -378,7 +378,7 @@ export const augmentEffects = [
                 if (hp <= 0) return;
 
                 if (count >= 0) {
-                    await context.actor.heal(0, count, 0);
+                    await context.actor.heal(0, count, 0, context.actor);
                     createEffectsMessage(context.actor.name, `Recovered ${Math.abs(count)} ST! (${hp} -> ${context.actor.system.attributes.stagger.value})`);
                 }
                 else {
@@ -407,7 +407,7 @@ export const augmentEffects = [
                 let sp = context.actor.system.attributes.sanity.value;
 
                 if (sp > 0) {
-                    await context.actor.heal(0, 0, 2);
+                    await context.actor.heal(0, 0, 2, context.actor);
                     createEffectsMessage(context.actor.name, `Recovered 2 SP from Passive Lucidity! (${sp} -> ${context.actor.system.attributes.sanity.value})`);
                 }
             });
@@ -608,6 +608,10 @@ export const augmentEffects = [
     // markerEffect("Apathy", false, 1), // X
     markerEffect("Starved Fiend", false, 1),
     markerEffect("Rejuvenating Blood - HP", false, 5),
+    //
+    markerEffect("Weak Heart", false, 3),
+    markerEffect("Flat Footed", false, 5),
+    markerEffect("Strong Arm", false, 2),
 ]
 
 function augmentThresholdEffect(name, bar, mult, status, negativeStatus = []) {

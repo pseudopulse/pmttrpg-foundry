@@ -692,6 +692,16 @@ export const weaponEffects = [
         },
         ["On Use"]
     ),
+    new Effect(
+        "Combat Medic",
+        (context, count, trigger) => { 
+            context.triggers[trigger].applyInfliction("Heal_Efficiency", -2, false);
+        },
+        (count) => {
+            return `Gain 2 [/status/Heal_Efficiency] Heal Efficiency.`;
+        },
+        ["Clash Win", "Clash Lose"], false, 1
+    ),
 ]
 
 function simpleStatusEffect(status, nextRound, allowNegative) {

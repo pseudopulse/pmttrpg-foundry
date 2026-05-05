@@ -28,7 +28,7 @@
             </div>
             <div class="ao-roll-info">
                 <div class='ao-item-icon'>
-                    <a  data-roll-type='item'>
+                    <a data-roll-type='item'>
                         <img class="ao-type-img" src='systems/pmttrpg/assets/damageTypes/Evade.png' title='Evade'
                             width='24' height='24' />
                     </a>
@@ -40,6 +40,8 @@
                 {{/with}}
             </div>
             <div class='item-controls ao-controls'>
+                <input type="checkbox" class="ao-active-toggle" title="Is this outfit active?"
+                    style="margin: 0; margin-right: 10%;" />
                 <a class='item-control item-edit' title='{{localize "DOCUMENT.Update" type=' Item'}}'>
                     <i class='fas fa-edit ao-font-button'></i>
                 </a>
@@ -170,7 +172,7 @@
         display: flex;
         grid-template-columns: auto 1fr;
         align-items: center;
-        gap: 4rem;
+        gap: 1rem;
         padding: 1% 2%;
         position: relative;
     }

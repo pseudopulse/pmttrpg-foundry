@@ -37,7 +37,7 @@
                         {{#each outfits as |item id|}}
                         <li class='item flexrow' data-item-id='{{item._id}}'>
                             <div class="crw-resource">
-                                <h4 class="crw-item-text">{{item.name}}</h4>
+                                <h4 class="crw-item-text" style="width: 8rem;">{{item.name}}</h4>
                                 <div class="cr-def-roll">
                                     {{#with (drctx item "Block") as |rollContext|}}
                                     <a class='rollable' data-roll-type='Block'>
@@ -125,6 +125,7 @@
         padding: 1%;
         justify-content: center;
         align-items: center;
+        width: 8rem;
     }
 
     .cr-block-holder {
@@ -366,11 +367,11 @@
     .crw-resource {
         background-color: cadetblue;
         border: 2px solid black;
-        23 border-radius: 1px;
+        border-radius: 1px;
         display: flex;
         grid-template-columns: auto 1fr;
         align-items: center;
-        gap: 4rem;
+        gap: 1rem;
         padding: 5% 2%;
         padding-top: 0;
         padding-bottom: 0;

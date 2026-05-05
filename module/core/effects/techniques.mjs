@@ -7,29 +7,29 @@ import { createEffectsMessage } from "../helpers/clash.mjs";
 export const techniqueList = [
     new Effect(
         "Shove",
-        (context, trigger, count) => {},
+        (context, count, trigger) => {},
         (count) => {
-            return `Push the target ${count} SQR.`
+            return `Push the target ${Number(count)} SQR.`
         },
         ["Clash Win"],
         false, 5, false, false, 2
     ),
     new Effect(
         "Sweep",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.triggers[trigger].modify.push(async (ctx, data) => {
                 await ctx.target.addMovementPenalty(count);
             });
         },
         (count) => {
-            return `Remove ${count} SQR from the target's movement next round.`
+            return `Remove ${Number(count)} SQR from the target's movement next round.`
         },
         ["Clash Win", "Clash Lose"],
         false, 5, false, true, 2
     ),
     new Effect(
         "Vital Strike",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             if (context.isReaction) {
                 context.triggers["Clash Win"].hpDamage += 6 * count;
             } else {
@@ -44,7 +44,7 @@ export const techniqueList = [
     ),
     new Effect(
         "Knockout Strike",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             if (context.isReaction) {
                 context.triggers["Clash Win"].stDamage += 2 * count;
             } else {
@@ -52,26 +52,26 @@ export const techniqueList = [
             }
         },
         (count) => {
-            return `Deal ${count} ST damage. If this is a reaction, deal ${2 * count} ST damage instead.`
+            return `Deal ${Number(count)} ST damage. If this is a reaction, deal ${2 * count} ST damage instead.`
         },
         ["Clash Win"],
         false, 5, false, false, 2
     ),
     new Effect(
         "Knockout Strike",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.triggers[trigger].applyInfliction("Protection", -count, true);
             context.triggers[trigger].applyInfliction("Stagger_Protection", -count, true);
         },
         (count) => {
-            return `Gain ${count} [/status/Protection] Protection and [/status/Stagger_Protection] Stagger_Protection next round.`
+            return `Gain ${Number(count)} [/status/Protection] Protection and [/status/Stagger_Protection] Stagger_Protection next round.`
         },
         ["Clash Win", "Clash Lose"],
         false, 5, false, false, 2
     ),
     new Effect(
         "Overextension",
-        (context, trigger, count) => {},
+        (context, count, trigger) => {},
         (count) => {
             return `Increase attack range by 1 SQR for this attack.`
         },
@@ -80,16 +80,16 @@ export const techniqueList = [
     ),
     new Effect(
         "Quick Step",
-        (context, trigger, count) => {},
+        (context, count, trigger) => {},
         (count) => {
-            return `Move ${count} SQR without provoking Opportunity Attacks.`
+            return `Move ${Number(count)} SQR without provoking Opportunity Attacks.`
         },
         ["Clash Win"],
         false, 5, false, false, 2
     ),
     new Effect(
         "Sleight of Hand",
-        (context, trigger, count) => {},
+        (context, count, trigger) => {},
         (count) => {
             return `Sheathe a weapon and pull a new one.`
         },
@@ -98,7 +98,7 @@ export const techniqueList = [
     ),
     new Effect(
         "Adaptability",
-        (context, trigger, count) => {},
+        (context, count, trigger) => {},
         (count) => {
             return `Stow an outfit and equip a new one.`
         },
@@ -107,7 +107,7 @@ export const techniqueList = [
     ),
     new Effect(
         "Shrug Off",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.events[trigger].push(async (ctx) => {
                 await ctx.actor.performReduceStatus("Reduce Status", ctx.actor.getReduceStatusCount());
             });
@@ -120,7 +120,7 @@ export const techniqueList = [
     ),
     new Effect(
         "Headlock",
-        (context, trigger, count) => {},
+        (context, count, trigger) => {},
         (count) => {
             return `Initiate a Grapple check against the target.`
         },
@@ -129,7 +129,7 @@ export const techniqueList = [
     ),
     new Effect(
         "Full Reversal",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             if (context.defFollowup) {
                 context.dicePower = Number(context.dicePower) + (count * 2);
                 context.nonSkillDicePower = Number(context.nonSkillDicePower) + (count * 2);
@@ -140,14 +140,14 @@ export const techniqueList = [
             }
         },
         (count) => {
-            return `Gain ${count} Dice Power. If you previously Defensive Clash Won against this target in the turn, gain an additional ${count}.`
+            return `Gain ${Number(count)} Dice Power. If you previously Defensive Clash Won against this target in the turn, gain an additional ${Number(count)}.`
         },
         ["On Use"],
         false, 3, false, false, 2
     ),
     new Effect(
         "Toughen Up",
-        (context, trigger, count) => {},
+        (context, count, trigger) => {},
         (count) => {
             return `Trigger the Protect action.`
         },
@@ -156,16 +156,20 @@ export const techniqueList = [
     ),
     new Effect(
         "Emotion Level",
-        (context, trigger, count) => {},
+        (context, count, trigger) => {
+            context.events[trigger].push(async (ctx) => {
+                await ctx.actor.triggerEmotionLevel();
+            });
+        },
         (count) => {
             return `Gain 1 Light.`
         },
         ["Clash Win"],
-        false, 1, false, false, 4
+        false, 1, false, true, 4
     ),
     new Effect(
         "Mood Swing",
-        (context, trigger, count) => {},
+        (context, count, trigger) => {},
         (count) => {
             return `Change your Disposition.`
         },
@@ -174,25 +178,25 @@ export const techniqueList = [
     ),
     new Effect(
         "Upheaval",
-        (context, trigger, count) => {},
+        (context, count, trigger) => {},
         (count) => {
-            return `Create ${count * 2} SQR of difficult terrain nearby.`
+            return `Create ${Number(count) * 2} SQR of difficult terrain nearby.`
         },
         ["Clash Win", "Clash Lose"],
         false, 5, false, false, 1
     ),
     new Effect(
         "Create Barrier",
-        (context, trigger, count) => {},
+        (context, count, trigger) => {},
         (count) => {
-            return `Create ${count} SQR of half cover nearby.`
+            return `Create ${Number(count)} SQR of half cover nearby.`
         },
         ["Clash Win", "Clash Lose"],
         false, 5, false, false, 2
     ),
     new Effect(
         "Versatility",
-        (context, trigger, count) => {},
+        (context, count, trigger) => {},
         (count) => {
             return `Change this attack to a damage type of the user's choice.`
         },

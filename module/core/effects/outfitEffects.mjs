@@ -51,10 +51,10 @@ export const outfitEffects = [
     ),
     markerEffect("Enemy Power Down", true, 5, (count) => {
         if (count >= 0) {
-            return [`Target loses ${count} Dice Power.`, null, null, null, null, null];
+            return [`Target loses ${Number(count)} Dice Power.`, null, null, null, null, null];
         }
         else {
-            return [`Target gains ${count} Dice Power.`, null, null, null, null, null];
+            return [`Target gains ${Number(count)} Dice Power.`, null, null, null, null, null];
         }
     }),
     //
@@ -103,7 +103,7 @@ export const outfitEffects = [
             });
         },
         (count) => {
-            return `Apply ${count} [Type] Fragility, chosen on application.`
+            return `Apply ${Number(count)} [Type] Fragility, chosen on application.`
         },
         ["Clash Win", "Clash Lose"],
         false, 5, false, true
@@ -131,21 +131,21 @@ export const outfitEffects = [
                 if (count >= 0) {
                     let hp = context.actor.system.attributes.health.temp;
                     await context.actor.healTemp(count * 3);
-                    createEffectsMessage(context.actor.name, `Gains ${count * 3} Temporary HP from Padded Clothing! (${hp} -> ${context.actor.system.attributes.health.temp})`);
+                    createEffectsMessage(context.actor.name, `Gains ${Number(count) * 3} Temporary HP from Padded Clothing! (${hp} -> ${context.actor.system.attributes.health.temp})`);
                 }
                 else {
                     let hp = context.actor.system.attributes.health.value;
                     await context.actor.takeDamage(0, context, count * 3, 0, 0, true);
-                    createEffectsMessage(context.actor.name, `Receives ${count * 3} HP damage from Padded Clothing! (${hp} -> ${context.actor.system.attributes.health.value})`);
+                    createEffectsMessage(context.actor.name, `Receives ${Number(count) * 3} HP damage from Padded Clothing! (${hp} -> ${context.actor.system.attributes.health.value})`);
                 }
             });
         },
         (count) => {
             if (count >= 0) {
-                return `Gain ${count * 3} Temp. HP`;
+                return `Gain ${Number(count) * 3} Temp. HP`;
             }
             else {
-                return `Take ${count * 3} HP damage.`
+                return `Take ${Number(count) * 3} HP damage.`
             }
         },
         ["Combat Start"],
@@ -159,21 +159,21 @@ export const outfitEffects = [
                 if (count >= 0) {
                     let hp = context.actor.system.attributes.stagger.temp;
                     await context.actor.healTemp(0, count * 3);
-                    createEffectsMessage(context.actor.name, `Gains ${count * 3} Temporary ST from Shock Absorbant! (${hp} -> ${context.actor.system.attributes.stagger.temp})`);
+                    createEffectsMessage(context.actor.name, `Gains ${Number(count) * 3} Temporary ST from Shock Absorbant! (${hp} -> ${context.actor.system.attributes.stagger.temp})`);
                 }
                 else {
                     let hp = context.actor.system.attributes.stagger.value;
                     await context.actor.takeDamage(0, context, count * 3, 0, 0, true);
-                    createEffectsMessage(context.actor.name, `Receives ${count * 3} ST damage from Shock Absorbant! (${hp} -> ${context.actor.system.attributes.stagger.value})`);
+                    createEffectsMessage(context.actor.name, `Receives ${Number(count) * 3} ST damage from Shock Absorbant! (${hp} -> ${context.actor.system.attributes.stagger.value})`);
                 }
             });
         },
         (count) => {
             if (count >= 0) {
-                return `Gain ${count * 3} Temp. ST`;
+                return `Gain ${Number(count) * 3} Temp. ST`;
             }
             else {
-                return `Take ${count * 3} ST damage.`
+                return `Take ${Number(count) * 3} ST damage.`
             }
         },
         ["Combat Start"],
@@ -186,11 +186,11 @@ export const outfitEffects = [
             context.events["Combat Start"].push(async (context) => {
                 let hp = context.actor.system.attributes.sanity.temp;
                 await context.actor.healTemp(0, 0, count * 2);
-                createEffectsMessage(context.actor.name, `Gains ${count * 2} Temporary SP from Fashionable Threads! (${hp} -> ${context.actor.system.attributes.sanity.temp})`);
+                createEffectsMessage(context.actor.name, `Gains ${Number(count) * 2} Temporary SP from Fashionable Threads! (${hp} -> ${context.actor.system.attributes.sanity.temp})`);
             });
         },
         (count) => {
-            return `Gain ${count * 2} Temp. SP`;
+            return `Gain ${Number(count) * 2} Temp. SP`;
         },
         ["Combat Start"],
         false,
@@ -208,7 +208,7 @@ export const outfitEffects = [
             });
         },
         (count) => {
-            return `Gain ${count} [/status/Haste] Haste.`;
+            return `Gain ${Number(count)} [/status/Haste] Haste.`;
         },
         ["Combat Start"], false, 5, false, true
     ),
@@ -216,11 +216,11 @@ export const outfitEffects = [
     new Effect(
         "Gain Charge",
         (context, count, trigger) => {
-            let c = context.recycled ? Math.floor(count / 2) : count;
+            let c = context.recycled ? Math.floor(count / 2) : Number(count);
             context.triggers[trigger].applyInfliction("Charge", c, false);
         },
         (count) => {
-            return `Gain ${count} [/status/Charge]. If this reaction is Recycled, gain ${Math.floor(count / 2)} [/status/Charge] Charge instead.`
+            return `Gain ${Number(count)} [/status/Charge]. If this reaction is Recycled, gain ${Math.floor(count / 2)} [/status/Charge] Charge instead.`
         },
         ["On Use"], false, 6
     ),
@@ -308,7 +308,7 @@ export const outfitEffects = [
                         },
                     ]);
                     
-                    let points = count;
+                    let points = Number(count);
                     let scount = actor.getStatusCount(type);
 
                     if ((type == "Charge" && scount < 3) || (type == "Overcharge" && scount < 1)) {
@@ -361,6 +361,6 @@ function markerEffect(name, negative = false, count = 1, desc = null) {
         desc,
         ["Always Active"],
         negative,
-        count
+        Number(count)
     );
 }

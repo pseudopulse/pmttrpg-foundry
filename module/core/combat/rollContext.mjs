@@ -62,6 +62,7 @@ export class RollContext {
         this.defTwoHandedFree = false;
         this.skillUsed = false;
         this.defFollowup = false;
+        this.reactive = false;
         //
         this.converted = false;
         //
@@ -89,6 +90,26 @@ export class RollContext {
             }
 
             await ev(this);
+        }
+    }
+
+    getRange() {
+        if (this.type == "Melee") {
+            let baseRange = 1;
+
+            if (this.form == "Long") {
+                baseRange += 1;
+            }
+            if (this.hasEffect("Increase Range")) {
+                baseRange += 1;
+            }
+
+            return baseRange;
+        }
+        else {
+            let baseRange = 10;
+            baseRange += 2 * this.effectCount("Extra Range");
+            return baseRange;
         }
     }
 
@@ -273,7 +294,7 @@ export class RollContext {
                 let php = this.actor.system.attributes.health.value;
                 let pst = this.actor.system.attributes.stagger.value;
                 let psp = this.actor.system.attributes.sanity.value;
-                await this.actor.heal(data.hpHeal, data.stHeal, data.spHeal);
+                await this.actor.heal(data.hpHeal, data.stHeal, data.spHeal, this.actor);
                 let hp = this.actor.system.attributes.health.value;
                 let st = this.actor.system.attributes.stagger.value;
                 let sp = this.actor.system.attributes.sanity.value;
@@ -814,6 +835,7 @@ export class RollContext {
             this.protect = this.modifiers.protect;
             this.bondTarget = this.modifiers.bondTarget;
             this.defFollowup = this.modifiers.defFollowup;
+            this.reactive = this.modifiers.reactive;
         }
 
         if (this.actor != null && this.actor.augment != null) {
