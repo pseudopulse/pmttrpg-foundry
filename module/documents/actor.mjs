@@ -128,7 +128,10 @@ export class PTActor extends Actor {
         let ctx = await getRollContextFromDataFull(item);
 
         createEffectsMessage(ctx.actor.name, `Uses the skill ${item.name} on ${target == this ? "self" : target.name}!`);
+        await ctx.fireEvent("Clash Win Instant");
         createEffectsMessage(ctx.actor.name, await ctx.resolveTriggers(["On Use", "Clash Win"]));
+        await ctx.fireEvent("On Use");
+        await ctx.fireEvent("Clash Win");
     }
 
     getOutfitContext() {
@@ -2312,7 +2315,7 @@ export class PTActor extends Actor {
             let type = await pollUserInputOptions(actor, "What action do you want to take?", [
                 { name: "Attack", icon: "icons/Attack.png" },
                 { name: "Dash", icon: "icons/Dash.png" },
-                { name: "Use Skill", icon: "resources/LightIcon.webp" },
+                { name: "Skill/Tool", icon: "resources/LightIcon.webp" },
                 { name: "Reduce Status", icon: "icons/Reduce_Status.png" },
                 { name: "Mark", icon: "icons/Mark.png" },
                 { name: "Spend Action", icon: "icons/Discard_Reaction.png" }
@@ -2322,7 +2325,7 @@ export class PTActor extends Actor {
                 case "Attack":
                     await getAttackOptions(actor);
                     break;
-                case "Use Skill":
+                case "Skill/Tool":
                     await getSkillOptions(actor);
                     break;
                 case "Dash":
@@ -2474,7 +2477,7 @@ export class PTActor extends Actor {
                 if (actor.getRiding()) {
                     let ridden = actor.getMountedActor();
                     await actor.update({ "system.mountedCharacter": null }, { diff: false, render: true })
-                    actor.modifyScale(2);
+                    await actor.modifyScale(2);
                     sendNetworkMessage("CLEAR_MOUNT", { target: ridden });
                     createEffectsMessage(actor.name, `Dismounts from ${ridden.name}!`);
                 }
@@ -2536,7 +2539,7 @@ export class PTActor extends Actor {
 
                 await actor.update({ "system.mountedCharacter": target._id }, { diff: false, render: true });
                 sendNetworkMessage("UPDATE_MOUNT", { target: target, char: actor });
-                this.modifyScale(0.5);
+                await this.modifyScale(0.5);
                 await this.spendAction(false, false);
                 createEffectsMessage(actor.name, `Mounts onto ${target.name}!`);
             },
@@ -2565,8 +2568,26 @@ export class PTActor extends Actor {
         }
     }
 
-    modifyScale(scale) {
+    // fix z index issue later
+
+    async modifyScale(scale) {
         let token = getActorToken(this);
-        token.document.update({ "texture.scaleX": token.document.texture.scaleX * scale, "texture.scaleY": token.document.texture.scaleY * scale });
+        await token.document.update({ "width": token.document.width * scale, "height": token
+            .document.height * scale });
+        await new Promise(resolve => setTimeout(resolve, 250));
+        token.drawBars();
+
+        console.log(token);
+
+        if (this.getRiding()) {
+            let actor = this.getMountedActor();
+            let aToken = getActorToken(actor);
+            
+            let point = canvas.grid.getCenterPoint({x: aToken.document.x, y: aToken.document.y });
+            point.x -= token.mesh.canvasBounds.width / 2;
+            point.y -= token.mesh.canvasBounds.height / 2;
+
+            await token.document.update({ x: point.x, y: point.y });
+        }
     }
 }

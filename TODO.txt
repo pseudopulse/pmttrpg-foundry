@@ -5,3 +5,5 @@ force damage input
 add dice power penalty option to attacks
 
 add the homebrew effects creepz mentioned in dms
+
+add certain important tool effects as skill effects

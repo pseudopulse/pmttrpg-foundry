@@ -1777,8 +1777,83 @@ export const skillEffects = [
             return `Take ${count} SP damage.`
         },
         ["On Use"], false, 5
-    )
+    ),
+    //
+    new Effect(
+        'Battery',
+        (context, count, trigger) => {
+            context.triggers[trigger].applyInfliction("Charge", count * -4, false);
+        },
+        (count) => {
+            return `Gain ${count * 4} [/status/Charge] Charge.`
+        },
+        ["On Use"], false, 5
+    ),
+    new Effect(
+        'Enkephalin Syringe',
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                let roll = new Roll(`${count * 2}d6+${context.actor.system.abilities.Charm.value}`);
+                let res = await roll.evaluate();
+                let heal = res.total;
+
+                let target = await findAllyTarget(context.actor, "Choose an ally to use Enkephalin Syringe on.");
+                await target.heal(0, heal, 0, context.actor);
+                createEffectsMessage(target.name, `Recovers ${heal} ST from ${context.actor.name}'s T${count} Enkephalin Syringe!`);
+            });
+        },
+        (count) => {
+            return `Recover ${count * 2}d6+Charm ST to self or an ally.`
+        },
+        ["On Use"], false, 5, false, true
+    ),
+    new Effect(
+        'Medkit',
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                let roll = new Roll(`${count * 4}d6+${context.actor.system.abilities.Prudence.value * 3}`);
+                let res = await roll.evaluate();
+                let heal = res.total;
+
+                let target = await findAllyTarget(context.actor, "Choose an ally to use Medkit on.");
+                await target.heal(heal, 0, 0, context.actor);
+                createEffectsMessage(target.name, `Recovers ${heal} HP from ${context.actor.name}'s T${count} Medkit!`);
+            });
+        },
+        (count) => {
+            return `Recover ${count * 4}d6+(Prudence * 3) HP to self or an ally.`
+        },
+        ["On Use"], false, 5, false, true
+    ),
+    new Effect(
+        'Cigarettes',
+        (context, count, trigger) => {
+            context.triggers[trigger].applyInfliction("Smoke", -1, false);
+            context.triggers[trigger].spHeal = Number(context.triggers[trigger].spHeal) + 1;
+        },
+        (count) => {
+            return `Gain 1 [/status/Smoke] Smoke and recover 1 SP.`
+        },
+        ["On Use"], false, 1
+    ),
 ]
+
+async function findAllyTarget(actor, msg) {
+    let team = findActorsOfTeam(actor);
+    team.push(actor);
+    let options = [];
+    let map = [];
+
+    for (let member of team) {
+        options.push({ name: member.id, displayName: member.name });
+        map[member.id] = member;
+    }
+
+    let target = await pollUserInputOptions(actor, msg, options);
+    target = map[target];
+
+    return target;
+}
 
 function healEffect(val, cat) {
     return new Effect(

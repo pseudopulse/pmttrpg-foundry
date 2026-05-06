@@ -191,6 +191,11 @@ export class PTItem extends Item {
         rollContext.form = systemData.form;
         rollContext.hand = systemData.hand;
 
+        if (rollContext.form == "Hybrid") {
+            rollContext.attackType = await pollUserInputOptions(this.actor, "Select attack type for hybrid weapon.", [{ name: "Melee" }, { name: "Ranged" }], 0);
+            rollContext.type = rollContext.attackType;
+        }
+
         if (rollSkill) {
             const tmpCtx = new RollContext();
             Object.assign(tmpCtx, JSON.parse(JSON.stringify(rollContext)));

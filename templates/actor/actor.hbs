@@ -44,6 +44,7 @@
                 <a class="item" data-tab="weapons" style="pointer-events: auto;">Weapons</a>
                 <a class="item" data-tab="outfits" style="pointer-events: auto;">Outfits</a>
                 <a class="item" data-tab="skills" style="pointer-events: auto;">Skills</a>
+                <a class="item" data-tab="tools" style="pointer-events: auto;">Tools</a>
                 <a class="item" data-tab="augment" style="pointer-events: auto;">Augment</a>
             </nav>
 
@@ -61,6 +62,11 @@
                 {{!-- Skills --}}
                 <div class="tab skills" data-group="secondary" data-tab="skills">
                     {{> "systems/pmttrpg/templates/actor/parts/actor-skills.hbs"}}
+                </div>
+
+                {{!-- Tools --}}
+                <div class="tab tools" data-group="secondary" data-tab="tools">
+                    {{> "systems/pmttrpg/templates/actor/parts/actor-tools.hbs"}}
                 </div>
 
                 {{!-- Augments --}}

@@ -19,6 +19,7 @@ export function getEffectsArray(type) {
         case "weapon":
             return weaponEffects;
         case "skill":
+        case "tool":
             return skillEffects;
         case "outfit":
             return outfitEffects;

@@ -1,101 +1,94 @@
-<div class="sc-costs-holder">
-    {{#if (ne ignoreLight true)}}
-    <div class="sc-cost">
-        <img class="sc-cost-img" src='systems/pmttrpg/assets/resources/LightIcon.webp'
-        title='Light' width='24' height='24' />
-        <h4 class="sc-cost-text">{{system.light}}</h4>
-    </div>
-    {{/if}}
-
-    {{#each context.costs as |cost|}}
-    <div class="sc-cost">
-        <img class="sc-cost-img" src='systems/pmttrpg/assets/status/{{cost.status}}.png'
-        title='{{cost.status}}' width='24' height='24' />
-        <h4 class="sc-cost-text">{{cost.cost}}</h4>
-    </div>
+<ol class='items-list'>
+    <li class='item flexrow items-header'>
+        <div class='item-controls'>
+            <a class='item-control item-create' title='Create Tool' data-type='tool'>
+                <i class='fas fa-plus'></i>
+                New Tool
+            </a>
+        </div>
+    </li>
+    {{#each tools as |item id|}}
+    <li class='item flexrow' data-item-id='{{item._id}}'>
+        <div class="ak-resource">
+            <div class="ak-roll-info">
+                <div class='ak-item-icon'>
+                    <a data-roll-type='item'>
+                        <img class="ak-type-img" src='systems/pmttrpg/assets/damageTypes/{{item.system.type}}.png' title='{{item.system.type}} Tool'
+                            width='24' height='24' />
+                    </a>
+                </div>
+            </div>
+            <div class='ak-item-name'>
+                <h4 class="ak-item-text">{{item.name}}</h4>
+            </div>
+            {{> ptSkillCosts item context=(rctx item) ignoreLight=true}}
+            <div class='item-controls ak-controls'>
+                <a class='item-control item-edit' title='{{localize "DOCUMENT.Update" type=' Item'}}'>
+                    <i class='fas fa-edit ak-font-button'></i>
+                </a>
+                <a class='item-control item-delete' title='{{localize "DOCUMENT.Delete" type=' Item'}}'>
+                    <i class='fas fa-trash ak-font-button'></i>
+                </a>
+            </div>
+        </div>
+    </li>
     {{/each}}
-</div>
-
-<script>
-    function toggle(element) {
-        document.getElementById(element).classList.toggle("sc-show");
-    }
-</script>
+</ol>
 
 <style>
-    .sc-costs-holder {
+    .ak-roll-info {
         display: flex;
-        justify-content: space-between;
-        width: fit-content;
-        gap: 0.5rem;
-        height: 2.5rem;
-    }
-
-    .sc-cost {
-        display: flex;
-        align-items: center;
+        align-content: center;
         justify-content: center;
-        gap: 0.1rem !important;
-        background: slategray;
-        border: 2px solid silver;
-        padding: 5%;
-        width: 3.5rem;
-    }
-
-    .sc-cost-img {
-        background: none;
-        border: none;
-    }
-
-    .sc-cost-text {
-        font-size: 16px;
-        margin: 0;
-        font-weight: bold;
-        color: white;
-    }
-
-    .sc-stats-grid {
-        display: grid;
-        columns: 2;
-    }
-
-    .sc-resource-icon-noEdit {
-        padding: 0% !important;
-        background: none !important;
-    }
-
-    .sc-roll-holder {
-        display: flex;
         align-items: center;
-        justify-content: center;
         gap: 1rem;
     }
 
-    .sc-roll-icon {
-        background: none;
-        border: none;
-        width: 2.5rem;
-        height: 2.5rem;
-    }
-
-    .sc-resource-button-noEdit {
-        background: none !important;
-        border: none !important;
-        width: 3rem !important;
-    }
-
-    .sc-dropdown-holder {
+    .ak-item-name {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        justify-content: center;
+        justify-items: center;
+        gap: 2rem;
+        margin: 0px;
+        padding: 2%;
     }
 
-    .sc-rollDisplay {
+    .ak-controls {
+        position: absolute;
+        right: 3%;
+    }
+
+    .ak-font-button {
         font-size: 20px;
-        text-align: center;
     }
 
-    .sc-attack-type-button {
+    .ak-item-icon {
+        background: none;
+        border: none;
+    }
+
+    .ak-type-img {
+        width: 2.5rem;
+        height: 2.5rem;
+        background-color: slategray;
+        border: 1px solid gray;
+    }
+
+    .ak-type-img:hover {
+        background: rgb(147, 161, 175);
+    }
+
+    .ak-dropdown-holder {}
+
+    .ak-item-text {
+        text-wrap-mode: nowrap;
+        margin: 0px;
+        font-size: 20px;
+        color: black;
+    }
+
+    .ak-attack-type-button {
         width: 5rem;
         height: 2.5rem;
         align-items: center;
@@ -108,33 +101,31 @@
         font-weight: bold;
     }
 
-    .sc-type-container {
-        display: grid;
-        columns: 1;
+    .ak-type-container {
+        display: flex;
         gap: 1rem;
         align-content: center;
         align-items: center;
         justify-items: center;
         margin: auto;
-        margin-top: 1rem;
     }
 
-    .sc-dropdownIcon {
+    .ak-dropdownIcon {
         margin: 0px !important;
         padding: 10% !important;
     }
 
-    .sc-resource-button {
+    .ak-resource-button {
         background-color: slategray;
         border: 1px solid gray;
         text-align: center;
     }
 
-    .sc-resource-button:hover {
+    .ak-resource-button:hover {
         background: rgb(147, 161, 175);
     }
 
-    .sc-clashDescription {
+    .ak-clashDescription {
         overflow-y: scroll;
         width: 100%;
         padding: 2% 2% !important;
@@ -142,44 +133,46 @@
         display: block !important;
     }
 
-    .sc-statblock-container {
+    .ak-statblock-container {
         padding: 2% !important;
         columns: 2;
         display: flex;
         gap: 0.5rem;
     }
 
-    .sc-rollInfo {
-        height: 14rem;
+    .ak-rollInfo {
+        height: 9rem;
         width: 14rem;
-        padding: 2% 1% !important;
+        padding: 0% !important;
         columns: 1;
         display: flex !important;
         gap: 0rem !important;
     }
 
-    .sc-resource {
+    .ak-resource {
         background-color: cadetblue;
+        border: 2px solid black;
         border-radius: 1px;
-        display: grid;
+        display: flex;
         grid-template-columns: auto 1fr;
         align-items: center;
-        gap: 0.5rem;
-        padding: 5%;
+        gap: 4rem;
+        padding: 1% 2%;
+        position: relative;
     }
 
-    .sc-resource-input {
+    .ak-resource-input {
         background-color: slategray;
         border: 1px solid silver;
         text-align: center;
         width: 4rem;
     }
 
-    .sc-nop {
+    .ak-nop {
         pointer-events: none;
     }
 
-    .sc-resource-content {
+    .ak-resource-content {
         display: flexbox;
         justify-content: center;
         align-items: center;
@@ -189,20 +182,21 @@
         margin: auto;
     }
 
-    .sc-resource-divider {
+    .ak-resource-divider {
         text-align: center;
     }
 
-    .sc-resource-icon {
+    .ak-resource-icon {
         width: 2.5rem;
         height: 2.5rem;
         border: none;
         margin: auto;
-        padding: 0%;
+        padding: 10%;
         background: none;
+        border: none;
     }
 
-    .sc-resources-holder {
+    .ak-resources-holder {
         background-color: #1d1b22;
         border: 2px solid slategray;
         padding: 2%;
@@ -210,16 +204,16 @@
         padding-bottom: 0;
     }
 
-    .sc-padding-t2 {
+    .ak-padding-t2 {
         padding-top: 2%;
         padding-bottom: 2%;
     }
 
-    .sc-padding-0 {
+    .ak-padding-0 {
         padding: 0;
     }
 
-    .sc-dropbtn {
+    .ak-dropbtn {
         background-color: cadetblue;
         color: white;
         padding: 16px;
@@ -234,23 +228,23 @@
         text-wrap-mode: nowrap;
     }
 
-    .sc-dropbtn-small {
+    .ak-dropbtn-small {
         width: 3rem;
         height: 2rem;
         line-height: 0;
     }
 
-    .sc-dropbtn:hover,
-    .sc-dropbtn:focus {
+    .ak-dropbtn:hover,
+    .ak-dropbtn:focus {
         background-color: slategray;
     }
 
-    .sc-dropdown {
+    .ak-dropdown {
         position: relative;
         display: inline-block;
     }
 
-    .sc-dropdown-content {
+    .ak-dropdown-content {
         display: none;
         position: absolute;
         background-color: #f6f6f6;
@@ -259,18 +253,18 @@
         max-height: 20rem;
     }
 
-    .sc-dropdown-content a {
+    .ak-dropdown-content a {
         color: black;
         padding: 12px 16px;
         text-decoration: none;
         display: block;
     }
 
-    .sc-dropdown-content a:hover {
+    .ak-dropdown-content a:hover {
         background-color: #f1f1f1;
     }
 
-    .sc-show {
+    .ak-show {
         display: block;
     }
 </style>

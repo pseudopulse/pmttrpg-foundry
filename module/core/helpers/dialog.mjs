@@ -38,8 +38,7 @@ function matchesType(context, type) {
     */
 export async function getActionModifiers(actor, context) {
     const content = await renderTemplate("systems/pmttrpg/templates/dialog/action-modifiers.hbs", {
-        skills: actor.items.filter(x => x.type == "skill" && matchesType(context, x.system.type)),
-        tools: actor.items.filter(x => x.type == "tools" && matchesType(context, x.system.type)),
+        skills: actor.items.filter(x => (x.type == "skill" || x.type == "tool") && matchesType(context, x.system.type)),
         conditionals: context.conditionals,
         rollContext: context,
         actor: actor
@@ -843,7 +842,7 @@ export async function pollUserInputText(user, prompt, placeholder, mode = "latin
     * @param {RollContext} context 
     */
 export async function getSkillOptions(actor) {
-    if (actor.items.filter(x => x.type == "skill" && x.system.type == "Action").length == 0) {
+    if (actor.items.filter(x => (x.type == "skill" || x.type == "tool") && x.system.type == "Action").length == 0) {
         ui.notifications.info("You dont have any action skills!");
         return;
     }
@@ -869,9 +868,12 @@ export async function getSkillOptions(actor) {
             target.token.setTarget(true, { releaseOthers: true });
         }
     }
+    else {
+        target = target.actor;
+    }
 
     const content = await renderTemplate("systems/pmttrpg/templates/dialog/skill-options.hbs", {
-        skills: actor.items.filter(x => x.type == "skill" && x.system.type == "Action"),
+        skills: actor.items.filter(x => (x.type == "skill" || x.type == "tool") && x.system.type == "Action"),
         actor: actor,
         targets: targetList,
         target: target.name

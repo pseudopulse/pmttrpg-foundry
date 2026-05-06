@@ -16,7 +16,7 @@
                                 <input class="amw-skill-input skill-toggle" type="checkbox" />
                                 <h4 class="amw-item-text">{{ctx.item.name}}</h4>
                             </div>
-                            {{> ptSkillCosts ctx.item context=ctx}}
+                            {{> ptSkillCosts ctx.item context=ctx ignoreLight=(eq item.type "tool")}}
                         </div>
                         
                         <div class="amw-resource am-disabled costTogglable-invalid">
@@ -24,7 +24,7 @@
                                 <input class="amw-skill-input skill-toggle" type="checkbox" />
                                 <h4 class="amw-item-text">{{ctx.item.name}}</h4>
                             </div>
-                            {{> ptSkillCosts ctx.item context=ctx}}
+                            {{> ptSkillCosts ctx.item context=ctx ignoreLight=(eq item.type "tool")}}
                             <h4 class="amw-item-text am-disabled-text">Can't Afford!</h4>
                         </div>
                         {{/with}}

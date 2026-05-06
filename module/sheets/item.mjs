@@ -130,6 +130,13 @@ export class PTItemSheet extends ItemSheet {
             this.item.update({ system }, { render: true, diff: false });
         });
 
+        html.on('click', '.tlb-typeBtn', (event) => {
+            const system = this.document.toObject(false).system;
+            system.type = event.currentTarget.id;
+            this.item.update({ system }, { render: true, diff: false });
+        });
+
+
         html.on('click', '.wb-attack-type-button', (event) => {
             const system = this.document.toObject(false).system;
             if (system.attackType == "Melee") {

@@ -33,7 +33,7 @@
                                     </div>
                                     <h4 class="sts-item-text">{{item.name}}</h4>
                                 </div>
-                                {{> ptSkillCosts item context=(rctx item)}}
+                                {{> ptSkillCosts item context=(rctx item) ignoreLight=(eq item.system.type "tool")}}
                             </div>
                         </li>
                         {{/each}}

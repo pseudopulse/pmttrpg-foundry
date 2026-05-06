@@ -88,6 +88,7 @@ export class PTActorSheet extends ActorSheet {
         const outfits = [];
         const skills = [];
         const augments = [];
+        const tools = [];
 
         for (let i of context.items) {
             if (i.type === 'weapon') {
@@ -102,11 +103,15 @@ export class PTActorSheet extends ActorSheet {
             else if (i.type === 'augment') {
                 augments.push(i);
             }
+            else if (i.type === 'tool') {
+                tools.push(i);
+            }
         }
 
         context.weapons = weapons;
         context.outfits = outfits;
         context.skills = skills;
+        context.tools = tools;
         context.augments = augments;
     }
 

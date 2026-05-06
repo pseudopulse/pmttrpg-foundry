@@ -188,6 +188,7 @@ Hooks.once("init", async () => {
   Handlebars.registerPartial('ptWeaponBlock', '{{> systems/pmttrpg/templates/item/parts/weapon-block.hbs}}')
   Handlebars.registerPartial('ptOutfitBlock', '{{> systems/pmttrpg/templates/item/parts/outfit-block.hbs}}')
   Handlebars.registerPartial('ptSkillBlock', '{{> systems/pmttrpg/templates/item/parts/skill-block.hbs}}')
+  Handlebars.registerPartial('ptToolBlock', '{{> systems/pmttrpg/templates/item/parts/tool-block.hbs}}')
   Handlebars.registerPartial('ptTechniqueBlock', '{{> systems/pmttrpg/templates/item/parts/technique-block.hbs}}')
   Handlebars.registerPartial('ptSkillCosts', '{{> systems/pmttrpg/templates/item/parts/skill-costs.hbs}}')
   Handlebars.registerPartial('ptConditionalCosts', '{{> systems/pmttrpg/templates/item/parts/conditional-costs.hbs}}')
@@ -279,14 +280,14 @@ Hooks.on('preMoveToken', (token, data, action, user) => {
   let dist = distanceBetween(origin, dest);
   let sqr = Math.floor(dist / distScale);
 
-  if (token.movementAction != "blink" && sqr > token.actor.system.movement && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user) {
+  if (token.movementAction != "blink" && sqr > token.actor.system.movement && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user && !token.actor.getRiding()) {
     ui.notifications.notify(`You cant move that far! You attempted to move ${sqr} SQR, while only having ${token.actor.system.movement} SQR remaining!`);
     return false;
   }
 
   if (token.actor.getRiding() && (sqr <= token.actor.getMountedActor().system.movement || (game.combat == null || !game.combat.isActive)) && getActorUser(token.actor) == game.user) {
     if (ignoreNextMountFlag.includes(token.actor)) {
-      ignoreNextMountFlag.remove(token.actor);
+      ignoreNextMountFlag = ignoreNextMountFlag.filter(x => x != token.actor);
       return false;
     }
 
@@ -297,7 +298,7 @@ Hooks.on('preMoveToken', (token, data, action, user) => {
 
   if (token.actor.getRidden() && (sqr <= token.actor.system.movement || (game.combat == null || !game.combat.isActive)) && getActorUser(token.actor) == game.user) {
     if (ignoreNextMountFlag.includes(token.actor)) {
-      ignoreNextMountFlag.remove(token.actor);
+      ignoreNextMountFlag = ignoreNextMountFlag.filter(x => x != token.actor);
       return false;
     }
     
@@ -320,6 +321,7 @@ Hooks.on('moveToken', async (token, data, action, user) => {
       await token.actor.applyStatus("Charge", movement);
       createEffectsMessage(token.actor.name, `Gains ${movement} [/status/Charge] Charge from Velocity Generator!`);
     }
+
     await token.actor.update({ "system.movement": Math.max(Number(token.actor.system.movement) - sqr, 0) }, { diff: false });
     await token.actor.fireStatusEffects(Triggers.MOVE);
   }
@@ -584,6 +586,7 @@ const preloadHandlebarsTemplates = async function () {
     'systems/pmttrpg/templates/actor/parts/actor-weapons.hbs',
     'systems/pmttrpg/templates/actor/parts/actor-outfits.hbs',
     'systems/pmttrpg/templates/actor/parts/actor-skills.hbs',
+    'systems/pmttrpg/templates/actor/parts/actor-tools.hbs',
     'systems/pmttrpg/templates/actor/parts/actor-status.hbs',
     'systems/pmttrpg/templates/actor/parts/actor-combat.hbs',
     'systems/pmttrpg/templates/actor/parts/actor-augments.hbs',
@@ -606,5 +609,6 @@ const preloadHandlebarsTemplates = async function () {
     'systems/pmttrpg/templates/item/parts/skill-block.hbs',
     'systems/pmttrpg/templates/item/parts/outfit-block.hbs',
     'systems/pmttrpg/templates/item/parts/technique-block.hbs',
+    'systems/pmttrpg/templates/item/parts/tool-block.hbs',
   ]);
 };
