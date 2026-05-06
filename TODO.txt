@@ -3,7 +3,3 @@ functional parts (there's like 10 left to finish if i have time)
 force damage input
 
 add dice power penalty option to attacks
-
-add the homebrew effects creepz mentioned in dms
-
-add certain important tool effects as skill effects

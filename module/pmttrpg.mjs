@@ -100,6 +100,15 @@ Hooks.once("init", async () => {
 
       return null;
     },
+    canShowEffect(name, type) {
+      let effect = getEffectsArray(type).find(x => x.name == name);
+
+      if (effect.hidden && !game.user.isGM) {
+        return false;
+      }
+
+      return effect != null;
+    },
     rctx(item) {
       let ctx = getRollContextFromData(item);
       ctx.item = item;

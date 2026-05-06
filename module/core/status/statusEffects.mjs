@@ -58,6 +58,15 @@ export const statusList = [
         }
         
     }, (count) => { return count / 2 }),
+    new StatusEffect("Poison", Triggers.ACTION, async (actor) => {
+        let dmg = 2 * Math.floor(actor.getStatusCount("Poison") / 10);
+        if (dmg > 0) {
+            await actor.takeDamageStatus(dmg, "Poison", "HP", "[/status/Poison] Took %DMG% HP damage from Poison! (%PHP% -> %HP%)")
+        }
+    }, (count) => { 
+        let dmg = 2 * Math.floor(count / 10);
+        return count - dmg;
+     }),
     new StatusEffect("Rupture", Triggers.BURST, async (actor) => {
         await actor.takeDamageStatus(actor.getStatusCount("Rupture"), "Rupture", "HP", "[/status/Rupture] Rupture bursted for %DMG% HP damage! (%PHP% -> %HP%)")
     }, (count) => { return 0 }),

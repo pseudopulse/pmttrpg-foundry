@@ -18,10 +18,12 @@ export const augmentEffects = [
     augmentBonusEffect("Bind", 1),
     augmentBonusEffect("Poise", 4, true),
     augmentBonusEffect("Ruin", 4),
+    augmentBonusEffect("Poison", 10),
     augmentVigorEffect("Burn", 3),
     augmentVigorEffect("Frostbite", 2),
     augmentVigorEffect("Bleed", 2),
     augmentVigorEffect("Haste", 2),
+    augmentVigorEffect("Poison", 10),
     new Effect(
         `Smoke Overflow`,
         (context, count, trigger) => {
@@ -199,20 +201,26 @@ export const augmentEffects = [
             context.events["Round Start"].push(async (context) => {
                 let dispo = canvas.tokens.placeables.find(x => x.actor == context.actor).document.disposition;
                 let anyDead = false;
+                let deadCount = 0;
                 for (const token of canvas.tokens.placeables.filter(x => (x.actor != context.actor) && x.document.disposition == dispo)) {
                     if (token.actor.system.attributes.health.value <= 0) {
                         anyDead = true;
+                        deadCount++;
                     }
                 }
 
                 if (anyDead) {
+                    if (!context.hasEffect("Dear Mother")) {
+                        deadCount = 2;
+                    }
+
                     if (count < 0) {
-                        await context.actor.applyStatus("Feeble", 2, 0);
-                        createEffectsMessage(context.actor.name, "Gains 2 [/status/Feeble] Feeble from Remembrance!");
+                        await context.actor.applyStatus("Feeble", deadCount, 0);
+                        createEffectsMessage(context.actor.name, `Gains ${deadCount} [/status/Feeble] Feeble from Remembrance!`);
                     }
                     else {
-                        await context.actor.applyStatus("Strength", 2, 0);
-                        createEffectsMessage(context.actor.name, "Gains 2 [/status/Strength] Strength from Remembrance!");
+                        await context.actor.applyStatus("Strength", deadCount, 0);
+                        createEffectsMessage(context.actor.name, `Gains ${deadCount} [/status/Strength] Strength from Remembrance!`);
                     }
                 }
             });
@@ -231,20 +239,26 @@ export const augmentEffects = [
             context.events["Round Start"].push(async (context) => {
                 let dispo = canvas.tokens.placeables.find(x => x.actor == context.actor).document.disposition;
                 let anyDead = false;
+                let deadCount = 0;
                 for (const token of canvas.tokens.placeables.filter(x => (x.actor != context.actor) && x.document.disposition == dispo)) {
                     if (token.actor.system.attributes.health.value <= 0) {
                         anyDead = true;
+                        deadCount++;
                     }
                 }
 
                 if (anyDead) {
+                    if (!context.hasEffect("Dear Mother")) {
+                        deadCount = 2;
+                    }
+
                     if (count < 0) {
-                        await context.actor.applyStatus("Feeble", 2, 0);
-                        createEffectsMessage(context.actor.name, "Gains 2 [/status/Feeble] Feeble from Remembrance!");
+                        await context.actor.applyStatus("Feeble", deadCount, 0);
+                        createEffectsMessage(context.actor.name, `Gains ${deadCount} [/status/Feeble] Feeble from Remembrance!`);
                     }
                     else {
-                        await context.actor.applyStatus("Endurance", 2, 0);
-                        createEffectsMessage(context.actor.name, "Gains 2 [/status/Endurance] Endurance from Remembrance!");
+                        await context.actor.applyStatus("Endurance", deadCount, 0);
+                        createEffectsMessage(context.actor.name, `Gains ${deadCount} [/status/Endurance] Endurance from Remembrance!`);
                     }
                 }
             });
@@ -571,7 +585,7 @@ export const augmentEffects = [
     markerEffect("Afterburn", false, 1), 
     markerEffect("Rekindled Embers", false, 1),
     // blazing burn
-    // rare meal
+    markerEffect("Rare Meal", false, 1),
     markerEffect("Open Arteries", false, 1), 
     // polluted steam
     markerEffect("Smoke Veil", false, 1),
@@ -612,7 +626,25 @@ export const augmentEffects = [
     markerEffect("Weak Heart", false, 3),
     markerEffect("Flat Footed", false, 5),
     markerEffect("Strong Arm", false, 2),
-]
+
+    // hidden gm effects
+    new Effect("Dear Mother", (context, count, trigger) => {}, null, ["Always Active"], false, 1, false, true),
+    new Effect(
+        "Spider Cocoon",
+        (context, count, trigger) => {
+            
+        },
+        (count) => {
+            return 'Target becomes a cocoon for one round. Cocooned targets cannot act and are treated as staggered.'
+        },
+        ["Clash Win"],
+        false, 1, false, true, 0, true
+    ),
+
+    new Effect("Persistent Venom", (context, count, trigger) => {}, (count) => {
+        return `Target's Reduce Status clears [/status/Poison] Poison at half efficiency for the rest of combat.`
+    }, ["On Use"], false, 1),
+];
 
 function augmentThresholdEffect(name, bar, mult, status, negativeStatus = []) {
     return new Effect(

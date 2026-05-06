@@ -602,21 +602,32 @@ export async function pollReduceStatus(user, source, maxStacks, statusEffects) {
         "Bleed": 0,
         "Frostbite": 0,
         "Smoke": 0,
+        "Poison": 0,
         "Deep_Chill": 0,
         "Renewed_Blaze": 0,
         "Hemorrhage": 0
     };
 
     let checkNoStandard = () => {
-        return reduction["Bleed"] <= 0 && reduction["Burn"] <= 0 && reduction["Frostbite"] <= 0 && reduction["Smoke"] <= 0;
+        return reduction["Bleed"] <= 0 && reduction["Burn"] <= 0 && reduction["Frostbite"] <= 0 && reduction["Smoke"] <= 0 && reduction["Poison"] <= 0;
     }
 
     let checkNoPause = () => {
         return reduction["Hemorrhage"] <= 0 && reduction["Renewed_Blaze"] <= 0 && reduction["Deep_Chill"] <= 0;
     }
 
+    let getPoisonReduction = () => {
+        let base = reduction["Poison"];
+
+        if (statusEffects.find(x => x.name == "Persistent Venom") != null) {
+            base *= 2;
+        }
+
+        return base;
+    }
+
     let tallyAll = () => {
-        return (reduction["Bleed"] + reduction["Burn"] + reduction["Frostbite"] + reduction["Smoke"]) + 
+        return (reduction["Bleed"] + reduction["Burn"] + reduction["Frostbite"] + reduction["Smoke"] + getPoisonReduction()) + 
         ((reduction["Hemorrhage"] + reduction["Renewed_Blaze"] + reduction["Deep_Chill"]) * 2);
     }
 
@@ -849,7 +860,7 @@ export async function getSkillOptions(actor) {
 
 
     let targetList = [];
-    for (let token of canvas.tokens.placeables.filter(x => x.actor && x.actor != actor)) {
+    for (let token of canvas.tokens.placeables.filter(x => x.actor)) {
         targetList.push({
             name: token.actor.name,
             id: token.actor._id,

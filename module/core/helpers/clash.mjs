@@ -1,4 +1,7 @@
 export function enrichClashData(str) {
+    if (str.startsWith("\n")) {
+        str = str.substring(1)
+    }
     str = merge(str);
     const parts = str.split("\n");
     let result = "";
@@ -36,9 +39,15 @@ function merge(text) {
   let parser = new DOMParser();
 
   for (let line of lines) {
+    console.log(line);
     let cleanLine = parser.parseFromString(line, "text/html");
-    cleanLine.querySelectorAll("span").forEach(span => span.remove());
-    cleanLine = cleanLine.body.textContent;
+    let span = cleanLine.querySelector("span");
+    let text = "";
+    if (span) {
+        text = span.textContent;
+        span.remove();
+    }
+    cleanLine = text + cleanLine.body.textContent;
 
     let num = cleanLine.match(/\d+/);
     if (num) {
@@ -46,7 +55,7 @@ function merge(text) {
         let purged = cleanLine.replace(/\d+/, ``);
         if (line.includes("</span>")) {
             let substr = line.substring(0, line.indexOf("</span>", 0) + "</span>".length);
-            line = substr + cleanLine.replace(/\d+/, `%/${swapIndex}%`);
+            line = substr + cleanLine.replace(/\d+/, `%/${swapIndex}%`).replace(`${text}`, '');
         }
         else {
             line = line.replace(/\d+/, `%/${swapIndex}%`);
@@ -73,11 +82,10 @@ function merge(text) {
     result = result.replace(`%/${index}%`, map[index]);
   }
 
-  result = result.substring(0, result.lastIndexOf("\n") + "\n".length);
+  result = result.substring(0, result.lastIndexOf("\n") - "\n".length);
 
   return result;
 }
-
 export function checkDraw(ctx1, ctx2) {
     return (ctx1.result == ctx2.result) && (ctx1.type != "Block" && ctx1.type != "Evade") && (ctx2.type != "Block" && ctx2.type != "Evade");
 }

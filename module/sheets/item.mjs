@@ -78,6 +78,11 @@ export class PTItemSheet extends ItemSheet {
 
         context.enrichedClashData = enrichClashData(context.rollContext.getDescription(["Clash Win", "Clash Lose", "On Use"], false, true));
 
+        let optionsM = ["Small", "Medium", "Long", "Sturdy", "Hybrid", "Versatile", "Innate", "Healing", "Thirsty"];
+        let optionsR = ["Low Cal", "High Cal", "Reactive", "Hybrid", "Recoil", "Innate", "Healing", "Thirsty"];
+
+        context.forms = context.system.attackType == "Ranged" ? optionsR : optionsM;
+
         return context;
     }
 
@@ -149,21 +154,10 @@ export class PTItemSheet extends ItemSheet {
             this.item.update({ system }, { render: true, diff: false });
         });
 
-        html.on('click', '.wb-form-type-button', (event) => {
+        html.on('click', '.wb-weapon-form', (event) => {
             const system = this.document.toObject(false).system;
-            let optionsM = ["Small", "Medium", "Long", "Sturdy", "Hybrid", "Versatile", "Innate", "Healing", "Thirsty"];
-            let optionsR = ["Low Cal", "High Cal", "Reactive", "Hybrid", "Recoil", "Innate", "Healing", "Thirsty"];
-
-            let array = system.attackType == "Ranged" ? optionsR : optionsM;
-            let index = array.findIndex(x => x == system.form);
-            if (index == -1) index = 0;
-
-            index++;
-            if (index >= array.length) {
-                index = 0;
-            }
-
-            system.form = array[index];
+            
+            system.form = event.currentTarget.textContent;
 
             this.item.update({ system }, { render: true, diff: false });
         });

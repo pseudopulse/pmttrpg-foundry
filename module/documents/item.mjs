@@ -62,7 +62,7 @@ export class PTItem extends Item {
         }
 
         context.isReaction = true;
-        await this.actor.spendReaction(true, false);
+        // await this.actor.spendReaction(true, false);
 
         if (context.forcedAdvState != 0 || this.actor.getStatusCount("Paralysis") > 0) {
             const reroll = await new Roll(`1d${context.diceMax}+${context.dicePower}`, "").evaluate();
@@ -164,11 +164,11 @@ export class PTItem extends Item {
                 context: context,
             })
 
-            await this.actor.spendAction();
+            // await this.actor.spendAction();
         }
         else {
-            context.isReaction = false;
-            await this.actor.spendReaction(true, false);
+            context.isReaction = true;
+            // await this.actor.spendReaction(true, false);
         }
 
         await this.actor.queueRoll(context);

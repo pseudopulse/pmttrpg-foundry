@@ -8,7 +8,9 @@
                 <input type="text" placeholder="Search.." id="{{id}}-effectInput{{index}}"
                     onkeyup="filterFunction('{{id}}-effectInput{{index}}', '{{id}}-effect{{index}}')">
                 {{#each effectsList as |effect effect|}}
-                <a class="effect-type" id="{{id}}-effectType-{{../index}}">{{effect.name}}</a>
+                {{#if (canShowEffect effect.name ../type)}}
+                <a class="effect-type" id="{{../id}}-effectType-{{../index}}">{{effect.name}}</a>
+                {{/if}}
                 {{/each}}
             </div>
         </div>
@@ -28,7 +30,7 @@
 
         <div class="ef-resource-content">
             <input onclick="setCursorRight()"  class="ef-resource-input effect-counter"
-                id="{{id}}-effectCounter-{{index}}" type="number" min="-10" max="10" value="{{count}}" data-dtype="Number" />
+                id="{{id}}-effectCounter-{{index}}" type="number" value="{{count}}" data-dtype="Number" />
         </div>
 
         <div class="ef-resource-content">

@@ -1836,6 +1836,26 @@ export const skillEffects = [
         },
         ["On Use"], false, 1
     ),
+    simpleStatusEffectSelf("Poison", 1),
+    skillBonusEffect("Poison", 10, 5, 3),
+    new Effect(
+        "Strengthening Toxicant",
+        (context, count, trigger) => {
+            context.events["On Use"].push(async (context) => {
+                let poison = context.target.getStatusCount("Poison");
+
+                if (poison >= 20) {
+                    let bonus = Math.floor((poison / 10));
+                    await context.actor.applyStatus("Strength", bonus, false);
+                    createEffectsMessage(context.actor.name, `Gains ${bonus} [/status/Strength] Strength from Strengthening Toxicant!`);
+                }
+            });
+        },
+        (count) => {
+            return `If the target has 20+ [/status/Poison] Poison, gain [/status/Strength] Strength equal to half the [/status/Poison] Poison damage dealt this clash.`
+        },
+        ["On Use"], false, 1, false, true
+    )
 ]
 
 async function findAllyTarget(actor, msg) {
@@ -2206,9 +2226,9 @@ function skillVigorEffect(status, req, dupReq, multReq = 1) {
         (context, count, trigger) => {
             if (context.actor != null) {
                 let stacks = context.actor.getStatusCount(status);
-                req = context.actor.augmentEffectCount(`${status} Vigor`) > 0 ? req + dupReq + (count * multReq) : req;
+                let req2 = context.actor.augmentEffectCount(`${status} Vigor`) > 0 ? req + dupReq + (count * multReq) : req;
 
-                if (stacks >= req) {
+                if (stacks >= req2) {
                     context.dicePower = Number(context.dicePower) + count;
                     context.skillDicePower = Number(context.skillDicePower) + count;
                 }

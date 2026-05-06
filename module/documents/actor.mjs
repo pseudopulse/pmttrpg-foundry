@@ -127,6 +127,8 @@ export class PTActor extends Actor {
     async processActionSkill(item, target) {
         let ctx = await getRollContextFromDataFull(item);
 
+        await this.spendAction(true, false);
+
         createEffectsMessage(ctx.actor.name, `Uses the skill ${item.name} on ${target == this ? "self" : target.name}!`);
         await ctx.fireEvent("Clash Win Instant");
         createEffectsMessage(ctx.actor.name, await ctx.resolveTriggers(["On Use", "Clash Win"]));
@@ -183,6 +185,7 @@ export class PTActor extends Actor {
         system.movementPenalty = 0;
         system.activeStance = "None";
         system.exsanguinateData = null;
+        system.persistentVenom = false;
 
         await this.update({ system }, { diff: false, render: true });
     }
@@ -344,6 +347,20 @@ export class PTActor extends Actor {
         createResultMessage(ctx1, ctx2);
 
         if (checkDraw(ctx1, ctx2)) {
+            if (ctx1.isReaction) {
+                await ctx1.actor.spendReaction(true, true);
+            }
+            else {
+                await ctx1.actor.spendAction(true, false);
+            }
+
+            if (ctx2.isReaction) {
+                await ctx2.actor.spendReaction(true, true);
+            }
+            else {
+                await ctx2.actor.spendAction(true, false);
+            }
+
             return;
         }
 
@@ -361,6 +378,8 @@ export class PTActor extends Actor {
         }
 
         let doDamageEffects = getDistance(ctx1.actor, ctx2.actor) <= ctx1.getRange() && !ctx2.reactive;
+
+        let cachedBleed = ctx2.actor.getStatusCount("Bleed");
 
         if (ctx2.hasEffect("Snagging Thorns") && ctx2.converted) {
             let confirm = await pollUserInputConfirm(ctx2.actor, `Apply Rupture Pause effect from Snagging Thorns?`);
@@ -417,6 +436,22 @@ export class PTActor extends Actor {
 
         await ctx1.fireEvent("On Use");
         await ctx2.fireEvent("On Use");
+
+        if (ctx1.isReaction) {
+            await ctx1.actor.spendReaction(true, false);
+        }
+        else {
+            await ctx1.actor.spendAction(true, false);
+        }
+
+        if (!ctx2.result == "X") {
+            if (ctx2.isReaction) {
+                await ctx2.actor.spendReaction(true, false);
+            }
+            else {
+                await ctx2.actor.spendAction(true, false);
+            }
+        }
 
         if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
             await ctx1.fireEvent("Clash Win Instant");
@@ -683,12 +718,24 @@ export class PTActor extends Actor {
             }
         }
 
+        if (ctx1.hasEffect("Spider Cocoon")) {
+            await ctx2.actor.stagger(true, false);
+            createEffectsMessage(ctx2.actor.name, `${ctx2.actor.name} becomes a cocoon!`);
+        }
+
         if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
             await ctx1.fireEvent("Clash Win");
             await ctx2.fireEvent("Clash Lose");
 
             if (ctx2.actor.system.attributes.health.value == 0 && targetHP[ctx2.actor.id] > 0) {
                 await ctx1.fireEvent("Kill");
+
+                if (ctx1.hasEffect("Rare Meal")) {
+                    let php = ctx1.actor.system.attributes.health.value;
+                    await ctx1.actor.heal(cachedBleed, 0, 0, ctx1.actor);
+                    let hp = ctx1.actor.system.attributes.health.value;
+                    createEffectsMessage(ctx1.actor.name, `Recovers ${cachedBleed} HP from Rare Meal! (${php} -> ${hp})`);
+                }
             }
         }
 
@@ -698,6 +745,10 @@ export class PTActor extends Actor {
         await ctx1.actor.update({ "system.clashesWon": Number(ctx1.actor.system.clashesWon) + 1 }, { diff: false });
         if (ctx2.result != "X") {
             await ctx2.actor.update({ "system.clashesLost": Number(ctx2.actor.system.clashesLost) + 1 }, { diff: false });
+        }
+
+        if (ctx1.hasEffect("Persistent Venom")) {
+            await ctx2.actor.update({ "system.persistentVenom": true }, { diff: false, render: true});
         }
     }
 
@@ -1722,7 +1773,7 @@ export class PTActor extends Actor {
         await this.update({ system }, { diff: false, render: true });
     }
 
-    async stagger() {
+    async stagger(silent = false, preventable = true) {
         const system = this.toObject(false).system;
         system.attributes.stagger.value = 0;
         system.attributes.stagger.temp = 0;
@@ -1730,14 +1781,15 @@ export class PTActor extends Actor {
         system.staggered = true;
         system.attributes.light = Math.min(Number(system.attributes.light.max), Number(system.attributes.light.value) + 1);
 
-        playSound("stagger", true);
-
-        createEffectsMessage(this.name, `${this.name} has been staggered!`);
+        if (!silent) {
+            playSound("stagger", true);
+            createEffectsMessage(this.name, `${this.name} has been staggered!`);
+        }
 
         await this.update({ system }, { diff: false, render: true });
         await this.takeDamage(0, null, 0, 0, 5, true);
 
-        if (this.augmentEffectCount("Indomitable") > 0 && !this.system.indomitableSpent) {
+        if (this.augmentEffectCount("Indomitable") > 0 && !this.system.indomitableSpent && preventable) {
             const system2 = this.toObject(false).system;
             system2.attributes.stagger.value = system2.attributes.stagger.max;
             system2.staggerRounds = 0;
@@ -2089,7 +2141,13 @@ export class PTActor extends Actor {
             count = Math.max(Math.floor(count / 2), 0);
         }
 
-        let data = await pollReduceStatus(this, source, count, this.system.statusEffects);
+        let status = this.system.statusEffects.slice();
+
+        if (this.system.persistentVenom) {
+            status.push({ name: "Persistent Venom" });
+        }
+
+        let data = await pollReduceStatus(this, source, count, status);
         let text = "";
 
         let totalReduction = 0;

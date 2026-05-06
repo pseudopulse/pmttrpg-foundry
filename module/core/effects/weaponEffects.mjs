@@ -186,7 +186,7 @@ export const weaponEffects = [
     new Effect(
         `Inflict Bind`,
         (context, count, trigger) => {
-            context.trigger[trigger].applyInfliction("Bind", count, true);
+            context.triggers[trigger].applyInfliction("Bind", count, true);
         },
         (count) => {
             return `Inflict ${Number(count)} [/status/Bind] Bind next round.`
@@ -702,6 +702,7 @@ export const weaponEffects = [
         },
         ["Clash Win", "Clash Lose"], false, 1
     ),
+    simpleStatusEffect("Poison", false, true),
 ]
 
 function simpleStatusEffect(status, nextRound, allowNegative) {
