@@ -30,6 +30,7 @@ function merge(text) {
   if (lines.length == 0) {
     lines = [text];
   }
+
   const map = {};
   const swapMap = {};
   let toReplace = [];
@@ -39,7 +40,6 @@ function merge(text) {
   let parser = new DOMParser();
 
   for (let line of lines) {
-    console.log(line);
     let cleanLine = parser.parseFromString(line, "text/html");
     let span = cleanLine.querySelector("span");
     let text = "";
@@ -82,7 +82,9 @@ function merge(text) {
     result = result.replace(`%/${index}%`, map[index]);
   }
 
-  result = result.substring(0, result.lastIndexOf("\n") - "\n".length);
+  if (result.endsWith("\n")) {
+    result = result.replace(/\n$/, '');
+  }
 
   return result;
 }

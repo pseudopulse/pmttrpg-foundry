@@ -23,10 +23,10 @@ export class PTItem extends Item {
     async roll(initiator = true, defType = "Block", enemyCtx = null) {
         switch (this.type) {
             case "weapon":
-                await this.handleUsageWeapon(initiator, enemyCtx);
+                return await this.handleUsageWeapon(initiator, enemyCtx);
                 break;
             case "outfit":
-                await this.handleUsageOutfit(defType, enemyCtx);
+                return await this.handleUsageOutfit(defType, enemyCtx);
                 break;
             default:
                 break;
@@ -41,14 +41,14 @@ export class PTItem extends Item {
 
         if (game.user.targets.first() == null) {
             createAlertBox("You must designate a target before defending!");
-            return
+            return false;
         }
 
         const context = defType == "Block" ? await this.getRollContextBlo(game.user.targets.first().actor, true) : await this.getRollContextEvd(game.user.targets.first().actor, true);
 
         if (context == null) {
             await this.actor.handlePendingClash(enemyCtx);
-            return;
+            return false;
         }
 
         const label = `[${item.type}] ${item.name} targeting ${game.user.targets.first().actor.name}`;
@@ -91,6 +91,8 @@ export class PTItem extends Item {
         await this.actor.queueRoll(context);
 
         await this.actor.assignRecycleableAction(context, defType, item);
+
+        return true;
     }
 
     async handleUsageWeapon(initiator, enemyCtx = null) {
@@ -101,22 +103,22 @@ export class PTItem extends Item {
 
         if (game.user.targets.first() == null) {
             createAlertBox("You must designate a target before attacking!");
-            return
+            return false;
         }
 
         if (game.user.targets.first().actor == this.actor) {
             createAlertBox("You can't attack yourself!");
+            return false;
         }
 
         const context = await this.getRollContext(game.user.targets.first().actor, true);
 
         if (context == null) {
             if (initiator) {
-                return;
+                return false;
             }
             else {
-                await this.actor.handlePendingClash(enemyCtx);
-                return;
+                return false;
             }
         }
 
@@ -176,6 +178,8 @@ export class PTItem extends Item {
         await this.actor.assignRecycleableAction(context, "Attack", item);
 
         createClashMessage(this.actor, context);
+
+        return true;
     }
 
     async getRollContext(target = null, rollSkill = false) {

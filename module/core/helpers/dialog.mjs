@@ -1107,22 +1107,14 @@ export async function createClashResponse(actor, context) {
                             target: target,
                             attacker: context.actor
                         });
+
                         dialog.close();
                     })
                 }
             }
         },
         close: () => {
-            if (!allowClose && !dontSendMessage) {
-                sendNetworkMessage("RESOLVE_CLASH", {
-                    target: context.target,
-                    attacker: context.actor
-                });
-            }
-            else if (allowClose) {
-
-            }
-            else {
+            if (!allowClose) {
                 throw new Error();
             }
         },
@@ -1172,7 +1164,9 @@ export async function createClashResponse(actor, context) {
                 }
                 else {
                     const item = actor.items.get(itemId);
-                    item.roll(false, dataset.rollType, context).then(() => {
+                    item.roll(false, dataset.rollType, context).then((x) => {
+                        if (!x) return;
+                        
                         allowClose = true;
 
                         sendNetworkMessage("RESOLVE_CLASH", {
