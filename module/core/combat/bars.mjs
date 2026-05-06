@@ -69,6 +69,8 @@ async function drawBars() {
             value: this.actor.system.attributes.sanity.value,
         });
     }
+
+    await drawStatus(getBar(this, "STATUS", 0, 0, holder), this, tex.scaleX * w * grid);
 }
 
 function getBar(token, id, posX, posY, holder) {
@@ -98,6 +100,72 @@ async function drawBar(wrapped, number, bar, data) {
     }
 }
 
+async function drawStatus(bar, token, scaleFactor) {
+    let effects = token.actor.getActiveStatusEffects();
+
+    // conf
+    let baseWidth = 32;
+    let baseHeight = 32;
+    let offset = baseWidth * 1.25;
+    let yOffset = 40;
+    
+    let barPosX = 27;
+    let barPosY = 150;
+    //
+
+    let maxIcons = Math.floor(2 * scaleFactor);
+
+    let totalWidth = offset * Math.min(effects.length, maxIcons);
+
+    let x = -totalWidth / 2;
+    let y = 0;
+
+    let index = 0;
+
+    let xPositions = [];
+    let yPositions = [];
+    
+    console.log(maxIcons);
+
+    for (let i = 0; i < effects.length; i++) {
+        index++;
+        if (index > maxIcons) {
+            index = 0;
+            if (effects.length - i < maxIcons) {
+                totalWidth = offset * (effects.length - i);
+            }
+            
+            x = -totalWidth / 2;
+            y += yOffset;
+        }
+
+        xPositions[i] = x + baseWidth * (1 - 0.25);
+        yPositions[i] = y;
+
+        x += offset;
+    }
+
+    index = 0;
+
+    for (let status of effects) {
+        let texture = await foundry.canvas.loadTexture(
+            `systems/pmttrpg/assets/status/${status.name.replace(" ", "_")}.png`
+        );
+
+        let icon = new PIXI.Sprite(texture);
+        icon.width = baseWidth;
+        icon.height = baseHeight;
+        icon.position.set(xPositions[index], yPositions[index]);
+
+        bar.addChild(icon);
+
+        drawLabel(bar, status.count, xPositions[index] + (baseWidth / 4), yPositions[index] + baseHeight, 0xe0edffff, 20, 2);
+        index++;
+    }
+
+    bar.position.set(barPosX * CONFIG.barScale, barPosY * CONFIG.barScale);
+}
+
 async function drawSanity(bar, data) {
     let texture = await foundry.canvas.loadTexture(
         "systems/pmttrpg/assets/bars/Sanity.png"
@@ -108,8 +176,8 @@ async function drawSanity(bar, data) {
     icon.height = CONFIG.sanityWH[1] * CONFIG.barScale;
 
     icon.position.set(
-            CONFIG.sanityPos[0] * CONFIG.barScale,
-            CONFIG.sanityPos[1] * CONFIG.barScale
+        CONFIG.sanityPos[0] * CONFIG.barScale,
+        CONFIG.sanityPos[1] * CONFIG.barScale
     );
 
     bar.addChild(icon);
@@ -122,6 +190,7 @@ async function drawSanity(bar, data) {
 // #61580b - st bg
 // #ecfb64 - st fg
 // #9bb3f3 - sp num
+// #e0edffff - status num
 
 async function addBars(bar, data, type) {
     bar.removeChildren();

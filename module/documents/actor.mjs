@@ -2648,4 +2648,16 @@ export class PTActor extends Actor {
             await token.document.update({ x: point.x, y: point.y });
         }
     }
+
+    getActiveStatusEffects() {
+        let effects = [];
+
+        for (let status of this.system.statusEffects) {
+            if (status.count > 0) {
+                effects.push(status);
+            }
+        }
+
+        return effects;
+    }
 }
