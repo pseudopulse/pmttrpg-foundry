@@ -1839,6 +1839,7 @@ export const skillEffects = [
         ["On Use"], false, 1
     ),
     simpleStatusEffect("Poison", false, true),
+    markerEffect("Poison+", false, 3),
     skillBonusEffect("Poison", 10, 5, 3),
     new Effect(
         "Strengthening Toxicant",
