@@ -8,10 +8,9 @@ import { bulletList } from "../effects/bullets.mjs";
 import { pollUserInputOptions } from "../helpers/dialog.mjs";
 import { calculateTechniqueCost } from "../../sheets/item.mjs";
 
-const triggerTypes = ["Clash Win", "Clash Lose", "On Use", "Always Active", "On Crit", "Devastating Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Augment Passive", "Combat Start", "Round Start"];
+const triggerTypes = ["Clash Win", "Clash Lose", "On Use", "Always Active", "On Crit", "Devastating Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Augment Passive", "Combat Start", "Round Start", "Effective Heal"];
 const eventTypes = ["Kill", "Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Clash Win", "Clash Lose", "On Use", "Clash Win Instant", "Clash Lose Instant"];
 const statusPlusValid = ["Burn", "Bleed", "Frostbite", "Sinking", "Tremor", "Rupture", "Poise", "Ruin"];
-
 
 export class RollContext {
     constructor() {
@@ -661,7 +660,7 @@ export class RollContext {
             triggers[trigger] = [];
         }
 
-        let valid = ["Clash Win", "Clash Lose", "On Use", "Tremor Burst", "Sinking Burst", "Rupture Burst"]
+        let valid = ["Clash Win", "Clash Lose", "On Use", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Effective Heal"]
         if (fakeFirstRound) {
             valid.push("Combat Start");
             valid.push("Round Start");
@@ -706,6 +705,7 @@ export class RollContext {
         desc = this.append(desc, triggers["Rupture Burst"]);
         desc = this.append(desc, triggers["Sinking Burst"]);
         desc = this.append(desc, triggers["Tremor Burst"]);
+        desc = this.append(desc, triggers["Effective Heal"]);
         if (validTriggers.includes("Clash Win")) desc = this.append(desc, triggers["Clash Win"]);
         if (validTriggers.includes("Clash Lose")) desc = this.append(desc, triggers["Clash Lose"]);
 
@@ -776,6 +776,8 @@ export class RollContext {
                 return "#31ffbaff";
             case "On Crit":
                 return "#ffedb0ff";
+            case "Effective Heal":
+                return "#ff5858ff";
         }
 
         return "#000000";

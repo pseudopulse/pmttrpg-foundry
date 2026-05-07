@@ -2,6 +2,7 @@
 
 import { getActorToken, searchByObject } from "../../pmttrpg.mjs";
 import { RollContext } from "../combat/rollContext.mjs";
+import { createEffectsMessage } from "./clash.mjs";
 import { pollUserInputConfirm, pollUserInputOptions, pollUserInputText, pollReduceStatus, pollDistributeStatus, pollUserInputBurst } from "./dialog.mjs";
 
 export function sendNetworkMessage(type, data) {
@@ -93,6 +94,38 @@ export function registerMessages() {
 
         if (game.user.isGM) {
             await target.modifyScale(data.scale);
+        }
+    };
+
+    handler["HANDLE_TAIL_HEAL"] = async (data) => {
+        const source = findByID(data.source);
+
+        if (game.user.isActiveGM) {
+            let targets = [];
+
+            for (let target of data.targets) {
+                let actor = findByID(target);
+
+                if (actor != null) {
+                    targets.push(actor);
+                }
+            }
+
+            let formula = `${10 - ((targets.length - 1) * 2)}d5`;
+            let text = "";
+
+            for (let target of targets) {
+                let roll = new Roll(formula);
+                let res = await roll.evaluate();
+                let heal = res.total;
+
+                let php = target.system.attributes.health.value;
+                await target.heal(heal, 0, 0, source);
+                let hp = target.system.attributes.health.value;
+                text = text + `${target.name} is healed for ${heal}! (${php} -> ${hp})\n`;
+            }
+
+            createEffectsMessage(source.name, text, true);
         }
     };
     

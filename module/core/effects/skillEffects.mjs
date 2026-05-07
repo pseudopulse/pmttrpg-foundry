@@ -1857,7 +1857,13 @@ export const skillEffects = [
             return `If the target has 20+ [/status/Poison] Poison, gain [/status/Strength] Strength equal to half the [/status/Poison] Poison damage dealt this clash.`
         },
         ["On Use"], false, 1, false, true
-    )
+    ),
+    markerEffect("Stimulants", false, 5, "Effective Heal", count => {
+        return `Apply ${count} [/status/Strength] Strength and ${count} [/status/Endurance] Endurance next round.`;
+    }),
+    markerEffect("Operation", false, 4, "Effective Heal", count => {
+        return `Increase healing by ${count * 3} if the target is below ${100 * (1 - (0.2 * count))}% HP.`;
+    }),
 ]
 
 async function findAllyTarget(actor, msg) {

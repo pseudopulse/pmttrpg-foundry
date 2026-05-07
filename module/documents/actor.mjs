@@ -3,7 +3,7 @@ import { checkDraw, createClashMessage, createEffectsMessage, createResultMessag
 import { createClashResponse, getAttackOptions, getSkillOptions, pollReduceStatus, pollUserInputBurst, pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "../core/helpers/dialog.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
-import { findActorsOfTeam, findOfTypeForActor, getActorToken, getAlliesWithinRadius, getBloodfeast, getDistance, playSound, reduceBloodfeast, searchByObject } from "../pmttrpg.mjs";
+import { findActorsOfTeam, findOfTypeForActor, fixRollContext, getActorTeam, getActorToken, getAlliesWithinRadius, getBloodfeast, getDistance, playSound, reduceBloodfeast, searchByObject } from "../pmttrpg.mjs";
 import { currentRound } from "../core/combat/combatState.mjs";
 import { getRollContextFromData, getRollContextFromDataFull } from "./item.mjs";
 import { registerEffectMacro } from "../core/combat/macros.mjs";
@@ -15,6 +15,9 @@ let pendingStagger = {};
 let pendingSmokeVeil = {};
 let targetHP = {};
 let targetST = {};
+
+let pendingEffectiveHealEffects = {};
+let pendingTakeDamageCalls = [];
 
 //
 export class PTActor extends Actor {
@@ -291,6 +294,8 @@ export class PTActor extends Actor {
             await this.processClashResolution(ctx1, ctx2);
         }
         else {
+            pendingTakeDamageCalls = [];
+
             const respCtx = new RollContext();
             Object.assign(respCtx, systemData.mostRecentRoll.context);
             respCtx.fix();
@@ -377,6 +382,9 @@ export class PTActor extends Actor {
 
             return;
         }
+
+        pendingEffectiveHealEffects[ctx1.actor] = JSON.parse(JSON.stringify(ctx1));
+        pendingEffectiveHealEffects[ctx2.actor] = JSON.parse(JSON.stringify(ctx1));
 
         if (ctx1.result >= ctx2.result || ctx2.result == "X") {
             if (ctx1.result == ctx2.result && ctx2.damageType == "Evade") {
@@ -698,6 +706,12 @@ export class PTActor extends Actor {
 
         await new Promise(resolve => setTimeout(resolve, 1000));
 
+        for (let call of pendingTakeDamageCalls) {
+            await call[0].takeDamage(call[1], call[2], call[3], call[4], call[5], call[6], call[7], call[8]);
+        }
+
+        pendingTakeDamageCalls = [];
+
         if (pending[ctx2.actor.name] != null) {
             createEffectsMessage(pending[ctx2.actor.name].subject, pending[ctx2.actor.name].effect);
             pending[ctx2.actor.name] = null;
@@ -825,6 +839,9 @@ export class PTActor extends Actor {
         if (ctx1.hasEffect("Persistent Venom")) {
             await ctx2.actor.update({ "system.persistentVenom": true }, { diff: false, render: true});
         }
+
+        pendingEffectiveHealEffects[ctx1.actor] = null;
+        pendingEffectiveHealEffects[ctx2.actor] = null;
     }
 
     async handleClashEmotion(actor, triggers, target, oneSided, context) {
@@ -999,7 +1016,7 @@ export class PTActor extends Actor {
                     damage = 0;
                 }
 
-                await this.takeDamage(damage, context, 0, 0, 0, false, respCtx);
+                pendingTakeDamageCalls.push([this, damage, context, 0, 0, 0, false, respCtx, "()"]);
             }
 
             if (systemData.mostRecentRoll.type == "Evade") {
@@ -1032,7 +1049,7 @@ export class PTActor extends Actor {
                     createEffectsMessage(this.name, `Recovers ${respCtx.result} ST from Evade! (${pst} -> ${st})`);
                 }
                 else {
-                    await this.takeDamage(damage, context);
+                    pendingTakeDamageCalls.push([this, damage, context, 0, 0, 0, false, null, "()"]);
                 }
             }
 
@@ -1047,12 +1064,12 @@ export class PTActor extends Actor {
                     }
                 }
                 else {
-                    await this.takeDamage(damage, context, 0, 0, 0, false, respCtx);
+                    pendingTakeDamageCalls.push([this, damage, context, 0, 0, 0, false, respCtx, "()"]);
                 }
             }
         }
         else {
-            await this.takeDamage(damage, context);
+            pendingTakeDamageCalls.push([this, damage, context, 0, 0, 0, false, null, "()"]);
         }
 
         if (canRespond) {
@@ -1192,9 +1209,30 @@ export class PTActor extends Actor {
             let resp = await pollUserInputConfirm(source, `Consume ${count} [/status/Heal_Efficiency] Heal Efficiency to perform an Effective Heal?`);
 
             if (resp) {
-                fhp += count * 2;
+                let ctx = fixRollContext(pendingEffectiveHealEffects[source]);
+                let bonus = count * 2;
+
+                if (ctx != null) {
+                    if (ctx.hasEffect("Operation")) {
+                        let c = ctx.effectCount("Operation");
+                        let req = 1 - (c * 0.2);
+                        if (this.system.attributes.health.value <= this.system.attributes.health.max * req) {
+                            bonus += c * 3;
+                        }
+                    }
+
+                    if (ctx.hasEffect("Stimulants")) {
+                        let c = ctx.effectCount("Stimulants");
+
+                        await this.applyStatus("Strength", 0, c);
+                        await this.applyStatus("Endurance", 0, c);
+                        createEffectsMessage(source.name, `Applies ${c} [/status/Strength] Strength and ${c} [/status/Endurance] Endurance next round to ${this.name} from Stimulants!`);
+                    }
+                }
+
+                fhp += bonus;
                 await source.setStatus("Heal_Efficiency", 0);
-                createEffectsMessage(source.name, `Consumes their [/status/Heal_Efficiency] Heal Efficiency to increase healing by ${count * 2}!`);
+                createEffectsMessage(source.name, `Consumes their [/status/Heal_Efficiency] Heal Efficiency to increase healing by ${bonus}!`);
             }
         }
 
@@ -2442,6 +2480,33 @@ export class PTActor extends Actor {
         return technique;
     }
 
+    async handleTails() {
+        if (game.user.targets.keys().length == 0) {
+            ui.notifications.info("You need targets to heal!");
+            return
+        }
+
+        if (game.user.targets.keys().length >= 5) {
+            ui.notifications.info("You are targeting too many units!");
+            return
+        }
+
+        let targets = [];
+
+        let dispo = getActorTeam(this);
+
+        for (let target of game.user.targets) {
+            if (target.document.disposition == dispo) {
+                targets.push(target.actor._id);
+            }
+        }
+
+        sendNetworkMessage("HANDLE_TAIL_HEAL", {
+            source: this._id,
+            targets: targets
+        });
+    }
+
     async refreshMacroBar() {
         let oCtx = this.getOutfitContext();
         let aCtx = this.getAugmentContext();
@@ -2696,6 +2761,12 @@ export class PTActor extends Actor {
                 await actor.update({ "system.attributes.sanity.value": actor.system.attributes.sanity.max }, { diff: false, render: true });
                 createEffectsMessage(actor.name, `[/status/Panic] ${actor.name} snaps out of their panic!`);
             }, "status/PanicBlue.png");
+        }
+
+        if (this.augmentEffectCount("Tearful Tails") > 0) {
+            await registerEffectMacro("Tearful Tails", async (actor) => {
+                await this.handleTails();
+            }, "icons/Tearful_Tails.png");
         }
 
         for (const macro of oCtx.macros) {

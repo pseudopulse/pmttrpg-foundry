@@ -626,6 +626,7 @@ export const augmentEffects = [
     markerEffect("Weak Heart", false, 3),
     markerEffect("Flat Footed", false, 5),
     markerEffect("Strong Arm", false, 2),
+    markerEffect("Tearful Tails", 0, 1),
 
     // hidden gm effects
     new Effect("Dear Mother", (context, count, trigger) => {}, null, ["Always Active"], false, 1, false, true),
