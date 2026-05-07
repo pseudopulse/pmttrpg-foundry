@@ -341,6 +341,20 @@ export class PTActor extends Actor {
         }
     }
 
+    padMultihitArrays(arr1, arr2) {
+        const maxLength = Math.max(arr1.length, arr2.length);
+
+        while (arr1.length < maxLength) {
+            arr1.push(0);
+        }
+
+        while (arr2.length < maxLength) {
+            arr2.push(0);
+        }
+
+        return [arr1, arr2];
+    }
+
     async processClashResolution(ctx1, ctx2) {
         this.processIgnorePower(ctx1, ctx2);
 
@@ -376,6 +390,28 @@ export class PTActor extends Actor {
             ctx1 = ctx2;
             ctx2 = tmp;
         }
+
+        let multihitRollsC1 = [];
+
+        if ((ctx1.diceCount > 1 || ctx2.diceCount > 1)) {
+            for (let i = 0; i < 3; i++) {
+                let roll = new Roll(`1d${ctx1.diceMax}+${ctx1.dicePower}`);
+                let res = await roll.evaluate();
+                multihitRollsC1.push(res.total);
+            }
+        }
+
+        let multihitRollsC2 = [];
+
+        if ((ctx1.diceCount > 1 || ctx2.diceCount > 1) && ctx2.result != "X") {
+            for (let i = 0; i < 3; i++) {
+                let roll = new Roll(`1d${ctx2.diceMax}+${ctx2.dicePower}`);
+                let res = await roll.evaluate();
+                multihitRollsC2.push(res.total);
+            }
+        }
+
+        [multihitRollsC1, multihitRollsC2] = this.padMultihitArrays(multihitRollsC1, multihitRollsC2);
 
         let doDamageEffects = getDistance(ctx1.actor, ctx2.actor) <= ctx1.getRange() && !ctx2.reactive;
 
@@ -665,6 +701,45 @@ export class PTActor extends Actor {
         if (pending[ctx2.actor.name] != null) {
             createEffectsMessage(pending[ctx2.actor.name].subject, pending[ctx2.actor.name].effect);
             pending[ctx2.actor.name] = null;
+
+            let multihitText = "";
+
+            for (let i = 1; i < multihitRollsC1.length; i++) {
+                let roll = multihitRollsC1[i];
+                let result = multihitRollsC2[i];
+
+                if (roll == 0 && result == 0) continue;
+
+                if (roll > result) {
+                    let text = null;
+                    if (ctx1.diceCount >= i) {
+                        text = await ctx1.target.takeDamage(roll, ctx1, 0, 0, 0, true, null, `[${ctx1.actor.name}'s Multi-Hit roll of ${roll} wins against ${ctx2.actor.name}'s roll of ${result}!]`);
+                        multihitText = multihitText + "\n" + text + "\n";
+                    }
+                    else {
+                        text = `[${ctx1.actor.name}'s Multi-Hit roll of ${roll} wins against ${ctx2.actor.name}'s roll of ${result}!]`;
+                        multihitText = multihitText + text + "\n";
+                    }
+                }
+                else if (result > roll) {
+                    let text = null;
+                    if (ctx2.diceCount >= i) {
+                        text = await ctx2.target.takeDamage(result, ctx1, 0, 0, 0, true, null, `[${ctx2.actor.name}'s Multi-Hit roll of ${result} wins against ${ctx1.actor.name}'s roll of ${roll}!]`);
+                        multihitText = multihitText + "\n" + text + "\n";
+                    }
+                    else {
+                        text = `[${ctx2.actor.name}'s Multi-Hit roll of ${result} wins against ${ctx1.actor.name}'s roll of ${roll}!]`;
+                        multihitText = multihitText + text + "\n";
+                    }
+                }
+                else {
+                    let text = null;
+                    text = `[${ctx1.actor.name} and ${ctx2.actor.name} draw at ${roll}!]`;
+                    multihitText = multihitText + text + "\n";
+                }
+            }
+
+            createEffectsMessage(ctx1.target.name, multihitText, true);
 
             let kinetic = ctx2.actor.outfitEffectCount("Kinetic Inductor");
 

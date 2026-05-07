@@ -167,8 +167,6 @@ async function drawStatus(bar, token, scaleFactor) {
 
     let xPositions = [];
     let yPositions = [];
-    
-    console.log(maxIcons);
 
     for (let i = 0; i < effects.length; i++) {
         index++;

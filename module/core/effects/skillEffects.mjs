@@ -1381,6 +1381,7 @@ export const skillEffects = [
         (context, count, trigger) => {
             context.dicePower = Number(context.dicePower) - 2;
             context.skillDicePower = Number(context.skillDicePower) - 2;
+            context.diceCount = Math.min(Number(context.diceCount) + count, 3);
         },
         (count) => {
             return `Replace attack with ${1 + Number(count)} attacks with -2 Dice Power each.`
@@ -1468,6 +1469,7 @@ export const skillEffects = [
         (context, count, trigger) => {
             context.dicePower = Number(context.dicePower) - 2;
             context.skillDicePower = Number(context.skillDicePower) - 2;
+            context.diceCount = Math.min(Number(context.diceCount) + count, 3);
         },
         count => `replace attack with ${Number(count)} attacks with -2 Dice Power each`
     , ["On Use"], 2),

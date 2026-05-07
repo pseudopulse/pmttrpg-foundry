@@ -107,7 +107,7 @@ export const weaponEffects = [
         (context, count, trigger) => { 
             context.conditionals.push(new Conditional("Multi-Hit", `Lose 2 Dice Power. Replace attack with ${Number(count) + 1} attacks.`, (context) => {
                 context.dicePower = Number(context.dicePower) - 2;
-                context.diceCount = Number(context.diceCount) + Number(count);
+                context.diceCount = Math.min(Number(context.diceCount) + count, 3);
             }));
         },
         null,

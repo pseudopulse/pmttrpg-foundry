@@ -1,8 +1,10 @@
-export function enrichClashData(str) {
+export function enrichClashData(str, dontMerge = false) {
     if (str.startsWith("\n")) {
         str = str.substring(1)
     }
-    str = merge(str);
+    if (!dontMerge) {
+        str = merge(str);
+    }
     const parts = str.split("\n");
     let result = "";
 
@@ -106,13 +108,13 @@ export async function createResultMessage(ctx1, ctx2) {
     });
 }
 
-export async function createEffectsMessage(subject, effectsData) {
+export async function createEffectsMessage(subject, effectsData, dontMerge = false) {
     if (effectsData.trim().length === 0) {
         return;
     }
 
     const content = await renderTemplate("systems/pmttrpg/templates/dialog/clash-effects.hbs", {
-        effectsData: enrichClashData(effectsData),
+        effectsData: enrichClashData(effectsData, dontMerge),
         subject: subject
     });
 
