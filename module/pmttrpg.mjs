@@ -287,7 +287,7 @@ Hooks.on('preMoveToken', (token, data, action, user) => {
   let origin = data.origin;
   let dest = data.destination;
   let dist = distanceBetween(origin, dest);
-  let sqr = Math.floor(dist / distScale);
+  let sqr = Math.floor(dist / distScale) + (Math.max((data.destination.elevation - data.origin.elevation) / 5, 0));
 
   if (token.movementAction != "blink" && sqr > token.actor.system.movement && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user && !token.actor.getRiding()) {
     ui.notifications.notify(`You cant move that far! You attempted to move ${sqr} SQR, while only having ${token.actor.system.movement} SQR remaining!`);
@@ -322,7 +322,7 @@ Hooks.on('moveToken', async (token, data, action, user) => {
   let origin = data.origin;
   let dest = data.destination;
   let dist = distanceBetween(origin, dest);
-  let sqr = Math.floor(dist / distScale);
+  let sqr = Math.floor(dist / distScale) + (Math.max((data.destination.elevation - data.origin.elevation) / 5, 0));;
 
   if (token.movementAction != "blink" && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user && !token.actor.getRiding()) {
     if (sqr > 6 && token.actor.augmentEffectCount("Velocity Generator") > 0) {

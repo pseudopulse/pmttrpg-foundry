@@ -4,6 +4,8 @@ import { getActorUser } from "../helpers/netmsg.mjs";
 export let currentRound = 0;
 export let currentTurn = 0;
 
+let alreadyDoneThisRound = [];
+
 export function setRound(round, turn) {
     currentRound = round;
     currentTurn = turn;
@@ -11,6 +13,7 @@ export function setRound(round, turn) {
 
 export async function roundChange(combat, round, turn) {
     currentRound = round;
+    alreadyDoneThisRound.clear();
 
     if (round != 1) {
         for (const token of canvas.tokens.placeables) {
@@ -34,12 +37,16 @@ export async function turnChange(combat, round, turn) {
 
     for (const token of canvas.tokens.placeables) {
         if (token != null && token.id == combat.current.tokenId && getActorUser(token.actor) == game.user) {
-            await token.actor.handleNextTurn();
+            if (!alreadyDoneThisRound.includes(token.actor)) {
+                await token.actor.handleNextTurn();
 
-            let results = findBoundActors(token.actor);
+                let results = findBoundActors(token.actor);
 
-            for (let res of results) {
-                await res.handleNextTurn();
+                for (let res of results) {
+                    await res.handleNextTurn();
+                }
+
+                alreadyDoneThisRound.push(token.actor);
             }
         }
     }
