@@ -1838,7 +1838,7 @@ export const skillEffects = [
         },
         ["On Use"], false, 1
     ),
-    simpleStatusEffectSelf("Poison", 1),
+    simpleStatusEffect("Poison", false, true),
     skillBonusEffect("Poison", 10, 5, 3),
     new Effect(
         "Strengthening Toxicant",
