@@ -2511,11 +2511,9 @@ export class PTActor extends Actor {
         let oCtx = this.getOutfitContext();
         let aCtx = this.getAugmentContext();
 
-        for (let i = 1; i <= 50; i++) {
-            await game.user.assignHotbarMacro(null, i);
-        }
+        let hotbar = [];
 
-        await registerEffectMacro("Take Action", async (actor) => {
+        hotbar.push(await registerEffectMacro("Take Action", async (actor) => {
             let type = await pollUserInputOptions(actor, "What action do you want to take?", [
                 { name: "Attack", icon: "icons/Attack.png" },
                 { name: "Dash", icon: "icons/Dash.png" },
@@ -2553,16 +2551,16 @@ export class PTActor extends Actor {
                     await actor.spendAction(true);
                     break;
             }
-        }, "icons/Take_Action.png");
+        }, "icons/Take_Action.png"));
 
-        await registerEffectMacro("Discard Reaction", async (actor) => {
+        hotbar.push(await registerEffectMacro("Discard Reaction", async (actor) => {
             let reactions = Number(actor.system.reactions);
             await actor.update({ "system.reactions": Math.max(reactions - 1, 0) }, { diff: false });
             createEffectsMessage(actor.name, `Spends 1 Reaction! (${reactions} -> ${Math.max(reactions - 1, 0)})`);
-        }, "icons/Discard_Reaction.png");
+        }, "icons/Discard_Reaction.png"));
 
         if (this.augmentEffectCount("Concentrated Overcharge") > 0 || this.augmentEffectCount("Meditation") > 0) {
-            await registerEffectMacro("Controlled Stagger", async (actor) => {
+            hotbar.push(await registerEffectMacro("Controlled Stagger", async (actor) => {
                 if (actor.system.staggered) {
                     ui.notifications.notify("You are already staggered!");
                     return;
@@ -2580,11 +2578,11 @@ export class PTActor extends Actor {
                     await actor.update({ "system.emotion": emotion + 8 }, { diff: false });
                     createEffectsMessage(actor.name, `Gains 8 [/resources/EmotionIcon] Emotion from Meditation! (${emotion} -> ${emotion + 8})`);
                 }
-            }, "icons/Controlled_Stagger.png");
+            }, "icons/Controlled_Stagger.png"));
         }
 
         if (this.augmentEffectCount("Integrated Boosters") > 0) {
-            await registerEffectMacro("Integrated Boosters", async (actor) => {
+            hotbar.push(await registerEffectMacro("Integrated Boosters", async (actor) => {
                 let charge = await actor.getStatusCount("Charge");
                 let cost = 3 * actor.augmentEffectCount("Integrated Boosters");
 
@@ -2597,11 +2595,11 @@ export class PTActor extends Actor {
                     ui.notifications.info(`You need at least ${cost} Charge, but you only have ${charge}!`);
                 }
             },
-                "icons/Integrated_Boosters.png");
+                "icons/Integrated_Boosters.png"));
         }
 
         if (this.augmentEffectCount("Striker Stance") > 0 || this.augmentEffectCount("Slasher Stance") > 0 || this.augmentEffectCount("Slayer Stance") > 0) {
-            await registerEffectMacro("Stance Change", async (actor) => {
+            hotbar.push(await registerEffectMacro("Stance Change", async (actor) => {
                 let stances = [{ name: "None" }];
 
                 if (this.augmentEffectCount("Striker Stance") > 0) {
@@ -2625,11 +2623,11 @@ export class PTActor extends Actor {
 
                 await actor.spendReaction(false, false);
             },
-                "icons/Stance_Change.png");
+                "icons/Stance_Change.png"));
         }
 
         if (this.augmentEffectCount("Ice Skater") > 0) {
-            await registerEffectMacro("Ice Skater", async (actor) => {
+            hotbar.push(await registerEffectMacro("Ice Skater", async (actor) => {
                 let frostbite = await actor.getStatusCount("Frostbite");
                 let cost = actor.augmentEffectCount("Ice Skater");
 
@@ -2642,11 +2640,11 @@ export class PTActor extends Actor {
                     ui.notifications.info(`You need at least ${cost} Frostbite, but you only have ${frostbite}!`);
                 }
             },
-                "icons/Ice_Skater.png");
+                "icons/Ice_Skater.png"));
         }
 
         if (this.augmentEffectCount("Detox") > 0) {
-            await registerEffectMacro("Detox", async (actor) => {
+            hotbar.push(await registerEffectMacro("Detox", async (actor) => {
                 let charge = await actor.getStatusCount("Charge");
 
                 if (charge > 2) {
@@ -2660,11 +2658,11 @@ export class PTActor extends Actor {
                     ui.notifications.info(`You have no Charge!`);
                 }
             },
-                "icons/Detox.png");
+                "icons/Detox.png"));
         }
 
         if (this.getRidden() || this.getRiding()) {
-            await registerEffectMacro("Dismount", async (actor) => {
+            hotbar.push(await registerEffectMacro("Dismount", async (actor) => {
                 if (!actor.getRidden() && !actor.getRiding()) {
                     ui.notifications.info("You arent riding anything!");
                     return;
@@ -2686,14 +2684,14 @@ export class PTActor extends Actor {
                     createEffectsMessage(actor.name, `Dismounts from ${ridden.name}!`);
                 }
             },
-                "icons/Dismount.png");
+                "icons/Dismount.png"));
         }
 
         let nearbyAllies = getAlliesWithinRadius(this, 1);
         let ridableAllies = nearbyAllies.filter(x => !x.getRidden() && x.augmentEffectCount("Companion - Swift") > 0);
 
         if (this.augmentEffectCount("Companion - Swift") > 0 && nearbyAllies.length > 0 && !this.getRidden()) {
-            await registerEffectMacro("Allow Mount", async (actor) => {
+            hotbar.push(await registerEffectMacro("Allow Mount", async (actor) => {
                 let nearbyAllies = getAlliesWithinRadius(actor, 1);
                 let ridableAllies = nearbyAllies.filter(x => !x.getRidden() && x.augmentEffectCount("Companion - Swift") > 0);
                 let target = nearbyAllies[0];
@@ -2718,11 +2716,11 @@ export class PTActor extends Actor {
                 await this.spendAction(false, false);
                 createEffectsMessage(actor.name, `Begins carrying ${target.name}!`);
             },
-                "icons/Mount.png");
+                "icons/Mount.png"));
         }
 
         if (this.augmentEffectCount("Companion - Swift") <= 0 && ridableAllies.length > 0) {
-            await registerEffectMacro("Mount", async (actor) => {
+            hotbar.push(await registerEffectMacro("Mount", async (actor) => {
                 let nearbyAllies = getAlliesWithinRadius(actor, 1);
                 let ridableAllies = nearbyAllies.filter(x => !x.getRidden() && x.augmentEffectCount("Companion - Swift") > 0);
                 let target = ridableAllies[0];
@@ -2747,11 +2745,11 @@ export class PTActor extends Actor {
                 await this.spendAction(false, false);
                 createEffectsMessage(actor.name, `Mounts onto ${target.name}!`);
             },
-                "icons/Mount.png");
+                "icons/Mount.png"));
         }
 
         if (this.system.panic) {
-            await registerEffectMacro("Resolve Panic", async (actor) => {
+            hotbar.push(await registerEffectMacro("Resolve Panic", async (actor) => {
                 if (!actor.system.panic) {
                     ui.notifications.info("You aren't in panic!");
                     return;
@@ -2760,22 +2758,22 @@ export class PTActor extends Actor {
                 await actor.update({ "system.panic": false }, { diff: false });
                 await actor.update({ "system.attributes.sanity.value": actor.system.attributes.sanity.max }, { diff: false, render: true });
                 createEffectsMessage(actor.name, `[/status/Panic] ${actor.name} snaps out of their panic!`);
-            }, "status/PanicBlue.png");
+            }, "status/PanicBlue.png"));
         }
 
         if (this.augmentEffectCount("Tearful Tails") > 0) {
-            await registerEffectMacro("Tearful Tails", async (actor) => {
+            hotbar.push(await registerEffectMacro("Tearful Tails", async (actor) => {
                 await this.handleTails();
-            }, "icons/Tearful_Tails.png");
+            }, "icons/Tearful_Tails.png"));
         }
 
-        for (const macro of oCtx.macros) {
-            await registerEffectMacro(macro.name, macro.callback, macro.img);
+        
+        let data = {};
+        for (let i = 0; i < hotbar.length; i++) {
+            data[i + 1] = hotbar[i];
         }
 
-        for (const macro of aCtx.macros) {
-            await registerEffectMacro(macro.name, macro.callback, macro.img);
-        }
+        await game.user.update({ hotbar: data }, { diff: false, recursive: false, noHook: true, render: true });
     }
 
     // fix z index issue later

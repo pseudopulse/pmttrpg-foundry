@@ -9,6 +9,7 @@ export async function registerEffectMacro(name, call, img = "icons/Placeholder.p
   let macro = game.macros.find(x => x.name == name && x.command == exec);
 
   if (macro == null) {
+    console.log("Generating macro");
     macro = await Macro.create({
       name: name,
       type: 'script',
@@ -24,7 +25,7 @@ export async function registerEffectMacro(name, call, img = "icons/Placeholder.p
   macro.ownership.default = 3;
   macro.ownership[game.user.id] = 3;
 
-  await game.user.assignHotbarMacro(macro, getNextOpenSlot());
+  return macro.id;
 }
 
 function getNextOpenSlot() {
