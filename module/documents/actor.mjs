@@ -985,14 +985,18 @@ export class PTActor extends Actor {
         }
     }
 
-    async takeDamageStatus(damage, status, cat, string) {
+    async takeDamageStatus(damage, status, cat, string, silent = false) {
         let hp = this.system.attributes.health.value;
         let st = this.system.attributes.stagger.value;
         let sp = this.system.attributes.sanity.value;
-
+        
         if (cat == "SP" && this.hasNoSanity()) {
             cat = "HP";
             string = string.replace("SP", "HP");
+        }
+
+        if (this.getAbnoPart()) {
+            await this.getLinkedActor().takeDamageStatus(damage, status, cat, string, true);
         }
 
         let resist = this.augmentEffectCount(`${status} Resistance`) + this.outfitEffectCount(`${status} Resistance`);
@@ -1082,12 +1086,14 @@ export class PTActor extends Actor {
             }
         }
 
-        createEffectsMessage(this.name, string
-            .replace("%HP%", hp).replace("%PHP%", prevHP)
-            .replace("%ST%", st).replace("%PST%", prevST)
-            .replace("%SP%", sp).replace("%PSP%", prevSP)
-            .replace("%DMG%", `${damage}${resText}`)
-        );
+        if (!silent) {
+            createEffectsMessage(this.name, string
+                .replace("%HP%", hp).replace("%PHP%", prevHP)
+                .replace("%ST%", st).replace("%PST%", prevST)
+                .replace("%SP%", sp).replace("%PSP%", prevSP)
+                .replace("%DMG%", `${damage}${resText}`)
+            );
+        }
 
         await this.update({ "system.damageTaken": Number(this.system.damageTaken) + (prevHP - hp) });
 
@@ -1172,7 +1178,7 @@ export class PTActor extends Actor {
         }
 
         if (this.getAbnoPart()) {
-            this.getLinkedActor().takeDamage(damage, context, flatHP, flatST, flatSP, silent);
+            await this.getLinkedActor().takeDamage(damage, context, flatHP, flatST, flatSP, silent);
         }
 
         let hp = this.system.attributes.health.value + this.system.attributes.health.temp;

@@ -1,4 +1,5 @@
 import { libWrapper } from "../../../lib/libwrapper_shim.js";
+import { getActorToken, getDistance, scale } from "../../pmttrpg.mjs";
 
 CONFIG.barPos = [-49, -35];
 CONFIG.maskPos = [100, 104];
@@ -9,9 +10,31 @@ CONFIG.barScale = 1;
 CONFIG.sanityWH = [45, 45];
 CONFIG.sanityPos = [27, 105];
 
+let currentlyHoveredToken = null;
+
 export function handleBarReplacement() {
     libWrapper.register("pmttrpg", "CONFIG.Token.objectClass.prototype._drawBar", drawBar, "MIXED");
     libWrapper.register("pmttrpg", "CONFIG.Token.objectClass.prototype.drawBars", drawBars, "OVERRIDE");
+    libWrapper.register("pmttrpg", "CONFIG.Token.objectClass.prototype._onHoverIn", onHoverIn, "MIXED");
+    libWrapper.register("pmttrpg", "CONFIG.Token.objectClass.prototype._onHoverOut", onHoverOut, "MIXED");
+}
+
+function onHoverIn(wrapped, event) {
+    wrapped(event);
+    currentlyHoveredToken = this;
+    updateAllTokens();
+}
+
+function onHoverOut(wrapped, event) {
+    wrapped(event);
+    currentlyHoveredToken = null;
+    updateAllTokens();
+}
+
+function updateAllTokens() {
+    for (let token of canvas.tokens.placeables) {
+        token.drawBars();
+    }
 }
 
 async function drawBars() {
@@ -50,27 +73,47 @@ async function drawBars() {
 
     this.nameplate.position.y -= (height * 1.1);
 
-    await this._drawBar(0, getBar(this, "HP", 0, 0, holder), {
-        attribute: "attributes.health",
-        max: this.actor.system.attributes.health.max,
-        value: this.actor.system.attributes.health.value,
-    });
-
-    await this._drawBar(0, getBar(this, "ST", 0, 0, holder), {
-        attribute: "attributes.stagger",
-        max: this.actor.system.attributes.stagger.max,
-        value: this.actor.system.attributes.stagger.value,
-    });
-
-    if (!this.actor.hasNoSanity()) {
-        await this._drawBar(0, getBar(this, "SP", 0, 0, holder), {
-            attribute: "attributes.sanity",
-            max: this.actor.system.attributes.sanity.max,
-            value: this.actor.system.attributes.sanity.value,
+    if (!(this.actor.getAbnoPart() && currentlyHoveredToken != this)) {
+        await this._drawBar(0, getBar(this, "HP", 0, 0, holder), {
+            attribute: "attributes.health",
+            max: this.actor.system.attributes.health.max,
+            value: this.actor.system.attributes.health.value,
         });
+
+        await this._drawBar(0, getBar(this, "ST", 0, 0, holder), {
+            attribute: "attributes.stagger",
+            max: this.actor.system.attributes.stagger.max,
+            value: this.actor.system.attributes.stagger.value,
+        });
+
+        if (!this.actor.hasNoSanity()) {
+            await this._drawBar(0, getBar(this, "SP", 0, 0, holder), {
+                attribute: "attributes.sanity",
+                max: this.actor.system.attributes.sanity.max,
+                value: this.actor.system.attributes.sanity.value,
+            });
+        }
     }
 
-    await drawStatus(getBar(this, "STATUS", 0, 0, holder), this, tex.scaleX * w * grid);
+    let shouldShowStatusBar = true;
+
+    if (this.actor.getAbnoPart() && currentlyHoveredToken != this) {
+        shouldShowStatusBar = false;
+    }
+    else if (currentlyHoveredToken != null && scale(canvas.grid.measureDistance(currentlyHoveredToken, this)) <= 2) {
+        if (this != currentlyHoveredToken) shouldShowStatusBar = false;
+    }
+    else if (game.user.character != null) {
+        let focused = getActorToken(game.user.character);
+
+        if (focused != null && focused != this && scale(canvas.grid.measureDistance(focused, this)) <= 1) {
+            shouldShowStatusBar = false;
+        }
+    }
+
+    if (shouldShowStatusBar) {
+        await drawStatus(getBar(this, "STATUS", 0, 0, holder), this, tex.scaleX * w * grid);
+    }
 }
 
 function getBar(token, id, posX, posY, holder) {
