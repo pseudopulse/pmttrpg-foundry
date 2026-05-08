@@ -516,7 +516,7 @@ export class PTActor extends Actor {
 
         let landedDevastating = false;
 
-        if (ruin > 0 && !ctx2.actor.system.ruinPaused && ctx1.actor.damageType != "Block" && ctx1.actor.damageType != "Evade" && doDamageEffects) {
+        if (ruin > 0 && !ctx2.actor.system.ruinPaused && ctx1.actor.damageType != "Block" && ctx1.actor.damageType != "Evade" && ctx1.actor.type != "Block" && ctx1.actor.type != "Evade" && doDamageEffects) {
             let tmp = new Roll(this.getDevastationRoll(ctx1));
             await tmp.evaluate();
             let roll = tmp.total;
@@ -558,7 +558,7 @@ export class PTActor extends Actor {
 
         let landedCrit = false;
 
-        if (poise > 0 && !ctx1.actor.system.poisePaused && ctx1.actor.damageType != "Block" && ctx1.actor.damageType != "Evade" && doDamageEffects) {
+        if (poise > 0 && !ctx1.actor.system.poisePaused && ctx1.actor.damageType != "Block" && ctx1.actor.damageType != "Evade" && ctx1.actor.type != "Block" && ctx1.actor.type != "Evade" && doDamageEffects) {
             let tmp = new Roll(this.getCritRoll(ctx1));
             await tmp.evaluate();
             let roll = tmp.total;
