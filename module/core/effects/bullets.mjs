@@ -7,14 +7,14 @@ import { createEffectsMessage } from "../helpers/clash.mjs";
 export const bulletList = [
     new Effect(
         "Standard",
-        (context, trigger, count) => {},
+        (context, count, trigger) => {},
         (count) => {},
         ["Clash Win"],
         false, 1
     ),
     new Effect(
         "Tracer",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.events["Clash Win"].push(async (context) => {
                 await context.actor.handleLoadedBranding(context.target);
             });
@@ -27,7 +27,7 @@ export const bulletList = [
     ),
     new Effect(
         "Quake",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.triggers["Clash Win"].applyInfliction("Tremor", 5, true);
         },
         (count) => {
@@ -38,7 +38,7 @@ export const bulletList = [
     ),
     new Effect(
         "Precision",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.events["Clash Win Instant"].push(async (context) => {
                 await context.actor.applyStatus("Critical", 2, false);
                 createEffectsMessage(context.actor, `Gains 2 [/status/Critical] Critical from the Precision Round!`)
@@ -52,7 +52,7 @@ export const bulletList = [
     ),
     new Effect(
         "Corrosive",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.events["Clash Win Instant"].push(async (context) => {
                 await context.target.applyStatus("Devastation", 1, false);
                 await context.target.applyStatus("Rupture", 4, true);
@@ -67,7 +67,7 @@ export const bulletList = [
     ),
     new Effect(
         "Tranquilizer",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.triggers["Clash Win"].applyInfliction("Bind", 4, true);
         },
         (count) => {
@@ -78,7 +78,7 @@ export const bulletList = [
     ),
     new Effect(
         "Glass",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.triggers["Clash Win"].applyInfliction("Bleed", 5, false);
         },
         (count) => {
@@ -89,7 +89,7 @@ export const bulletList = [
     ),
     new Effect(
         "Flame",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.triggers["Clash Win"].applyInfliction("Burn", 5, false);
         },
         (count) => {
@@ -100,7 +100,7 @@ export const bulletList = [
     ),
     new Effect(
         "AP",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.triggers["Clash Win"].applyInfliction("Fragile", 4, true);
         },
         (count) => {
@@ -111,7 +111,7 @@ export const bulletList = [
     ),
     new Effect(
         "Impact",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             
         },
         (count) => {
@@ -122,7 +122,7 @@ export const bulletList = [
     ),
     new Effect(
         "Shock",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.triggers["Clash Win"].applyInfliction("Paralysis", 2, true);
             context.triggers["Clash Win"].applyInfliction("Disarm", 1, true);
         },
@@ -134,7 +134,7 @@ export const bulletList = [
     ),
     new Effect(
         "Destabilizing",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.triggers["Clash Win"].applyInfliction("Frostbite", 3, false);
             context.triggers["Clash Win"].applyInfliction("Feeble", 1, true);
         },
@@ -146,7 +146,7 @@ export const bulletList = [
     ),
     new Effect(
         "Terror",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.events["Clash Win Instant"].push(async (context) => {
                 await context.target.applyStatus("Sinking", 2, false);
                 await context.target.applyStatus("Sinking", 3, true);
@@ -161,7 +161,7 @@ export const bulletList = [
     ),
     new Effect(
         "High Velocity",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.dicePower = Number(context.dicePower) + 2;
             context.nonSkillDicePower = Number(context.nonSkillDicePower) + 2;
         },

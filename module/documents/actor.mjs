@@ -384,7 +384,7 @@ export class PTActor extends Actor {
         }
 
         pendingEffectiveHealEffects[ctx1.actor] = JSON.parse(JSON.stringify(ctx1));
-        pendingEffectiveHealEffects[ctx2.actor] = JSON.parse(JSON.stringify(ctx1));
+        pendingEffectiveHealEffects[ctx2.actor] = JSON.parse(JSON.stringify(ctx2));
 
         if (ctx1.result >= ctx2.result || ctx2.result == "X") {
             if (ctx1.result == ctx2.result && ctx2.damageType == "Evade") {
@@ -2785,9 +2785,9 @@ export class PTActor extends Actor {
         await new Promise(resolve => setTimeout(resolve, 250));
         token.drawBars();
 
-        console.log(token);
-
         if (this.getRiding()) {
+            token.mesh.zIndex += 1;
+
             let actor = this.getMountedActor();
             let aToken = getActorToken(actor);
             
@@ -2796,6 +2796,9 @@ export class PTActor extends Actor {
             point.y -= token.mesh.canvasBounds.height / 2;
 
             await token.document.update({ x: point.x, y: point.y });
+        }
+        else {
+            token.mesh.zIndex -= 1;
         }
     }
 

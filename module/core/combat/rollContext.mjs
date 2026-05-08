@@ -218,7 +218,9 @@ export class RollContext {
         let totalAidHP = 0;
 
         for (const trigger of triggers) {
-            let data = structuredClone(this.triggers[trigger]);
+            let data = new TriggerEvents();
+            Object.assign(data, JSON.parse(JSON.stringify(trigger)));
+            data.modifier = trigger.modify;
 
             for (const func of data.modify) {
                 if (func != null) {
@@ -473,15 +475,19 @@ export class RollContext {
     }
 
     nullifyPower(nullifySkill = false) {
+        if (this.result == "X") return;
+
         if (this.alreadyAppliedPowerNull) {
             return;
         }
         
         this.alreadyAppliedPowerNull = true;
         this.dicePower = Number(this.dicePower) - this.nonSkillDicePower;
+        this.result = Number(this.result) - this.nonSkillDicePower;
         
         if (nullifySkill) {
             this.dicePower = Number(this.dicePower) - this.skillDicePower;
+            this.result = Number(this.result) - this.skillDicePower;
         }
     }
 

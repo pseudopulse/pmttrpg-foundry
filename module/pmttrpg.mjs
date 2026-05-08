@@ -297,7 +297,7 @@ Hooks.on('preMoveToken', (token, data, action, user) => {
   if (token.actor.getRiding() && (sqr <= token.actor.getMountedActor().system.movement || (game.combat == null || !game.combat.isActive)) && getActorUser(token.actor) == game.user) {
     if (ignoreNextMountFlag.includes(token.actor)) {
       ignoreNextMountFlag = ignoreNextMountFlag.filter(x => x != token.actor);
-      return false;
+      return true;
     }
 
     ignoreNextMountFlag.push(token.actor.getMountedActor());
@@ -308,11 +308,17 @@ Hooks.on('preMoveToken', (token, data, action, user) => {
   if (token.actor.getRidden() && (sqr <= token.actor.system.movement || (game.combat == null || !game.combat.isActive)) && getActorUser(token.actor) == game.user) {
     if (ignoreNextMountFlag.includes(token.actor)) {
       ignoreNextMountFlag = ignoreNextMountFlag.filter(x => x != token.actor);
-      return false;
+      return true;
     }
+
+    let t1 = getActorToken(token.actor.getMountedActor());
+
+    let point = canvas.grid.getCenterPoint({x: data.destination.x, y: data.destination.y });
+    point.x -= t1.mesh.canvasBounds.width / 2;
+    point.y -= t1.mesh.canvasBounds.height / 2;
     
     ignoreNextMountFlag.push(token.actor.getMountedActor());
-    getActorToken(token.actor.getMountedActor()).document.update(canvas.grid.getSnappedPosition(data.destination.x, data.destination.y));
+    getActorToken(token.actor.getMountedActor()).document.update({ x: point.x, y: point.y });
     return true;
   }
 });

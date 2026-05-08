@@ -314,7 +314,7 @@ export const augmentEffects = [
     markerEffect("Kinetic Storage", false, 1),
     new Effect(
         "Status Barrier",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.events["Round Start"].push(async (context) => {
                 let barrier = context.actor.getStatusCount("Charge_Barrier");
 
@@ -416,7 +416,7 @@ export const augmentEffects = [
     markerEffect("Regeneration Storage", false, 1),
     new Effect(
         "Passive Lucidity",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.events["Round Start"].push(async (context) => {
                 let sp = context.actor.system.attributes.sanity.value;
 
@@ -488,7 +488,7 @@ export const augmentEffects = [
     markerEffect("Paranoid", false, 1),
     new Effect(
         "Squeamish",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             context.events["Kill"].push(async (context) => {
                 await context.actor.applyStatus("Feeble", 0, count);
                 createEffectsMessage(context.actor.name, `Gains ${count} Feeble next round from Squeamish!`);
@@ -500,7 +500,7 @@ export const augmentEffects = [
     ),
     new Effect(
         "Slow Start",
-        (context, trigger, count) => {
+        (context, count, trigger) => {
             if (currentRound <= 1) {
                 context.dicePower = Number(context.dicePower) - Number(count);
                 context.nonSkillDicePower = Number(context.nonSkillDicePower) - Number(count);
