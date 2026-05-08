@@ -1249,7 +1249,7 @@ export const skillEffects = [
     allyStatusEffect("Endurance", 1, true),
     allyStatusEffect("Haste", 1, true),
     allyStatusEffect("Poise", 1, false),
-    allyStatusEffect("Critical", 1, true),
+    allyStatusEffect("Critical", 1, false),
     new Effect(
         "[Type] Protection",
         (context, count, trigger) => {

@@ -1012,6 +1012,9 @@ export async function getAttackOptions(actor) {
                 if (itemId == "recycle") {
                     let ctx = new RollContext();
                     Object.assign(ctx, actor.system.recycleAction.context);
+                    let roll = new Roll(`1d${ctx.diceMax}+${ctx.dicePower}`);
+                    let res = await roll.evaluate();
+                    ctx.result = res.total;
                     ctx.mustDeserialize = false;
                     ctx.actor = actor;
                     ctx.target = game.user.targets.first().actor;
