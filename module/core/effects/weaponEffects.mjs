@@ -129,6 +129,18 @@ export const weaponEffects = [
         false, 1, true
     ),
     new Effect(
+        "Chilling",
+        (context, count, trigger) => { 
+            context.triggers["Clash Win"].applyInfliction("Frostbite", 2, false);
+            context.triggers["Clash Lose"].applyInfliction("Frostbite", -2, false);
+        },
+        (count) => {
+            return [null, "Inflict 2 [/status/Frostbite] Frostbite", "Gain 2 [/status/Frostbite] Frostbite", null, null];
+        },
+        ["Always Active"],
+        false, 1, true
+    ),
+    new Effect(
         `Gain Haste`,
         (context, count, trigger) => {
             if (count < 0) {

@@ -628,6 +628,22 @@ export const augmentEffects = [
     markerEffect("Strong Arm", false, 2),
     markerEffect("Tearful Tails", 0, 1),
 
+    new Effect(
+        "Anisotropic Stabilizer",
+        (context, count, trigger) => {
+            context.events["Round Start"].push(async (context) => {
+                await context.actor.applyStatus("Charge", context.actor.getStatusCount("Frostbite"));
+                await createEffectsMessage(context.actor.name, `Anisotropic Stabilizer generates ${context.actor.getStatusCount("Frostbite")} [/status/Charge] Charge from [/status/Frostbite] Frostbite on self.`);
+            });
+        },
+        (count) => {
+            return `Gain [/status/Charge] Charge equal to [/status/Frostbite] Frostbite on self.`
+        },
+        ["Round Start"],
+        false,
+        1, false, true
+    ),
+
     // hidden gm effects
     new Effect("Dear Mother", (context, count, trigger) => {}, null, ["Always Active"], false, 1, false, true),
     new Effect(
