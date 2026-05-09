@@ -419,6 +419,14 @@ export async function pollUserInputOptions(user, prompt, options, defaultIndex =
     return new Promise((resolve, reject) => {
         let option = options[defaultIndex];
 
+        let resolved = false;
+        const safeResolve = (value) => {
+            if (resolved) return;
+            resolved = true;
+            console.log
+            resolve(value);
+        };
+
         const dialog = new Dialog({
             title: "",
             content: content,
@@ -433,12 +441,9 @@ export async function pollUserInputOptions(user, prompt, options, defaultIndex =
                 }
             },
             close: () => {
-                if (!allowClose) {
-                    throw new Error();
-                }
-                else {
-                    resolve(option.name);
-                }
+                window.setTimeout(() => {
+                    safeResolve(option.name);
+                }, 250);
             },
             render: (html) => {
                 let setOption = (option) => {
@@ -453,7 +458,6 @@ export async function pollUserInputOptions(user, prompt, options, defaultIndex =
                     $("#idrp-button").find(".id-drp-option").text(option.displayName);
                 };
 
-                setOption(option);
 
                 html.on('click', '.id-drp-selection', (ev) => {
                     let text = ev.currentTarget.querySelector(".id-drp-option").textContent;
@@ -467,6 +471,8 @@ export async function pollUserInputOptions(user, prompt, options, defaultIndex =
                         dialog.close();
                     }
                 });
+
+                setOption(option);
             },
             default: "submit"
         }, {
