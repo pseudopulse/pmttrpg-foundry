@@ -1,14 +1,15 @@
 import { RollContext } from "../core/combat/rollContext.mjs";
-import { checkDraw, createClashMessage, createEffectsMessage, createResultMessage } from "../core/helpers/clash.mjs";
+import { checkDraw, createAbnoPageMessage, createClashMessage, createEffectsMessage, createResultMessage } from "../core/helpers/clash.mjs";
 import { createClashResponse, getAttackOptions, getSkillOptions, pollReduceStatus, pollUserInputBurst, pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "../core/helpers/dialog.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
-import { findActorsOfTeam, findOfTypeForActor, fixRollContext, generateUUID, getActorTeam, getActorToken, getAlliesWithinRadius, getBloodfeast, getDistance, playSound, reduceBloodfeast, searchByObject } from "../pmttrpg.mjs";
+import { findActorsOfTeam, findOfTypeForActor, fixRollContext, generateUUID, getActorTeam, getActorToken, getAlliesWithinRadius, getBloodfeast, getDistance, getEnemiesWithinRadius, playSound, reduceBloodfeast, searchByObject, weightedPick } from "../pmttrpg.mjs";
 import { currentRound } from "../core/combat/combatState.mjs";
-import { getRollContextFromData, getRollContextFromDataFull } from "./item.mjs";
+import { getRollContextFromData, getRollContextFromDataFull, getRollContextFromDataFullTargeted } from "./item.mjs";
 import { registerEffectMacro } from "../core/combat/macros.mjs";
 import { Mark, MarkNames, MARKS } from "../core/status/mark.mjs";
 import { findByID, sendNetworkMessage } from "../core/helpers/netmsg.mjs";
+import { abnoCards } from "../core/effects/abnoCards.mjs";
 
 let pending = {};
 let pendingStagger = {};
@@ -134,7 +135,7 @@ export class PTActor extends Actor {
     }
 
     async processActionSkill(item, target) {
-        let ctx = await getRollContextFromDataFull(item);
+        let ctx = await getRollContextFromDataFullTargeted(item);
 
         await this.spendAction(true, false);
 
@@ -195,6 +196,7 @@ export class PTActor extends Actor {
         system.activeStance = "None";
         system.exsanguinateData = null;
         system.persistentVenom = false;
+        system.activeAbnoPages = [];
 
         await this.update({ system }, { diff: false, render: true });
     }
@@ -373,7 +375,12 @@ export class PTActor extends Actor {
 
         if (checkDraw(ctx1, ctx2)) {
             if (ctx1.isReaction) {
-                await ctx1.actor.spendReaction(true, true);
+                if (ctx1.actor.hasAbnoPage("Visions of your Fate") && ctx1.damageType == "Evade") {
+                    
+                }
+                else {
+                    await ctx1.actor.spendReaction(true, true);
+                }
             }
             else {
                 await ctx1.actor.spendAction(true, false);
@@ -430,6 +437,9 @@ export class PTActor extends Actor {
         let doDamageEffects = getDistance(ctx1.actor, ctx2.actor) <= ctx1.getRange() && !ctx2.reactive;
 
         let cachedBleed = ctx2.actor.getStatusCount("Bleed");
+        let isHighestHP = ctx2.actor == findActorsOfTeam(ctx2.actor).sort((a, b) => {
+            return Number(b.system.attributes.health.value) - Number(a.system.attributes.health.value);
+        })[0];
 
         if (ctx2.hasEffect("Snagging Thorns") && ctx2.converted) {
             let confirm = await pollUserInputConfirm(ctx2.actor, `Apply Rupture Pause effect from Snagging Thorns?`);
@@ -442,6 +452,14 @@ export class PTActor extends Actor {
                 await ctx2.target.applyStatus("Rupture", 0, rupture);
                 createEffectsMessage(ctx2.target.name, `${rupture} active [/status/Rupture] Rupture moved to next round!`);
             }
+        }
+
+        if (ctx1.actor.hasAbnoPage("Cocoon")) {
+            ctx1.triggers["Clash Win"].applyInfliction("Paralysis", 1, false);
+        }
+
+        if (ctx1.actor.hasAbnoPage("Blades Whetted by Teardrops") && ctx1.damageType == "Pierce" && ctx1.maxRoll) {
+            ctx1.triggers["Clash Win"].hpDamage = Number(ctx1.triggers["Clash Win"].hpdamage) + 10;
         }
 
         if (ctx1.target.hasMarkApplied(ctx1.actor, MARKS.Analysis)
@@ -542,6 +560,29 @@ export class PTActor extends Actor {
                 }
                 landedDevastating = true;
                 totalAssassinationDamage += 3;
+
+                if (ctx1.actor.hasAbnoPage("The Finale") && devastation >= 10) {
+                    let allies = findActorsOfTeam(ctx2.actor);
+                    allies.push(ctx2.actor);
+
+                    for (let ally of allies) {
+                        await ally.loseLight(1);
+                    }
+
+                    createEffectsMessage(ctx1.actor.name, `All enemies lose 1 light from The Finale!`);
+                }
+
+                if (ctx2.actor.hasMarkApplied(ctx1.actor, MARKS.Companion)) {
+                    let allies = findActorsOfTeam(ctx1.actor);
+                    allies.push(ctx1.actor);
+
+                    for (let ally of allies) {
+                        await ally.heal(10, 10, 0, null);
+                        await ally.gainLight(1);
+                    }
+
+                    createEffectsMessage(ctx1.actor.name, `Restores 10 HP, 10 ST, and 1 Light to self and all allies!`);
+                }
             }
             else {
                 createEffectsMessage(ctx1.actor.name, `Rolled ${roll}, failed [/status/Ruin] Ruin check!`);
@@ -718,6 +759,8 @@ export class PTActor extends Actor {
 
         pendingTakeDamageCalls = [];
 
+        let hits = 1;
+
         if (pending[ctx2.actor.name] != null) {
             createEffectsMessage(pending[ctx2.actor.name].subject, pending[ctx2.actor.name].effect);
             pending[ctx2.actor.name] = null;
@@ -734,6 +777,7 @@ export class PTActor extends Actor {
                     let text = null;
                     if (ctx1.diceCount >= i) {
                         text = await ctx1.target.takeDamage(roll, ctx1, 0, 0, 0, true, null, `[${ctx1.actor.name}'s Multi-Hit roll of ${roll} wins against ${ctx2.actor.name}'s roll of ${result}!]`);
+                        hits++;
                         multihitText = multihitText + "\n" + text + "\n";
                     }
                     else {
@@ -788,6 +832,27 @@ export class PTActor extends Actor {
                     }
                 }
             }
+        }
+
+        if (ctx1.actor.hasAbnoPage("Tilted Scale") && isHighestHP) {
+            let heal = 2 * hits;
+
+            let team = findActorsOfTeam(ctx1.actor);
+            let options = [];
+            let map = [];
+
+            for (let member of team) {
+                options.push({ name: member.system.id, displayName: member.name });
+                map[member.system.id] = member;
+            }
+
+            let target = await pollUserInputOptions(context.actor, "Choose ally to heal.", options);
+            target = map[target];
+            let php = target.system.attributes.health.value;
+            await target.heal(heal, 0, 0, context.actor);
+            let hp = target.system.attributes.health.value;
+
+            createEffectsMessage(context.actor.name, `Restores ${heal} HP to ${target.name} from Tilted Scale! (${php} -> ${hp})`);
         }
 
         if (ctx1.target.hasMarkApplied(ctx1.actor, MARKS.Assassination) && doDamageEffects) {
@@ -1198,6 +1263,26 @@ export class PTActor extends Actor {
         if (this.system.attributes.stagger.value <= 0 && !this.system.staggered) {
             await this.stagger();
         }
+
+        if (this.system.attributes.health.value <= 0 && !this.system.defeated) {
+            await this.die();
+        }
+    }
+
+    async die() {
+        await this.update({ "system.defeated": false }, { diff: false, render: true });
+
+        let allies = findActorsOfTeam(this);
+        let anyAllyHasDespair = allies.find(x => x.hasAbnoPage("Despair")) != null;
+
+        if (anyAllyHasDespair) {
+            for (let ally of allies) {
+                await ally.applyStatus("Strength", 1, 1);
+                await ally.applyStatus("Fragile", 2, 2);
+            }
+
+            createEffectsMessage(this.name, `All allies gain 1 [/status/Strength] Strength and 2 [/status/Fragile] Fragile from Despair!`);
+        }
     }
 
     async heal(fhp = 0, fst = 0, fsp = 0, source = null) {
@@ -1505,6 +1590,10 @@ export class PTActor extends Actor {
             }
         }
 
+        if (this.system.attributes.health.value <= 0 && !this.system.defeated) {
+            await this.die();
+        }
+
         if (this.system.attributes.sanity.value <= 0 && !this.system.panic) {
             await this.panic();
         }
@@ -1553,6 +1642,7 @@ export class PTActor extends Actor {
 
     async panic() {
         if (this.system.panic) return;
+        await this.update({ "system.attributes.sanity.value": 0 }, { diff: false });
         await this.update({ "system.panic": true }, { diff: false });
         createEffectsMessage(this.name, `[/status/Panic] ${this.name} has entered a state of panic!`);
     }
@@ -1616,7 +1706,6 @@ export class PTActor extends Actor {
     async handlePendingClash(context) {
         const actorData = this;
         const systemData = actorData.system;
-
 
         canvas.tokens.placeables.find(x => x.actor.system.id == context.actor.system.id).setTarget(true, { releaseOthers: true });
         createClashResponse(this, context);
@@ -1761,6 +1850,11 @@ export class PTActor extends Actor {
             await this.update({ "system.chargeBarrierHP": shield }, { diff: false });
             createEffectsMessage(this.name, `Gains ${shield} Temporary HP from [/status/Charge_Barrier] Charge Barrier!`);
         }
+
+        if (this.hasAbnoPage("Wrath")) {
+            await this.applyStatus("Strength", 3);
+            createEffectsMessage(this.name, `Gains 3 [/status/Strength] Strength from Wrath!`);
+        }
     }
 
     checkDisposition(dispo) {
@@ -1769,6 +1863,22 @@ export class PTActor extends Actor {
 
     checkImpassioned(dispo) {
         return this.system.disposition == dispo && this.augmentEffectCount("Impassioned") > 0;
+    }
+
+    async loseLight(count) {
+        const system = this.toObject(false).system;
+
+        system.attributes.light.value = Math.max(Number(system.attributes.light.value) - count, 0);
+
+        await this.update({ system }, { diff: false, render: true });
+    }
+
+    async gainLight(count) {
+        const system = this.toObject(false).system;
+
+        system.attributes.light.value = Math.min(Number(system.attributes.light.value) + count, system.attributes.light.max);
+
+        await this.update({ system }, { diff: false, render: true });
     }
 
     async gainEmotion(count) {
@@ -2307,13 +2417,19 @@ export class PTActor extends Actor {
             }
         }
 
+        if (this.hasAbnoPage("Companion")) {
+            marks.push(MARKS.Companion);
+        }
+
         return marks;
     }
 
     async getAllMarks() {
         let marks = [];
         for (const [id, name] of Object.entries(MarkNames)) {
-            marks.push(id);
+            if (id != MARKS.Companion) {
+                marks.push(id);
+            }
         }
 
         return marks;
@@ -2621,13 +2737,12 @@ export class PTActor extends Actor {
                 }
 
                 let stance = await pollUserInputOptions(actor, "Select a Stance to change to.", stances, 0);
-                await actor.update({ "system.activeStance": stance }, { render: true, diff: false });
 
                 if (stance != "None") {
+                    await actor.update({ "system.activeStance": stance }, { render: true, diff: false });
                     createEffectsMessage(actor.name, `Switches to ${stance} Stance!`);
+                    await actor.spendReaction(false, false);
                 }
-
-                await actor.spendReaction(false, false);
             },
                 "icons/Stance_Change.png"));
         }
@@ -2773,6 +2888,34 @@ export class PTActor extends Actor {
             }, "icons/Tearful_Tails.png"));
         }
 
+        if (this.augmentEffectCount("Abnormality Synchronization")) {
+            hotbar.push(await registerEffectMacro("Abnormality Synchronization", async (actor) => {
+                let emotion = actor.system.emotion;
+                if (emotion < 4) {
+                    ui.notifications.info("You dont have enough Emotion for this!");
+                    return;
+                }
+
+                actor.loseEmotion(4);
+
+                let selection = actor.drawAbnoPageSelection();
+                if (selection.length == 0) {
+                    ui.notifications.info("You have all possible Abnormality Pages!");
+                    return;
+                }
+
+                let options = selection.map(x => { return { name: x.name }; });
+
+                let choice = await pollUserInputOptions(actor, 'Select an Abnormality Page.', options);
+                choice = selection.find(x => x.name == choice);
+
+                createEffectsMessage(actor.name, `Spends 4 [/resources/EmotionIcon] Emotion to draw an Abnormality Page!`);
+                createAbnoPageMessage(choice);
+                await actor.takeAbnoPage(choice.name);
+
+            }, "icons/Abnormality_Synchronization.png"));
+        }
+
         
         let data = {};
         for (let i = 0; i < hotbar.length; i++) {
@@ -2818,5 +2961,69 @@ export class PTActor extends Actor {
         }
 
         return effects;
+    }
+
+    async takeAbnoPage(page) {
+        const system = this.toObject(false).system;
+        let pages = system.activeAbnoPages;
+        if (pages == null) {
+            pages = [];
+        }
+
+        pages.push(page);
+        system.activeAbnoPages = pages;
+
+        await this.update({ system }, { diff: false, render: true });
+
+        if (page == "Protective Mother") {
+            await this.applyStatus("Aggro", 5, 0);
+            createEffectsMessage(this.name, `Gained 5 [/status/Aggro] Aggro!`);
+        }
+
+        if (page == "Fervent Adoration") {
+            let inRadius = getEnemiesWithinRadius(this, 3).concat(getAlliesWithinRadius(this, 3));
+
+            for (let char of inRadius) {
+                await char.panic();
+            }
+        }
+
+        if (page == "A Certain Future") {
+            await this.takeDamage(0, null, 0, 0, 10);
+        }
+    }
+
+    hasAbnoPage(page) {
+        return this.system.activeAbnoPages != null && this.system.activeAbnoPages.includes(page);
+    }
+
+    drawAbnoPageSelection() {
+        let pages = [];
+        let pool = abnoCards.filter(x => !this.hasAbnoPage(x.name));
+        let cw = this.system.clashesWon;
+        let cl = this.system.clashesLost;
+
+        for (let i = 0; i < 3 && pool.length > 0; i++) {
+            let weights = pool.map(x => {
+                if (x.type < 0) {
+                    if (cl < cw * 1.3) {
+                        return 0;
+                    }
+
+                    return cl / cw;
+                }
+
+                return cw / Math.max(cl, 0.01);
+            });
+
+            let index = weightedPick(pool, weights);
+
+            if (index == null) continue;
+
+            pages.push(pool[index]);
+            pool = pool.filter(x => x.name != pool[index].name);
+        }
+
+        return pages;
     }
 }

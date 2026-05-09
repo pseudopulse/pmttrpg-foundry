@@ -5,14 +5,9 @@
                 <div class="at-resource" style="height: 3.5rem; gap: 1.5rem; width: 100%;">
                     <label class="at-item-name">Targeting:</label>
                     <div class="at-resource-content">
-                        <button onclick="toggleAT('at-targetDrp')" class="atw-dropbtn atw-small-dropdown" style="width: 12rem;" id="at-targetButton">
+                        <button class="atw-dropbtn atw-small-dropdown" style="width: 12rem;" id="at-targetButton">
                             {{target}}
                         </button>
-                        <div id="at-targetDrp" class="atw-dropdown-content" style="width: 12rem; text-align: center;">
-                            {{#each targets as |target|}}
-                                <a onclick="toggleAT('at-targetDrp')" class="at-target-entry" data-id="{{target.id}}">{{target.name}}</a>
-                            {{/each}}
-                        </div>
                     </div>
                 </div>
             </div>

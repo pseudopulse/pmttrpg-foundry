@@ -106,7 +106,9 @@
         "initiativeBound": false
       },
       "mountedCharacter": null,
-      "id": null
+      "id": null,
+      "activeAbnoPages": [],
+      "defeated": false
     }
   },
   "Item": {

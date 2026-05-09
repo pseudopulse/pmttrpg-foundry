@@ -77,7 +77,7 @@
                         </div>
                         <div class="amw-resource am-option">
                             <div class='amw-item-name am-option-text'
-                                title="Has previously Clash Won defensively on the turn.">
+                                title="Action counts as a defensive follow-up.">
                                 <input class="amw-skill-input misc-toggle" type="checkbox" data-id="DefFollowup" />
                                 <h4 class="amw-item-text am-option-text">Def. Followup</h4>
                             </div>
@@ -94,6 +94,13 @@
                                 title="Will not take damage from losing this clash.">
                                 <input class="amw-skill-input misc-toggle" type="checkbox" data-id="Reactive" />
                                 <h4 class="amw-item-text am-option-text">Reactive</h4>
+                            </div>
+                        </div>
+                        <div class="amw-resource am-option">
+                            <div class='amw-item-name am-option-text'
+                                title="Modifier to the attack's Dice Power.">
+                                <input class="amw-skill-input misc-toggle" type="number" data-id="PowerMod" />
+                                <h4 class="amw-item-text am-option-text">Power Mod</h4>
                             </div>
                         </div>
                     </div>
@@ -146,6 +153,13 @@
 
 <style>
     #am-weapons {}
+
+    input.amw-skill-input.misc-toggle {
+        width: 2rem;
+        margin-left: 0.5rem;
+        background: white;
+        border: 1px solid black;
+    }
 
     .amw-technique-holder {
         display: flex;
@@ -210,7 +224,7 @@
     }
 
     .am-block-holder {
-        height: 15rem;
+        height: 18rem;
         overflow-y: scroll;
         overflow-x: hidden;
         align-content: center;

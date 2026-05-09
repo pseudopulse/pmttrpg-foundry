@@ -53,7 +53,7 @@ export async function turnChange(combat, round, turn) {
 }
 
 export async function updateCombatant(combatant, data, id) {
-    let actor = searchForActor(combatant.actorId);
+    let actor = combatant.token.actor;
 
     if (actor != null && game.user.isGM) {
         await actor.handleCombatStart();

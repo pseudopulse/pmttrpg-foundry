@@ -16,6 +16,7 @@ import { handleBarReplacement } from "./core/combat/bars.mjs";
 // import Hooks from "@client/helpers/hooks.mjs";
 
 let ignoreNextMountFlag = [];
+export let lastClickedToken = null;
 
 Hooks.once("init", async () => {
   // debug
@@ -192,6 +193,8 @@ Hooks.once("init", async () => {
   });
 
   handleBarReplacement();
+  
+  libWrapper.register("pmttrpg", "CONFIG.Token.objectClass.prototype._onClickLeft", Token_onClickLeft, "MIXED");
 
   Handlebars.registerPartial('ptEffect', '{{> systems/pmttrpg/templates/item/parts/effect.hbs}}')
   Handlebars.registerPartial('ptWeaponBlock', '{{> systems/pmttrpg/templates/item/parts/weapon-block.hbs}}')
@@ -203,6 +206,11 @@ Hooks.once("init", async () => {
   Handlebars.registerPartial('ptConditionalCosts', '{{> systems/pmttrpg/templates/item/parts/conditional-costs.hbs}}')
   return preloadHandlebarsTemplates();
 });
+
+function Token_onClickLeft(wrapper, event) {
+  wrapper(event);
+  lastClickedToken = this;
+}
 
 export function fixRollContext(context) {
   let ctx = new RollContext();
@@ -237,6 +245,10 @@ export function generateUUID()
 
     var uuid = s.join("");
     return uuid;
+}
+
+export function clearLastToken() {
+  lastClickedToken = null;
 }
 
 export function getBloodfeast() {
@@ -472,10 +484,45 @@ export function findBoundActors(actor) {
   return results;
 }
 
+export function weightedPick(items, weights) {
+  const total = weights.reduce((a, b) => a + b, 0);
+
+  if (total <= 0) return null;
+
+  let r = Math.random() * total;
+
+  for (let i = 0; i < items.length; i++) {
+    r -= weights[i];
+
+    if (r <= 0) {
+      return i;
+    }
+  }
+
+  return items.length - 1;
+}
+
 export function getDistance(actor1, actor2) {
   let token1 = canvas.tokens.placeables.find(x => x.actor == actor1);
   let token2 = canvas.tokens.placeables.find(x => x.actor == actor2);
-  return scale(canvas.grid.measureDistance(token1, token2));
+
+  if (!token1 || !token2) return 0;
+
+  let x1 = token1.document.x / canvas.grid.size;
+  let y1 = token1.document.y / canvas.grid.size;
+  let w1 = token1.document.width;
+  let h1 = token1.document.height;
+
+  let x2 = token2.document.x / canvas.grid.size;
+  let y2 = token2.document.y / canvas.grid.size;
+  let w2 = token2.document.width;
+  let h2 = token2.document.height;
+
+  let dx = Math.max(0, Math.max(x1 - (x2 + w2), x2 - (x1 + w1)));
+
+  let dy = Math.max(0, Math.max(y1 - (y2 + h2), y2 - (y1 + h1)));
+
+  return Math.max(dx, dy) + 1;
 }
 
 export function getAlliesWithinRadiusOfTarget(actor, target, radius) {

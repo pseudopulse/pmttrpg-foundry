@@ -580,6 +580,8 @@ export const augmentEffects = [
         ["Clash Win"], false, 1
     ),
     //
+    markerEffect("Steady", false, 4),
+    //
     markerEffect("Belt Feeder", false, 3),
     // markerEffect("Unlock", false, 1), // X
     // loaded salvo
@@ -629,7 +631,9 @@ export const augmentEffects = [
     markerEffect("Flat Footed", false, 5),
     markerEffect("Strong Arm", false, 2),
     markerEffect("Tearful Tails", 0, 1),
-
+    new Effect("Persistent Venom", (context, count, trigger) => {}, (count) => {
+        return `Target's Reduce Status clears [/status/Poison] Poison at half efficiency for the rest of combat.`
+    }, ["On Use"], false, 1),
     new Effect(
         "Anisotropic Stabilizer",
         (context, count, trigger) => {
@@ -646,7 +650,8 @@ export const augmentEffects = [
         1, false, true
     ),
 
-    // hidden gm effects
+    // hidden gm effects ------
+    // spider
     new Effect("Dear Mother", (context, count, trigger) => {}, null, ["Always Active"], false, 1, false, true),
     new Effect(
         "Spider Cocoon",
@@ -660,9 +665,11 @@ export const augmentEffects = [
         false, 1, false, true, 0, true
     ),
 
-    new Effect("Persistent Venom", (context, count, trigger) => {}, (count) => {
-        return `Target's Reduce Status clears [/status/Poison] Poison at half efficiency for the rest of combat.`
-    }, ["On Use"], false, 1),
+    // rem
+    new Effect("Research the Target", (context, count, trigger) => {}, (count) => {
+        return 'All [/status/Devastation] Devastation and [/status/Ruin] Ruin infliction is resolved instantly.'
+    }, ["On Use"], false, 1, false, true),
+    new Effect("Abnormality Synchronization", (context, count, trigger) => {}, null, ["Always Active"], false, 1, false, true),
 ];
 
 function augmentThresholdEffect(name, bar, mult, status, negativeStatus = []) {

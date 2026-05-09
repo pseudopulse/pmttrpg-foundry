@@ -1,0 +1,17 @@
+<form class='flexcol cr-form' autocomplete='off'>
+    <section class="sheet-body cm-resources-holder flexcol">
+        <div class="cm-resource cm-target-div">
+            <h4 class="cm-target-text">Draws {{name}}!</h4>
+        </div>
+        <div class="cm-item-holder cm-resource" style="height: 11rem !important">
+            <img class="cm-resource-icon" src='systems/pmttrpg/assets/pages/{{icon}}.png' width='24' height='24' style="width: 17rem !important; height: 10rem !important;"/>
+        </div>
+        {{#if (ne enrichedClashData "")}}
+        <div>
+            <div class="cm-clashDescription cm-resource">
+                {{{enrichedClashData}}}
+            </div>
+        </div>
+        {{/if}}
+    </section>
+</form>

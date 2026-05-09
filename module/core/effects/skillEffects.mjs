@@ -157,7 +157,9 @@ export const skillEffects = [
     simpleStatusEffect("Paralysis", true, true),
     simpleStatusEffect("Feeble", true, false),
     simpleStatusEffect("Disarm", true, false),
-    markerEffect("Instant Bind", false, 1),
+    markerEffect("Instant Bind", false, 1, "On Use", (count) => {
+        return 'All [/status/Bind] Bind infliction is resolved instantly.'
+    }),
     simpleStatusEffect("Bind", true, false),
     new Effect(
         "Press Advantage",
@@ -469,7 +471,9 @@ export const skillEffects = [
         },
         ["Clash Win", "Clash Lose"], false
     ),
-    markerEffect("Instant Crit", false, 1),
+    markerEffect("Instant Crit", false, 1, "On Use", (count) => {
+        return 'All [/status/Critical] Critical and [/status/Poise] Poise gain is resolved instantly.'
+    }),
     markerEffect("Precision", 0, 1),
     markerEffect("Critical Conversion", 0, 1, ["On Use"], (count) => {
         return `If the character would exceed 10 [/status/Poise] Poise from this skill, set [/status/Poise] Poise to 1 and gain 1 [/status/Critical] Critical.`
@@ -559,7 +563,9 @@ export const skillEffects = [
     //
     simpleStatusEffect("Ruin", false, true),
     simpleStatusEffect("Devastation", false, true, "Increase Devastation"),
-    markerEffect("Instant Devastation"),
+    markerEffect("Instant Devastation", false, 1, "On Use", (count) => {
+        return 'All [/status/Devastation] Devastation and [/status/Ruin] Ruin infliction is resolved instantly.'
+    }),
     markerEffect("Ruination"),
     markerEffect("Devastation Conversion", 0, 1, ["On Use"], (count) => {
         return `If the target would exceed 10 [/status/Ruin] Ruin from this skill, set [/status/Ruin] Ruin to 1 and apply 1 [/status/Devastation] Devastation.`
@@ -662,7 +668,9 @@ export const skillEffects = [
     markerEffect("Rupture+", false, 3),
     skillVigorEffect("Rupture", 2, 0, 2),
     skillBonusEffect("Rupture", 2, 0, 5, 2),
-    markerEffect("Instant Rupture", false, 1),
+    markerEffect("Instant Rupture", false, 1, "On Use", (count) => {
+        return 'All [/status/Rupture] Rupture infliction is resolved instantly.'
+    }),
     new Effect(
         `Rupture Reversal`,
         (context, count, trigger) => {
@@ -764,7 +772,9 @@ export const skillEffects = [
     markerEffect("Tremor+", false, 3),
     skillVigorEffect("Tremor", 3, 0, 1),
     skillBonusEffect("Tremor", 3, 5, 1),
-    markerEffect("Instant Tremor", false, 1),
+    markerEffect("Instant Tremor", false, 1, "On Use", (count) => {
+        return 'All [/status/Tremor] Tremor infliction is resolved instantly.'
+    }),
     new Effect(
         `Tremor Reversal`,
         (context, count, trigger) => {
@@ -950,7 +960,9 @@ export const skillEffects = [
     markerEffect("Sinking+", false, 3),
     skillVigorEffect("Sinking", 3, 0, 1),
     skillBonusEffect("Sinking", 3, 5, 1),
-    markerEffect("Instant Sinking", false, 1),
+    markerEffect("Instant Sinking", false, 1, "On Use", (count) => {
+        return 'All [/status/Sinking] Sinking infliction is resolved instantly.'
+    }),
     new Effect(
         `Sinking Pause`,
         (context, count, trigger) => {
@@ -1170,7 +1182,9 @@ export const skillEffects = [
     smokeStatusEffect("Feeble", 1, true, 3),
     smokeStatusEffect("Disarm", 1, true, 3),
     //
-    markerEffect("Instant Haste"),
+    markerEffect("Instant Haste", false, 1, "On Use", (count) => {
+        return 'All [/status/Haste] Haste gain is resolved instantly.'
+    }),
     new Effect(
         `Circle Throw`,
         (context, count, trigger) => {

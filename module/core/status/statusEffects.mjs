@@ -132,6 +132,7 @@ export const statusList = [
     }, (count) => { return 0; }),
     new StatusEffect("Consumed_Bloodfeast", Triggers.NONE, async (actor) => {}, (count) => { return 0; }),
     new StatusEffect("Heal_Efficiency", Triggers.END, async (actor) => {}, (count) => { return count / 2; }),
+    new StatusEffect("Aggro", Triggers.END, async (actor) => {}, (count) => { return 0; }),
 ];
 
 export function findStatusDef(name) {

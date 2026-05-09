@@ -1,3 +1,6 @@
+import { getActorTeam } from "../../pmttrpg.mjs";
+import { findHoldersOfPage } from "../effects/abnoCards.mjs";
+
 export function enrichClashData(str, dontMerge = false) {
     if (str.startsWith("\n")) {
         str = str.substring(1)
@@ -125,6 +128,20 @@ export async function createEffectsMessage(subject, effectsData, dontMerge = fal
     });
 }
 
+export async function createAbnoPageMessage(page) {
+    const content = await renderTemplate("systems/pmttrpg/templates/dialog/ap-message.hbs", {
+        name: page.name,
+        icon: page.icon,
+        enrichedClashData: enrichClashData(page.desc),
+    });
+
+    ChatMessage.create({
+        user: game.user._id,
+        content: content,
+        speaker: ChatMessage.getSpeaker()
+    });
+}
+
 export async function createClashMessage(actor, context) {
     context.minRoll = Math.max(1 + context.dicePower, 0);
     context.maxRoll = Math.max(context.diceMax + context.dicePower, 0)
@@ -135,6 +152,13 @@ export async function createClashMessage(actor, context) {
     }
     if (context.result <= context.minRoll) {
         rollColor = "cm-col-min";
+
+        let holders = findHoldersOfPage("Weight of Sin").filter(x => getActorTeam(x) == getActorTeam(actor));
+        for (let holder of holders) {
+            await holder.takeDamage(0, null, 0, 0, 5, false);
+            await holder.applyStatus("Strength", 2);
+            createEffectsMessage(holder.name, `Takes 5 SP damage and gains 2 [/status/Strength] Strength from Weight of Sin!`);
+        }
     }
     const content = await renderTemplate("systems/pmttrpg/templates/dialog/clash-message.hbs", {
         actor: actor,

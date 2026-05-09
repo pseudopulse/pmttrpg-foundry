@@ -2,7 +2,7 @@ import { findActorsOfTeam, getBloodfeast, roughSizeOfObject } from "../pmttrpg.m
 import { statusList } from "../core/status/statusEffects.mjs";
 import { validate, handleEffectAddButton, handleEffectCounterChange, handleEffectRemoveButton, handleEffectTriggerChange, handleEffectTypeChange, getEffectsArray } from "../core/effects/effectHelpers.mjs";
 import { MarkNames } from "../core/status/mark.mjs";
-import { findByID } from "../core/helpers/netmsg.mjs";
+import { findByID, sendNetworkMessage } from "../core/helpers/netmsg.mjs";
 
 //
 export class PTActorSheet extends ActorSheet {
@@ -175,7 +175,11 @@ export class PTActorSheet extends ActorSheet {
             let target = ev.currentTarget.closest('.ac-mark-holder').dataset.target;
             let mark = ev.currentTarget.closest('.ac-mark-holder').dataset.id;
 
-            findByID(target).removeMark(this.actor, mark);
+            sendNetworkMessage("REMOVE_MARK", { 
+                source: this.actor.system.id,
+                mark: mark,
+                target: target
+            });
         });
 
         html.on('click', '.aw-active-toggle', (ev) => {
@@ -238,7 +242,6 @@ export class PTActorSheet extends ActorSheet {
             this.actor.update({ system }, { diff: false, render: false });
         });
 
-        // Drag events for macros.
         if (this.actor.isOwner) {
             let handler = (ev) => this._onDragStart(ev);
             html.find('li.item').each((i, li) => {

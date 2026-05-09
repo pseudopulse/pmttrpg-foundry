@@ -895,6 +895,7 @@ export class RollContext {
             this.bondTarget = this.modifiers.bondTarget;
             this.defFollowup = this.modifiers.defFollowup;
             this.reactive = this.modifiers.reactive;
+            this.dicePower = Number(this.dicePower) + Number(this.modifiers.powerMod);
         }
 
         if (this.actor != null && this.actor.augment != null) {

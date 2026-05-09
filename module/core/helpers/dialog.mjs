@@ -1,5 +1,5 @@
 import { getRollContextFromData } from "../../documents/item.mjs";
-import { findActorsOfTeam, getBloodfeast, getDistance, searchByObject } from "../../pmttrpg.mjs";
+import { clearLastToken, findActorsOfTeam, getBloodfeast, getDistance, lastClickedToken, searchByObject } from "../../pmttrpg.mjs";
 import { calculateTechniqueCost } from "../../sheets/item.mjs";
 import { RollContext } from "../combat/rollContext.mjs";
 import { createClashMessage, enrichClashData } from "../helpers/clash.mjs";
@@ -56,6 +56,7 @@ export async function getActionModifiers(actor, context) {
             protect: false,
             def2H: false,
             defFollowup: false,
+            powerMod: 0,
         };
         let allowClose = false;
         const dialog = new Dialog({
@@ -87,9 +88,12 @@ export async function getActionModifiers(actor, context) {
                 $("#amw-options").hide().removeClass("am-active-tab");
 
                 html.on('click', '.misc-toggle', (event) => {
-                    if (event.currentTarget.checked) {
-                        const action = event.currentTarget.dataset.id;
+                    const action = event.currentTarget.dataset.id;
+                    if (action == "PowerMod") {
+                        return;
+                    }
 
+                    if (event.currentTarget.checked) {
                         switch (action) {
                             case "IgnoreCWL":
                                 data.ignoreClashEffects = true;
@@ -113,8 +117,6 @@ export async function getActionModifiers(actor, context) {
                                 data.bondTarget = true;
                             case "Def2H":
                                 data.def2H = true;
-                            case "DefFollowup":
-                                data.defFollowup = true;
                             case "Protect":
                                 data.protect = true;
                             case "IgnoreEmotion":
@@ -126,8 +128,6 @@ export async function getActionModifiers(actor, context) {
                         }
                     }
                     else {
-                        const action = event.currentTarget.dataset.id;
-
                         switch (action) {
                             case "IgnoreCWL":
                                 data.ignoreClashEffects = false;
@@ -151,6 +151,15 @@ export async function getActionModifiers(actor, context) {
                                 break;
                         }
                     }
+                });
+
+                html.on('change', '.misc-toggle', (event) => {
+                    const action = event.currentTarget.dataset.id;
+                    if (action != "PowerMod") {
+                        return;
+                    }
+
+                    data.powerMod = event.currentTarget.value;
                 });
 
                 let allCosts = [];
@@ -919,11 +928,22 @@ export async function getSkillOptions(actor) {
                 await dialog.close();
             });
 
-            html.on('click', '.sto-target-entry', async (event) => {
-                let id = event.currentTarget.dataset.id;
-                let token = canvas.tokens.placeables.find(x => x.actor.system.id == id);
-                token.setTarget(true, { releaseOthers: true });
-                $("#sto-targetButton").text(token.actor.name);
+            html.on('click', '#sto-targetButton', async (event) => {
+                ui.notifications.info("Click on a token to target.");
+                clearLastToken();
+                new Promise((resolve) => {
+                    const checkVariable = setInterval(() => {
+                        if (lastClickedToken != null) {
+                            clearInterval(checkVariable);
+                            resolve(lastClickedToken);
+                        }
+                    }, 100); 
+                }).then((token) => {
+                    ui.notifications.clear();
+                    token.setTarget(true, { releaseOthers: true });
+                    $("#sto-targetButton").text(token.actor.name);
+                    target = token;
+                })
             });
         }
     }, {
@@ -1039,14 +1059,24 @@ export async function getAttackOptions(actor) {
                 await dialog.close();
             });
 
-            html.on('click', '.at-target-entry', async (event) => {
-                let id = event.currentTarget.dataset.id;
-                let token = canvas.tokens.placeables.find(x => x.actor.system.id == id);
-                token.setTarget(true, { releaseOthers: true });
-                $("#at-targetButton").text(token.actor.name);
-                target = token;
+            html.on('click', '#at-targetButton', async (event) => {
+                ui.notifications.info("Click on a token to target.");
+                clearLastToken();
+                new Promise((resolve) => {
+                    const checkVariable = setInterval(() => {
+                        if (lastClickedToken != null) {
+                            clearInterval(checkVariable);
+                            resolve(lastClickedToken);
+                        }
+                    }, 100); 
+                }).then((token) => {
+                    ui.notifications.clear();
+                    token.setTarget(true, { releaseOthers: true });
+                    $("#at-targetButton").text(token.actor.name);
+                    target = token;
 
-                updateWeapons();
+                    updateWeapons();
+                })
             });
         }
     }, {

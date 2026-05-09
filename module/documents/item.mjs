@@ -352,13 +352,37 @@ export function getRollContextFromData(item, def = false, defType = "Block") {
     rollContext.addEffectsList(systemData.effects, fixTypeName(item.type));
     rollContext.actor = findItemOwner(item);
     rollContext.damageType = def ? defType : systemData.damageType;
-    rollContext.type = def ? defType : systemData.type;
+    rollContext.type = def ? defType : systemData.attackType;
     rollContext.name = item.name;
-    rollContext.attackType = systemData.type;
+    rollContext.attackType = systemData.attackType;
     rollContext.form = systemData.form;
     rollContext.hand = systemData.hand;
 
     rollContext.processEffectsSync();
+
+    rollContext.mergeCosts();
+    return rollContext;
+}
+
+export async function getRollContextFromDataFullTargeted(item, target) {
+    if (item.type == null) {
+        item = item.item;
+    }
+
+    const itemData = item;
+    const systemData = itemData.system;
+    const rollContext = new RollContext();
+    rollContext.addEffectsList(systemData.effects, fixTypeName(item.type));
+    rollContext.actor = findItemOwner(item);
+    rollContext.target = target;
+    rollContext.damageType = def ? defType : systemData.damageType;
+    rollContext.type = def ? defType : systemData.attackType;
+    rollContext.name = item.name;
+    rollContext.attackType = systemData.attackType;
+    rollContext.form = systemData.form;
+    rollContext.hand = systemData.hand;
+
+    await rollContext.processEffects();
 
     rollContext.mergeCosts();
     return rollContext;

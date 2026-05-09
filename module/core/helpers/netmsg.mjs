@@ -62,6 +62,15 @@ export function registerMessages() {
         }
     };
 
+    handler["REMOVE_MARK"] = async (data) => {
+        const target = findByID(data.target);
+        const source = findByID(data.source);
+
+        if (game.user.isGM) {
+            await target.removeMark(source, data.mark);
+        }
+    };
+
     handler["OVERWRITE_CLASH"] = async (data) => {
         const target = findByID(data.target);
         const attacker = findByID(data.attacker);
