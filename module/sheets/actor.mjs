@@ -63,7 +63,7 @@ export class PTActorSheet extends ActorSheet {
         let team = findActorsOfTeam(this.document);
         for (let member of team) {
             options.push({
-                id: member._id,
+                id: member.system.id,
                 name: member.name,
             })
         }

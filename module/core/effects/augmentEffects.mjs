@@ -564,12 +564,14 @@ export const augmentEffects = [
     new Effect(
         "Momentum Thief",
         (context, count, trigger) => {
-            let bind = context.target.getStatusCount("Bind");
+            if (context.target) {
+                let bind = context.target.getStatusCount("Bind");
 
-            if (bind > 0) {
-                bind = Math.max(Math.floor(bind / 2), 1);
+                if (bind > 0) {
+                    bind = Math.max(Math.floor(bind / 2), 1);
 
-                context.triggers["Clash Win"].applyInfliction("Haste", -bind, true);
+                    context.triggers["Clash Win"].applyInfliction("Haste", -bind, true);
+                }
             }
         },
         (count) => {

@@ -70,7 +70,7 @@ export const skillEffects = [
                 context.skillDicePower = Number(context.skillDicePower) + Math.clamp(reactions, 2, 6);
             }
 
-            context.events.push("On Use", async (context) => {
+            context.events["On Use"].push(async (context) => {
                 await context.actor.update({ "system.reactions": 0 }, { diff: false });
                 createEffectsMessage(context.actor.name, `${context.actor.name} burns all of their reactions to empower the attack!`);
             });
@@ -1675,8 +1675,8 @@ export const skillEffects = [
                 let map = [];
 
                 for (let member of team) {
-                    options.push({ name: member.id, displayName: member.name });
-                    map[member.id] = member;
+                    options.push({ name: member.system.id, displayName: member.name });
+                    map[member.system.id] = member;
                 }
 
                 let target = await pollUserInputOptions(context.actor, "Choose ally to heal.", options);
@@ -1874,8 +1874,8 @@ async function findAllyTarget(actor, msg) {
     let map = [];
 
     for (let member of team) {
-        options.push({ name: member.id, displayName: member.name });
-        map[member.id] = member;
+        options.push({ name: member.system.id, displayName: member.name });
+        map[member.system.id] = member;
     }
 
     let target = await pollUserInputOptions(actor, msg, options);
@@ -2129,7 +2129,7 @@ function chargeAllyStatusEffect(status, cost, mult, nextRound) {
                 let results = await pollDistributeStatus(context.actor, getActorTeam(context.actor), status, count * mult);
                 let text = "";
                 for (let res of results) {
-                    let actor = findByID(res.id);
+                    let actor = findByID(res.system.id);
                     await actor.applyStatus(status.replace(" ", "_"), nextRound ? 0 : res.allocated, nextRound ? res.allocated : 0);
                     await context.actor.handleMarkAid(actor);
                     text = text + `${res.name} receives ${res.allocated} [/status/${status.replace(" ", "_")}] ${status}${nextRound ? " next round" : ""}!` + "\n";
@@ -2172,7 +2172,7 @@ function allyStatusEffect(status, mult, nextRound) {
                 let results = await pollDistributeStatus(context.actor, getActorTeam(context.actor), status, count * mult);
                 let text = "";
                 for (let res of results) {
-                    let actor = findByID(res.id);
+                    let actor = findByID(res.system.id);
                     await actor.applyStatus(status.replace(" ", "_"), nextRound ? 0 : res.allocated, nextRound ? res.allocated : 0);
                     await context.actor.handleMarkAid(actor);
                     text = text + `${res.name} receives ${res.allocated} [/status/${status.replace(" ", "_")}] ${status}${nextRound ? " next round" : ""}!` + "\n";

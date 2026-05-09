@@ -161,8 +161,8 @@ export class PTItem extends Item {
 
         if (initiator) {
             sendNetworkMessage("PENDING_CLASH", {
-                attacker: this.actor,
-                target: game.user.targets.first().actor,
+                attacker: this.actor.system.id,
+                target: game.user.targets.first().actor.system.id,
                 context: context,
             })
 

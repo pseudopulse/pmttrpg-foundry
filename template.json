@@ -105,7 +105,8 @@
         "isAbnormalityPart": false,
         "initiativeBound": false
       },
-      "mountedCharacter": null
+      "mountedCharacter": null,
+      "id": null
     }
   },
   "Item": {

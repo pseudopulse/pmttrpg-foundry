@@ -13,11 +13,11 @@ export function setRound(round, turn) {
 
 export async function roundChange(combat, round, turn) {
     currentRound = round;
-    alreadyDoneThisRound.clear();
+    alreadyDoneThisRound = [];
 
     if (round != 1) {
         for (const token of canvas.tokens.placeables) {
-            if (token != null && token.actor != null && getActorUser(token.actor) == game.user) {
+            if (token != null && token.actor != null && game.user.isGM) {
                 await token.actor.handleNextRound();
 
                 let results = findBoundActors(token.actor);
@@ -36,7 +36,7 @@ export async function turnChange(combat, round, turn) {
     if (round == 1) return;
 
     for (const token of canvas.tokens.placeables) {
-        if (token != null && token.id == combat.current.tokenId && getActorUser(token.actor) == game.user) {
+        if (token != null && token.id == combat.current.tokenId && game.user.isGM) {
             if (!alreadyDoneThisRound.includes(token.actor)) {
                 await token.actor.handleNextTurn();
 
@@ -55,7 +55,7 @@ export async function turnChange(combat, round, turn) {
 export async function updateCombatant(combatant, data, id) {
     let actor = searchForActor(combatant.actorId);
 
-    if (actor != null) {
+    if (actor != null && game.user.isGM) {
         await actor.handleCombatStart();
         await actor.handleNextTurn();
 

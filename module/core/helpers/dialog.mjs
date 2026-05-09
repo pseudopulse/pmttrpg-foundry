@@ -715,7 +715,7 @@ export async function pollDistributeStatus(user, team, status, count) {
         allies.push({
             name: token.actor.name,
             allocated: 0,
-            id: token.actor._id
+            id: token.actor.system.id
         })
     }
 
@@ -735,7 +735,7 @@ export async function pollDistributeStatus(user, team, status, count) {
 
     let update = (html) => {
         html.find('.als-numInput').each((x, input) => {
-            let ally = allies.find(x => x.id == input.closest('.als-allyCard').dataset.id);
+            let ally = allies.find(x => x.system.id == input.closest('.als-allyCard').dataset.id);
             input.min = 0;
             input.max = Number(input.value) + (Math.max(count - tallyAll(), 0));
         });
@@ -761,7 +761,7 @@ export async function pollDistributeStatus(user, team, status, count) {
 
                 html.on('input', '.als-numInput', (ev) => {
                     let val = Number(ev.currentTarget.value);
-                    let ally = allies.find(x => x.id == ev.currentTarget.closest('.als-allyCard').dataset.id);
+                    let ally = allies.find(x => x.system.id == ev.currentTarget.closest('.als-allyCard').dataset.id);
                     ally.allocated = val;
 
                     update(html);
@@ -863,7 +863,7 @@ export async function getSkillOptions(actor) {
     for (let token of canvas.tokens.placeables.filter(x => x.actor)) {
         targetList.push({
             name: token.actor.name,
-            id: token.actor._id,
+            id: token.actor.system.id,
             token: token
         });
     }
@@ -921,7 +921,7 @@ export async function getSkillOptions(actor) {
 
             html.on('click', '.sto-target-entry', async (event) => {
                 let id = event.currentTarget.dataset.id;
-                let token = canvas.tokens.placeables.find(x => x.actor._id == id);
+                let token = canvas.tokens.placeables.find(x => x.actor.system.id == id);
                 token.setTarget(true, { releaseOthers: true });
                 $("#sto-targetButton").text(token.actor.name);
             });
@@ -940,7 +940,7 @@ export async function getAttackOptions(actor) {
     for (let token of canvas.tokens.placeables.filter(x => x.actor && x.actor != actor)) {
         targetList.push({
             name: token.actor.name,
-            id: token.actor._id,
+            id: token.actor.system.id,
             token: token
         });
     }
@@ -1026,8 +1026,8 @@ export async function getAttackOptions(actor) {
                     createClashMessage(actor, ctx);
                     await actor.queueRoll(ctx, false);
                     sendNetworkMessage("PENDING_CLASH", {
-                        attacker: actor,
-                        target: game.user.targets.first().actor,
+                        attacker: actor.system.id,
+                        target: game.user.targets.first().actor.system.id,
                         context: ctx,
                     })
                     await dialog.close();
@@ -1041,7 +1041,7 @@ export async function getAttackOptions(actor) {
 
             html.on('click', '.at-target-entry', async (event) => {
                 let id = event.currentTarget.dataset.id;
-                let token = canvas.tokens.placeables.find(x => x.actor._id == id);
+                let token = canvas.tokens.placeables.find(x => x.actor.system.id == id);
                 token.setTarget(true, { releaseOthers: true });
                 $("#at-targetButton").text(token.actor.name);
                 target = token;
@@ -1079,8 +1079,8 @@ export async function createClashResponse(actor, context) {
                 label: "Take Unopposed",
                 callback: () => {
                     sendNetworkMessage("RESOLVE_CLASH", {
-                        target: context.target,
-                        attacker: context.actor
+                        target: context.target.system.id,
+                        attacker: context.actor.system.id
                     });
                     allowClose = true;
                     dialog.close();
@@ -1096,19 +1096,19 @@ export async function createClashResponse(actor, context) {
                     for (let actor of actors) {
                         options.push({
                             displayName: actor.name,
-                            name: actor.id
+                            name: actor.system.id
                         });
                     }
                     let res = pollUserInputOptions(actor, "Select ally to redirect to.", options).then((target) => {
                         target = findByID(target);
                         sendNetworkMessage("PENDING_CLASH", {
-                            target: target,
-                            attacker: context.actor,
+                            target: target.system.id,
+                            attacker: context.actor.system.id,
                             context: context
                         });
                         sendNetworkMessage("OVERWRITE_CLASH", {
-                            target: target,
-                            attacker: context.actor
+                            target: target.system.id,
+                            attacker: context.actor.system.id
                         });
 
                         dialog.close();
@@ -1155,8 +1155,8 @@ export async function createClashResponse(actor, context) {
                             allowClose = true;
 
                             sendNetworkMessage("RESOLVE_CLASH", {
-                                target: context.target,
-                                attacker: context.actor
+                                target: context.target.system.id,
+                                attacker: context.actor.system.id
                             });
                             
                             dialog.close();
@@ -1173,8 +1173,8 @@ export async function createClashResponse(actor, context) {
                         allowClose = true;
 
                         sendNetworkMessage("RESOLVE_CLASH", {
-                            target: context.target,
-                            attacker: context.actor
+                            target: context.target.system.id,
+                            attacker: context.actor.system.id
                         });
                         
                         dialog.close();

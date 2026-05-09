@@ -3,3 +3,15 @@ functional parts (there's like 10 left to finish if i have time)
 force damage input
 
 add dice power penalty option to attacks
+
+figure out stupid issue with abno part targeting
+
+fix too many targets making dropdown go out of box
+
+fix everything being considered out of range
+
+make the targeting dropdown order by distance
+
+fix clashing against non actor-linked being weird
+
+fix stance changing not having an option to exit menu 

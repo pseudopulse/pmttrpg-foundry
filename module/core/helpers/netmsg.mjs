@@ -20,8 +20,8 @@ export const handler = {};
 
 export function registerMessages() {
     handler["PENDING_CLASH"] = async (data) => {
-        const target = searchByObject(data.target);
-        const attacker = searchByObject(data.attacker);
+        const target = findByID(data.target);
+        const attacker = findByID(data.attacker);
 
         if (existsInTokensList(target)) {
             const context = new RollContext();
@@ -36,18 +36,17 @@ export function registerMessages() {
     };
 
     handler["RESOLVE_CLASH"] = async (data) => {
-        const target = searchByObject(data.target);
-        const attacker = searchByObject(data.attacker);
+        const target = findByID(data.target);
+        const attacker = findByID(data.attacker);
 
         if (game.user.isGM) {
-            attacker.prepareData();
             await attacker.sendAttackRoll();
         }
     }
 
     handler["USE_ACTION_SKILL"] = async (data) => {
-        const target = searchByObject(data.target);
-        const attacker = searchByObject(data.attacker);
+        const target = findByID(data.target);
+        const attacker = findByID(data.attacker);
 
         if (game.user.isGM) {
             await attacker.processActionSkill(attacker.items.find(x => x._id == data.item._id), target);
@@ -55,8 +54,8 @@ export function registerMessages() {
     };
 
     handler["APPLY_MARK"] = async (data) => {
-        const target = searchByObject(data.target);
-        const attacker = searchByObject(data.attacker);
+        const target = findByID(data.target);
+        const attacker = findByID(data.attacker);
 
         if (game.user.isGM) {
             await target.applyMark(attacker, data.mark);
@@ -64,8 +63,8 @@ export function registerMessages() {
     };
 
     handler["OVERWRITE_CLASH"] = async (data) => {
-        const target = searchByObject(data.target);
-        const attacker = searchByObject(data.attacker);
+        const target = findByID(data.target);
+        const attacker = findByID(data.attacker);
 
         if (testUserPermission(attacker, game.user)) {
             attacker.updateQueuedRoll(target);
@@ -73,16 +72,16 @@ export function registerMessages() {
     };
 
     handler["UPDATE_MOUNT"] = async (data) => {
-        const target = searchByObject(data.target);
-        const char = searchByObject(data.char);
+        const target = findByID(data.target);
+        const char = findByID(data.char);
 
         if (game.user.isGM) {
-            await target.update({ "system.mountedCharacter": char._id }, { diff: false, render: true });
+            await target.update({ "system.mountedCharacter": char.system.id }, { diff: false, render: true });
         }
     };
 
     handler["CLEAR_MOUNT"] = async (data) => {
-        const target = searchByObject(data.target);
+        const target = findByID(data.target);
 
         if (game.user.isGM) {
             await target.update({ "system.mountedCharacter": null }, { diff: false, render: true });
@@ -90,7 +89,7 @@ export function registerMessages() {
     };
 
     handler["EDIT_SCALE"] = async (data) => {
-        const target = searchByObject(data.target);
+        const target = findByID(data.target);
 
         if (game.user.isGM) {
             await target.modifyScale(data.scale);
@@ -165,7 +164,7 @@ export async function wrapperPollUserInputBurst(data) {
 
 function existsInTokensList(actor) {
     for (let token of canvas.tokens.placeables.filter(x => x.actor && testPermission(x.actor))) {
-        if (token.actor._id == actor._id) {
+        if (token.actor.system.id == actor.system.id) {
             return true;
         }
     }
@@ -175,7 +174,7 @@ function existsInTokensList(actor) {
 
 export function findByID(id) {
     for (let token of canvas.tokens.placeables.filter(x => x.actor != null)) {
-        if (token.actor._id == id) {
+        if (token.actor.system.id == id) {
             return token.actor;
         }
     }

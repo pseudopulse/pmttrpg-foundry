@@ -3,7 +3,7 @@ import { checkDraw, createClashMessage, createEffectsMessage, createResultMessag
 import { createClashResponse, getAttackOptions, getSkillOptions, pollReduceStatus, pollUserInputBurst, pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "../core/helpers/dialog.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
-import { findActorsOfTeam, findOfTypeForActor, fixRollContext, getActorTeam, getActorToken, getAlliesWithinRadius, getBloodfeast, getDistance, playSound, reduceBloodfeast, searchByObject } from "../pmttrpg.mjs";
+import { findActorsOfTeam, findOfTypeForActor, fixRollContext, generateUUID, getActorTeam, getActorToken, getAlliesWithinRadius, getBloodfeast, getDistance, playSound, reduceBloodfeast, searchByObject } from "../pmttrpg.mjs";
 import { currentRound } from "../core/combat/combatState.mjs";
 import { getRollContextFromData, getRollContextFromDataFull } from "./item.mjs";
 import { registerEffectMacro } from "../core/combat/macros.mjs";
@@ -32,6 +32,12 @@ export class PTActor extends Actor {
 
         const attr = systemData.attributes;
         const stats = systemData.abilities;
+
+        // id
+
+        if (systemData.id == null || systemData.id == "1IHhyRinRp7RQMWE") {
+            systemData.id = generateUUID();
+        }
 
         // rank
 
@@ -117,8 +123,8 @@ export class PTActor extends Actor {
 
     sendTriggerActionSkill(item, target) {
         sendNetworkMessage("USE_ACTION_SKILL", {
-            attacker: this,
-            target: target,
+            attacker: this.system.id,
+            target: target.system.id,
             item: item,
         });
     }
@@ -300,8 +306,8 @@ export class PTActor extends Actor {
             Object.assign(respCtx, systemData.mostRecentRoll.context);
             respCtx.fix();
 
-            targetHP[respCtx.target.id] = respCtx.target.system.attributes.health.value;
-            targetST[respCtx.target.id] = respCtx.target.system.attributes.stagger.value;
+            targetHP[respCtx.target.system.id] = respCtx.target.system.attributes.health.value;
+            targetST[respCtx.target.system.id] = respCtx.target.system.attributes.stagger.value;
 
             await respCtx.target.receiveAttackRoll(respCtx);
             playSound("clash");
@@ -816,7 +822,7 @@ export class PTActor extends Actor {
             await ctx1.fireEvent("Clash Win");
             await ctx2.fireEvent("Clash Lose");
 
-            if (ctx2.actor.system.attributes.health.value == 0 && targetHP[ctx2.actor.id] > 0) {
+            if (ctx2.actor.system.attributes.health.value == 0 && targetHP[ctx2.actor.system.id] > 0) {
                 await ctx1.fireEvent("Kill");
 
                 if (ctx1.hasEffect("Rare Meal")) {
@@ -883,8 +889,8 @@ export class PTActor extends Actor {
         }
 
         if (actor.checkDisposition("Gloomy")) {
-            let kill = actor.system.attributes.health.value <= 0 && targetHP[target.id] > 0;
-            let stagger = actor.system.attributes.stagger.value <= 0 && targetST[target.id] > 0;
+            let kill = actor.system.attributes.health.value <= 0 && targetHP[target.system.id] > 0;
+            let stagger = actor.system.attributes.stagger.value <= 0 && targetST[target.system.id] > 0;
             let ignoreOS = actor.checkImpassioned("Gloomy") && oneSided;
             if (!kill && !stagger && !ignoreOS) {
                 if (!ignoreLoss) triggers["Clash Win"].emotion -= 1;
@@ -901,7 +907,7 @@ export class PTActor extends Actor {
             triggers["Clash Win"].emotion += 1;
         }
 
-        if (actor.system.attributes.health.value <= 0 && targetHP[target.id] > 0) {
+        if (actor.system.attributes.health.value <= 0 && targetHP[target.system.id] > 0) {
             if (actor.checkDisposition("Focused") && actor.isMarkedTarget(target)) {
                 triggers["Clash Win"].emotion += 1;
             }
@@ -911,7 +917,7 @@ export class PTActor extends Actor {
             }
         }
 
-        if (actor.system.attributes.stagger.value <= 0 && targetST[target.id] > 0) {
+        if (actor.system.attributes.stagger.value <= 0 && targetST[target.system.id] > 0) {
             if (actor.checkDisposition("Focused") && actor.isMarkedTarget(target)) {
                 triggers["Clash Win"].emotion += 1;
             }
@@ -1577,7 +1583,7 @@ export class PTActor extends Actor {
         const system = this.toObject(false).system;
 
         if (system.mostRecentRoll != null) {
-            system.mostRecentRoll.context.target = target.id;
+            system.mostRecentRoll.context.target = target.system.id;
         }
 
         await this.update({ system }, { diff: false });
@@ -1612,7 +1618,7 @@ export class PTActor extends Actor {
         const systemData = actorData.system;
 
 
-        canvas.tokens.placeables.find(x => x.actor._id == context.actor._id).setTarget(true, { releaseOthers: true });
+        canvas.tokens.placeables.find(x => x.actor.system.id == context.actor.system.id).setTarget(true, { releaseOthers: true });
         createClashResponse(this, context);
     }
 
@@ -1636,9 +1642,9 @@ export class PTActor extends Actor {
             system.primerEffects = [];
         }
 
-        system.primerEffects = system.primerEffects.filter(x => x.id != incoming.actor.id);
+        system.primerEffects = system.primerEffects.filter(x => x.id != incoming.actor.system.id);
         let data = {
-            id: incoming.actor.id,
+            id: incoming.actor.system.id,
             effects: []
         };
 
@@ -1659,7 +1665,7 @@ export class PTActor extends Actor {
 
     async loadPrimerEffects(context) {
         let actor = context.actor;
-        let actorToken = canvas.tokens.placeables.filter(x => x.actor._id == actor._id);
+        let actorToken = canvas.tokens.placeables.filter(x => x.actor.system.id == actor.system.id);
 
         if (actorToken == null) return;
 
@@ -1668,7 +1674,7 @@ export class PTActor extends Actor {
         }
 
         let primers = this.system.primerEffects.filter(x => {
-            let token = canvas.tokens.placeables.filter(y => y.actor._id == x.id);
+            let token = canvas.tokens.placeables.filter(y => y.actor.system.id == x.actor.system.id);
 
             if (token != null && token.disposition == actorToken.disposition) {
                 return true;
@@ -2314,7 +2320,7 @@ export class PTActor extends Actor {
     }
 
     getOutgoingMarkCount(markType) {
-        return this.system.outgoingMarks.filter(x => x.source == this.id && x.id == markType).length;
+        return this.system.outgoingMarks.filter(x => x.source == this.system.id && x.id == markType).length;
     }
 
     async pushToOutgoing(mark) {
@@ -2332,7 +2338,7 @@ export class PTActor extends Actor {
     async applyMark(source, markType) {
         const system = this.toObject(false).system;
 
-        let mark = new Mark(source.id, this.id, markType);
+        let mark = new Mark(source.system.id, this.system.id, markType);
 
         system.incomingMarks.push(mark);
 
@@ -2355,19 +2361,19 @@ export class PTActor extends Actor {
     async removeMark(source, markType) {
         const system = this.toObject(false).system;
 
-        system.incomingMarks = system.incomingMarks.filter(x => !(x.source == source.id && x.id == markType));
+        system.incomingMarks = system.incomingMarks.filter(x => !(x.source == source.system.id && x.id == markType));
 
         await this.update({ system }, { diff: false, render: true });
 
-        await source.removeFromOutgoing(x => !(x.source == source.id && x.id == markType));
+        await source.removeFromOutgoing(x => !(x.source == source.system.id && x.id == markType));
     }
 
     hasMarkApplied(source, markType) {
-        return this.system.incomingMarks.filter(x => (source == null || (x.source == source.id)) && x.id == markType).length > 0;
+        return this.system.incomingMarks.filter(x => (source == null || (x.source == source.system.id)) && x.id == markType).length > 0;
     }
 
     isMarkedTarget(target) {
-        return this.system.outgoingMarks.filter(x => x.target == target.id).length > 0;
+        return this.system.outgoingMarks.filter(x => x.target == target.system.id).length > 0;
     }
 
     getAllMarkSources(markType) {
@@ -2406,8 +2412,8 @@ export class PTActor extends Actor {
         type = map[type];
 
         sendNetworkMessage("APPLY_MARK", {
-            target: target,
-            attacker: this,
+            target: target.system.id,
+            attacker: this.system.id,
             mark: type
         });
 
@@ -2448,8 +2454,8 @@ export class PTActor extends Actor {
         type = map[type];
 
         sendNetworkMessage("APPLY_MARK", {
-            target: target,
-            attacker: this,
+            target: target.system.id,
+            attacker: this.system.id,
             mark: type
         });
 
@@ -2497,12 +2503,12 @@ export class PTActor extends Actor {
 
         for (let target of game.user.targets) {
             if (target.document.disposition == dispo) {
-                targets.push(target.actor._id);
+                targets.push(target.actor.system.id);
             }
         }
 
         sendNetworkMessage("HANDLE_TAIL_HEAL", {
-            source: this._id,
+            source: this.system.id,
             targets: targets
         });
     }
@@ -2671,8 +2677,8 @@ export class PTActor extends Actor {
                 if (actor.getRidden()) {
                     let ridden = actor.getMountedActor();
                     await actor.update({ "system.mountedCharacter": null }, { diff: false, render: true })
-                    sendNetworkMessage("CLEAR_MOUNT", { target: ridden });
-                    sendNetworkMessage("EDIT_SCALE", { target: ridden, scale: 2 });
+                    sendNetworkMessage("CLEAR_MOUNT", { target: ridden.system.id });
+                    sendNetworkMessage("EDIT_SCALE", { target: ridden.system.id, scale: 2 });
                     createEffectsMessage(ridden.name, `Is dismounted from ${actor.name}!`);
                 }
 
@@ -2680,7 +2686,7 @@ export class PTActor extends Actor {
                     let ridden = actor.getMountedActor();
                     await actor.update({ "system.mountedCharacter": null }, { diff: false, render: true })
                     await actor.modifyScale(2);
-                    sendNetworkMessage("CLEAR_MOUNT", { target: ridden });
+                    sendNetworkMessage("CLEAR_MOUNT", { target: ridden.system.id });
                     createEffectsMessage(actor.name, `Dismounts from ${ridden.name}!`);
                 }
             },
@@ -2700,19 +2706,19 @@ export class PTActor extends Actor {
                     let map = {};
                     for (let ally of nearbyAllies) {
                         options.push({
-                            name: ally._id,
+                            name: ally.system.id,
                             displayName: ally.name
                         });
 
-                        map[ally._id] = ally;
+                        map[ally.system.id] = ally;
                     }
 
                     target = map[await pollUserInputOptions(actor, "Choose ally to mount.", options)];
                 }
 
-                await actor.update({ "system.mountedCharacter": target._id }, { diff: false, render: true });
-                sendNetworkMessage("UPDATE_MOUNT", { target: target, char: actor });
-                sendNetworkMessage("EDIT_SCALE", { target: target, scale: 0.5 });
+                await actor.update({ "system.mountedCharacter": target.system.id }, { diff: false, render: true });
+                sendNetworkMessage("UPDATE_MOUNT", { target: target.system.id, char: actor.system.id });
+                sendNetworkMessage("EDIT_SCALE", { target: target.system.id, scale: 0.5 });
                 await this.spendAction(false, false);
                 createEffectsMessage(actor.name, `Begins carrying ${target.name}!`);
             },
@@ -2729,18 +2735,18 @@ export class PTActor extends Actor {
                     let map = {};
                     for (let ally of ridableAllies) {
                         options.push({
-                            name: ally._id,
+                            name: ally.system.id,
                             displayName: ally.name
                         });
 
-                        map[ally._id] = ally;
+                        map[ally.system.id] = ally;
                     }
 
                     target = map[await pollUserInputOptions(actor, "Choose ally to mount.", options)];
                 }
 
-                await actor.update({ "system.mountedCharacter": target._id }, { diff: false, render: true });
-                sendNetworkMessage("UPDATE_MOUNT", { target: target, char: actor });
+                await actor.update({ "system.mountedCharacter": target.system.id }, { diff: false, render: true });
+                sendNetworkMessage("UPDATE_MOUNT", { target: target.system.id, char: actor.system.id });
                 await this.modifyScale(0.5);
                 await this.spendAction(false, false);
                 createEffectsMessage(actor.name, `Mounts onto ${target.name}!`);

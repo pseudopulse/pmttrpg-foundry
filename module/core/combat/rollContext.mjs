@@ -116,11 +116,11 @@ export class RollContext {
         this.mustDeserialize = true;
 
         if (this.actor != null) {
-            this.actor = this.actor._id;
+            this.actor = this.actor.system.id;
         }
 
         if (this.target != null) {
-            this.target = this.target._id;
+            this.target = this.target.system.id;
         }
     }
 
@@ -257,7 +257,7 @@ export class RollContext {
 
                 let plusEffect = this.effects.find(x => x.name == `${infliction.key}+`);
                 if (plusEffect != null) {
-                    cur += plusEffect.count;
+                    cur += Number(plusEffect.count);
                 }
 
                 if (this.actor.augmentEffectCount("Rekindled Embers") > 0 && infliction.key == "Burn") {
@@ -349,15 +349,15 @@ export class RollContext {
                 let sp = this.actor.system.attributes.sanity.value;
 
                 if (data.hpHeal > 0) {
-                    lines.push(`Recover ${hpHeal} HP (${php} -> ${hp})`);
+                    lines.push(`Recover ${data.hpHeal} HP (${php} -> ${hp})`);
                 }
 
                 if (data.stHeal > 0) {
-                    lines.push(`Recover ${stHeal} ST (${pst} -> ${st})`);
+                    lines.push(`Recover ${data.stHeal} ST (${pst} -> ${st})`);
                 }
 
                 if (data.spHeal > 0) {
-                    lines.push(`Recover ${spHeal} SP (${psp} -> ${sp})`);
+                    lines.push(`Recover ${data.spHeal} SP (${psp} -> ${sp})`);
                 }
             }
 
