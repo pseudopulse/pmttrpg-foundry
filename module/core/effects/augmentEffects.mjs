@@ -203,6 +203,7 @@ export const augmentEffects = [
                 let anyDead = false;
                 let deadCount = 0;
                 for (const token of canvas.tokens.placeables.filter(x => (x.actor != context.actor) && x.document.disposition == dispo)) {
+                    if (token.actor == null) continue;
                     if (token.actor.system.attributes.health.value <= 0) {
                         anyDead = true;
                         deadCount++;
@@ -241,6 +242,7 @@ export const augmentEffects = [
                 let anyDead = false;
                 let deadCount = 0;
                 for (const token of canvas.tokens.placeables.filter(x => (x.actor != context.actor) && x.document.disposition == dispo)) {
+                    if (token.actor == null) continue;
                     if (token.actor.system.attributes.health.value <= 0) {
                         anyDead = true;
                         deadCount++;
@@ -733,6 +735,7 @@ async function applyInAoe(origin, distance, callback, user) {
     }
 
     for (let token of canvas.tokens.placeables.filter(x => user == null ? true : x.document.disposition != dispo)) {
+        if (token.actor == null) continue;
         if (scale(canvas.grid.measureDistance(source, token)) <= distance) {
             await callback(token.actor);
         }

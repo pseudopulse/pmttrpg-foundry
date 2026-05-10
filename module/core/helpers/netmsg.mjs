@@ -173,6 +173,7 @@ export async function wrapperPollUserInputBurst(data) {
 
 function existsInTokensList(actor) {
     for (let token of canvas.tokens.placeables.filter(x => x.actor && testPermission(x.actor))) {
+        if (token.actor == null) continue;
         if (token.actor.system.id == actor.system.id) {
             return true;
         }

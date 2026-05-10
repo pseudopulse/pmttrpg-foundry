@@ -274,7 +274,7 @@ export async function reduceBloodfeast(val) {
 }
 
 Hooks.on("updateActor", (actor) => {
-  updateActor(actor);
+  updateActor(actor, false);
 });
 
 function updateActor(actor, forceSync) {
@@ -330,7 +330,7 @@ Hooks.once('ready', () => {
 
   for (const token of canvas.tokens.placeables) {
     if (token.actor == null) continue;
-    updateActor(token.actor);
+    updateActor(token.actor, true);
   }
 });
 
@@ -575,6 +575,7 @@ export function getAlliesWithinRadius(actor, radius) {
   }
 
   for (let token of canvas.tokens.placeables.filter(x => x.document.disposition == dispo)) {
+    if (token.actor == null) continue;
     if (scale(canvas.grid.measureDistance(source, token)) <= radius && token.actor != actor) {
       if (!actors.includes(token.actor)) {
         actors.push(token.actor);
@@ -590,6 +591,7 @@ export function getCharactersWithinRadius(actor, radius) {
   let source = canvas.tokens.placeables.find(x => x.actor == actor);
 
   for (let token of canvas.tokens.placeables) {
+    if (token.actor == null) continue;
     if (scale(canvas.grid.measureDistance(source, token)) <= radius) {
       if (!actors.includes(token.actor) && token.actor != actor) {
         actors.push(token.actor);
@@ -609,6 +611,7 @@ export function getEnemiesWithinRadius(actor, radius) {
   }
 
   for (let token of canvas.tokens.placeables.filter(x => x.document.disposition != dispo)) {
+    if (token.actor == null) continue;
     if (scale(canvas.grid.measureDistance(source, token)) <= radius) {
       if (!actors.includes(token.actor)) {
         actors.push(token.actor);

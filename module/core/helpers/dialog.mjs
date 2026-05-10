@@ -727,6 +727,7 @@ export async function pollDistributeStatus(user, team, status, count) {
     let allies = [];
 
     for (let token of canvas.tokens.placeables.filter(x => x.document.disposition == team)) {
+        if (token.actor == null) continue;
         allies.push({
             name: token.actor.name,
             allocated: 0,
@@ -876,6 +877,7 @@ export async function getSkillOptions(actor) {
 
     let targetList = [];
     for (let token of canvas.tokens.placeables.filter(x => x.actor)) {
+        if (token.actor == null) continue;
         targetList.push({
             name: token.actor.name,
             id: token.actor.system.id,
@@ -964,6 +966,7 @@ export async function getSkillOptions(actor) {
 export async function getAttackOptions(actor) {
     let targetList = [];
     for (let token of canvas.tokens.placeables.filter(x => x.actor && x.actor != actor)) {
+        if (token.actor == null) continue;
         targetList.push({
             name: token.actor.name,
             id: token.actor.system.id,

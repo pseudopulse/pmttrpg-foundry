@@ -1701,7 +1701,7 @@ export class PTActor extends Actor {
         const actorData = this;
         const systemData = actorData.system;
 
-        canvas.tokens.placeables.find(x => x.actor.system.id == context.actor.system.id).setTarget(true, { releaseOthers: true });
+        canvas.tokens.placeables.find(x => x.actor && x.actor.system.id == context.actor.system.id).setTarget(true, { releaseOthers: true });
         createClashResponse(this, context);
     }
 
@@ -1748,7 +1748,7 @@ export class PTActor extends Actor {
 
     async loadPrimerEffects(context) {
         let actor = context.actor;
-        let actorToken = canvas.tokens.placeables.filter(x => x.actor.system.id == actor.system.id);
+        let actorToken = canvas.tokens.placeables.filter(x => x.actor && x.actor.system.id == actor.system.id);
 
         if (actorToken == null) return;
 
@@ -1757,7 +1757,7 @@ export class PTActor extends Actor {
         }
 
         let primers = this.system.primerEffects.filter(x => {
-            let token = canvas.tokens.placeables.filter(y => y.actor.system.id == x.actor.system.id);
+            let token = canvas.tokens.placeables.filter(y => y.actor && y.actor.system.id == x.actor.system.id);
 
             if (token != null && token.disposition == actorToken.disposition) {
                 return true;

@@ -2251,6 +2251,7 @@ async function applyInAoe(origin, distance, callback, user) {
     }
 
     for (let token of canvas.tokens.placeables.filter(x => user == null ? true : x.document.disposition != dispo)) {
+        if (token.actor == null) continue;
         if (scale(canvas.grid.measureDistance(source, token)) <= distance) {
             await callback(token.actor);
         }
