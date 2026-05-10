@@ -273,6 +273,23 @@ export async function reduceBloodfeast(val) {
   await setBloodfeast(cur - val);
 }
 
+Hooks.on("updateActor", (actor) => {
+  updateActor(actor);
+});
+
+function updateActor(actor, forceSync) {
+  if (actor != null && game.user.isActiveGM) {
+    const system = actor.toObject(false).system;
+    if (system.id == null) {
+      system.id = generateUUID();
+      actor.update({ system }, { diff: false });
+    }
+    else if (forceSync) {
+      actor.update({ system }, { diff: false });
+    }
+  }
+}
+
 Hooks.on(`createChatMessage`, (message, action, id) => {
   if (message.title == "NETMSGFLAG") {
     handler[message.flavor](JSON.parse(message.content));
@@ -310,6 +327,11 @@ Hooks.on(`updateCombatant`, async (combatant, data, options, id) => {
 
 Hooks.once('ready', () => {
   setRound(game.combat.round, game.combat.turn);
+
+  for (const token of canvas.tokens.placeables) {
+    if (token.actor == null) continue;
+    updateActor(token.actor);
+  }
 });
 
 Hooks.on('preMoveToken', (token, data, action, user) => {

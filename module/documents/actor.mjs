@@ -34,12 +34,6 @@ export class PTActor extends Actor {
         const attr = systemData.attributes;
         const stats = systemData.abilities;
 
-        // id
-
-        if (systemData.id == null || systemData.id == "1IHhyRinRp7RQMWE") {
-            systemData.id = generateUUID();
-        }
-
         // rank
 
         attr.level.value = Math.floor(attr.xp.value / 8);

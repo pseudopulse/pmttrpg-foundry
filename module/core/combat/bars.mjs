@@ -40,6 +40,10 @@ function updateAllTokens() {
 async function drawBars() {
     this.bars.removeChildren();
 
+    if (!this.actor) {
+        return;
+    }
+
     let holder = new PIXI.Container();
     holder.name = "BarHolder";
     let tex = this.document.texture;

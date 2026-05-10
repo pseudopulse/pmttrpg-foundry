@@ -485,6 +485,7 @@ export const augmentEffects = [
     markerEffect("Meditation", false, 1),
     //
     markerEffect("Cursed", false, 5),
+    markerEffect("Sluggish", false, 5),
     markerEffect("Paranoid", false, 1),
     new Effect(
         "Squeamish",

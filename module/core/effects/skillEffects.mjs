@@ -1879,6 +1879,26 @@ export const skillEffects = [
     markerEffect("Operation", false, 4, "Effective Heal", count => {
         return `Increase healing by ${count * 3} if the target is below ${100 * (1 - (0.2 * count))}% HP.`;
     }),
+    new Effect(
+        "Pooling Poison",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                let decay = 2 * count;
+                let poison = context.target.getStatusCount("Poison");
+
+                if (poison >= decay) {
+                    await context.target.reduceStatus("Poison", decay);
+                    createEffectsMessage(context.actor.name, `Drains ${decay} [/status/Poison] Poison from ${context.target.name} to create ${decay} SQR of Toxic Fumes!`);
+                }
+            });
+        },
+        (count) => {
+            return `Drain ${count * 2} [/status/Poison] Poison from the target to create ${count * 2} SQR of Toxic Fumes nearby.`;
+        },
+        ["On Use"],
+        false,
+        5, false, true
+    ),
 ]
 
 async function findAllyTarget(actor, msg) {
