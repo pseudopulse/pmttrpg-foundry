@@ -1251,9 +1251,9 @@ export const skillEffects = [
     healEffect(2, "HP"),
     healEffect(1, "ST"),
     healEffect(1, "SP"),
-    simpleStatusEffectSelf("Strength", 1),
-    simpleStatusEffectSelf("Endurance", 1),
-    simpleStatusEffectSelf("Haste", 1),
+    simpleStatusEffectSelf("Strength", 1, "Feeble"),
+    simpleStatusEffectSelf("Endurance", 1, "Disarm"),
+    simpleStatusEffectSelf("Haste", 1, "Bind"),
     simpleStatusEffectSelf("Protection", 1),
     simpleStatusEffectSelf("Stagger Protection", 1),
     allyStatusEffect("Protection", 2, true),
@@ -2038,17 +2038,22 @@ function markEffect(name, func, desc) {
     );
 }
 
-function simpleStatusEffectSelf(status, amount) {
+function simpleStatusEffectSelf(status, amount, altStatus = null) {
     return new Effect(
         `${status}`,
         (context, count, trigger) => {
-            context.triggers[trigger].applyInfliction(status.replace(" ", "_"), amount, true);
+            if (count < 0) {
+                context.triggers[trigger].applyInfliction(altStatus.replace(" ", "_"), amount, true);
+            }
+            else {
+                context.triggers[trigger].applyInfliction(status.replace(" ", "_"), amount, true);
+            }
         },
         (count) => {
-            return `Gain ${Number(count)} [/status/${status.replace(" ", "_")}] ${status} next round.`;
+            return count < 0 ? `Gain ${Number(count)} [/status/${altStatus.replace(" ", "_")}] ${altStatus} next round.` : `Gain ${Number(count)} [/status/${status.replace(" ", "_")}] ${status} next round.`;
         },
         ["Clash Win", "Clash Lose"],
-        false, 5, false, false
+        false, 5, altStatus != null, false
     );
 }
 

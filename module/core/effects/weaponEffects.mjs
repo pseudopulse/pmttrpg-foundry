@@ -156,7 +156,7 @@ export const weaponEffects = [
                 `Gain % [/status/Bind] Bind next round`, 
             count);
         },
-        ["Clash Win", "Clash Lose"],
+        ["Clash Win", "Clash Lose"], true, 5
     ),
     new Effect(
         `Increase Range`,
