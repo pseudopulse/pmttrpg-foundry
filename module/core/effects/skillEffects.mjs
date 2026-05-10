@@ -2050,10 +2050,10 @@ function simpleStatusEffectSelf(status, amount, altStatus = null) {
             }
         },
         (count) => {
-            return count < 0 ? `Gain ${Number(count)} [/status/${altStatus.replace(" ", "_")}] ${altStatus} next round.` : `Gain ${Number(count)} [/status/${status.replace(" ", "_")}] ${status} next round.`;
+            return count < 0 ? `Gain ${Math.abs(Number(count))} [/status/${altStatus.replace(" ", "_")}] ${altStatus} next round.` : `Gain ${Number(count)} [/status/${status.replace(" ", "_")}] ${status} next round.`;
         },
         ["Clash Win", "Clash Lose"],
-        false, 5, altStatus != null, false
+        altStatus != null, 5, false, false
     );
 }
 
