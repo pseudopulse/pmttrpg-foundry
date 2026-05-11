@@ -1,4 +1,7 @@
-import { getActorToken } from "../pmttrpg.mjs";
+import { getHazardAtTile, getHazardCountBetweenTwoPoints, HazardType } from "../core/combat/hazards.mjs";
+import { getActorToken, getTokenCenter } from "../pmttrpg.mjs";
+
+let display = null;
 
 export class PTTokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
     _preMove(token) {
@@ -41,8 +44,11 @@ export class PTTokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
             movement = actor.system.movement;
             token = getActorToken(actor);
         }
+
+        let difficultTerrainMoved = waypoint.center ? getHazardCountBetweenTwoPoints(HazardType.DIFFICULT_TERRAIN, getTokenCenter(token), waypoint.center) : 0;
         
         let cost = Math.floor(this.distanceBetween(token.transform.position, waypoint) / canvas.grid.size);
+        cost += difficultTerrainMoved;
 
         if (cost > movement && (game.combat != null && game.combat.isActive)) {
             return 0xaa0000;

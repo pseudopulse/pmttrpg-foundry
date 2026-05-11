@@ -405,7 +405,7 @@ export class RollContext {
 
                 let plusEffect = this.effects.find(x => x.name == `${infliction.key}+`);
                 if (plusEffect != null) {
-                    cur += plusEffect.count;
+                    cur += Number(plusEffect.count);
                 }
 
                 if (this.actor.augmentEffectCount("Rekindled Embers") > 0 && infliction.key == "Burn") {

@@ -108,7 +108,8 @@
       "mountedCharacter": null,
       "id": null,
       "activeAbnoPages": [],
-      "defeated": false
+      "defeated": false,
+      "alreadyTriggeredHazards": []
     }
   },
   "Item": {

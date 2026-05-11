@@ -4,6 +4,7 @@ import { getActorToken, searchByObject } from "../../pmttrpg.mjs";
 import { RollContext } from "../combat/rollContext.mjs";
 import { createEffectsMessage } from "./clash.mjs";
 import { pollUserInputConfirm, pollUserInputOptions, pollUserInputText, pollReduceStatus, pollDistributeStatus, pollUserInputBurst } from "./dialog.mjs";
+import { addHazardInternal, roundEndInternal } from "../combat/hazards.mjs";
 
 export function sendNetworkMessage(type, data) {
     ChatMessage.create({
@@ -19,6 +20,14 @@ export function sendNetworkMessage(type, data) {
 export const handler = {};
 
 export function registerMessages() {
+    handler["CREATE_HAZARD"] = async (data) => {
+        await addHazardInternal(data.type, data.rounds, data.source, data.affectedTiles);
+    }
+
+    handler["ROUND_END_HAZARD"] = async (data) => {
+        roundEndInternal();
+    }
+
     handler["PENDING_CLASH"] = async (data) => {
         const target = findByID(data.target);
         const attacker = findByID(data.attacker);

@@ -13,10 +13,10 @@ import { PTTokenRuler } from "./documents/tokenRuler.mjs";
 import { macroList } from "./core/combat/macros.mjs";
 import { Triggers } from "./core/status/statusEffect.mjs";
 import { handleBarReplacement } from "./core/combat/bars.mjs";
+import { loadAllHazards, getHazardCountBetweenTwoPoints, HazardType, handleHazardMovement } from "./core/combat/hazards.mjs";
 // import Hooks from "@client/helpers/hooks.mjs";
 
 let ignoreNextMountFlag = [];
-export let lastClickedToken = null;
 
 Hooks.once("init", async () => {
   // debug
@@ -37,6 +37,16 @@ Hooks.once("init", async () => {
     scope: 'world',
     type: Number,
     default: 0,
+    requiresReload: false
+  });
+
+  await game.settings.register('pmttrpg', 'hazards', {
+    name: 'hazards',
+    hint: 'internal dont touch',
+    config: false,
+    scope: 'world',
+    type: String,
+    default: "",
     requiresReload: false
   });
 
@@ -193,8 +203,6 @@ Hooks.once("init", async () => {
   });
 
   handleBarReplacement();
-  
-  libWrapper.register("pmttrpg", "CONFIG.Token.objectClass.prototype._onClickLeft", Token_onClickLeft, "MIXED");
 
   Handlebars.registerPartial('ptEffect', '{{> systems/pmttrpg/templates/item/parts/effect.hbs}}')
   Handlebars.registerPartial('ptWeaponBlock', '{{> systems/pmttrpg/templates/item/parts/weapon-block.hbs}}')
@@ -207,9 +215,28 @@ Hooks.once("init", async () => {
   return preloadHandlebarsTemplates();
 });
 
-function Token_onClickLeft(wrapper, event) {
-  wrapper(event);
-  lastClickedToken = this;
+export async function updateHazards(hazards) {
+  await game.settings.set('pmttrpg', 'hazards', safeJsonConvert(hazards, ["display"]));
+}
+
+function safeJsonConvert(obj, ignore) {
+  const res = JSON.stringify(obj, (key, value) => {
+    if (ignore.includes(key)) {
+      return null;
+    }
+
+    return value;
+  })
+  
+  return res;
+}
+
+export function loadHazards() {
+  let str = game.settings.get('pmttrpg', 'hazards');
+  if (str == null || str == "") {
+    return [];
+  }
+  return JSON.parse(str);
 }
 
 export function fixRollContext(context) {
@@ -217,6 +244,15 @@ export function fixRollContext(context) {
   Object.assign(ctx, context);
   ctx.fix();
   return ctx;
+}
+
+export function getTokenCenter(token) {
+  let bounds = token.mesh.canvasBounds;
+  let point = { x: bounds.x, y: bounds.y };
+  point.x += bounds.width / 2;
+  point.y += bounds.height / 2;
+
+  return point;
 }
 
 export function playSound(key, global = true) {
@@ -228,7 +264,6 @@ export function playSound(key, global = true) {
     game.audio.play(path);
   }
 }
-
 
 // https://stackoverflow.com/a/873856
 export function generateUUID()
@@ -277,10 +312,16 @@ Hooks.on("updateActor", (actor) => {
   updateActor(actor, false);
 });
 
-function updateActor(actor, forceSync) {
+Hooks.on("createToken", (token) => {
+  if (!token.actorLink) {
+    updateActor(token.actor, false, true);
+  }
+});
+
+function updateActor(actor, forceSync, forceRegen = false) {
   if (actor != null && game.user.isActiveGM) {
     const system = actor.toObject(false).system;
-    if (system.id == null) {
+    if (system.id == null || forceRegen) {
       system.id = generateUUID();
       actor.update({ system }, { diff: false });
     }
@@ -326,20 +367,36 @@ Hooks.on(`updateCombatant`, async (combatant, data, options, id) => {
 });
 
 Hooks.once('ready', () => {
-  setRound(game.combat.round, game.combat.turn);
+  if (game.combat != null) {
+    setRound(game.combat.round, game.combat.turn);
+  }
 
   for (const token of canvas.tokens.placeables) {
     if (token.actor == null) continue;
     updateActor(token.actor, true);
   }
+
+  loadAllHazards();
 });
+
+export function centerPosition(point) {
+  return {
+    x: point.x + (canvas.grid.size / 2),
+    y: point.y + (canvas.grid.size / 2)
+  };
+}
 
 Hooks.on('preMoveToken', (token, data, action, user) => {
   let distScale = canvas.grid.size;
   let origin = data.origin;
   let dest = data.destination;
   let dist = distanceBetween(origin, dest);
-  let sqr = Math.floor(dist / distScale) + (Math.max((data.destination.elevation - data.origin.elevation) / 5, 0));
+  let difficultTerrainMoved = getHazardCountBetweenTwoPoints(HazardType.DIFFICULT_TERRAIN, centerPosition(origin), centerPosition(dest));
+  if (dest.elevation != origin.elevation) {
+    difficultTerrainMoved = 0;
+  }
+
+  let sqr = Math.floor(dist / distScale) + (Math.max((data.destination.elevation - data.origin.elevation) / 5, 0)) + difficultTerrainMoved;
 
   if (token.movementAction != "blink" && sqr > token.actor.system.movement && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user && !token.actor.getRiding()) {
     ui.notifications.notify(`You cant move that far! You attempted to move ${sqr} SQR, while only having ${token.actor.system.movement} SQR remaining!`);
@@ -380,7 +437,12 @@ Hooks.on('moveToken', async (token, data, action, user) => {
   let origin = data.origin;
   let dest = data.destination;
   let dist = distanceBetween(origin, dest);
-  let sqr = Math.floor(dist / distScale) + (Math.max((data.destination.elevation - data.origin.elevation) / 5, 0));;
+  let difficultTerrainMoved = getHazardCountBetweenTwoPoints(HazardType.DIFFICULT_TERRAIN, centerPosition(origin), centerPosition(dest));
+  if (dest.elevation != origin.elevation) {
+    difficultTerrainMoved = 0;
+  }
+  
+  let sqr = Math.floor(dist / distScale) + (Math.max((data.destination.elevation - data.origin.elevation) / 5, 0)) + difficultTerrainMoved;
 
   if (token.movementAction != "blink" && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user && !token.actor.getRiding()) {
     if (sqr > 6 && token.actor.augmentEffectCount("Velocity Generator") > 0) {
@@ -391,11 +453,18 @@ Hooks.on('moveToken', async (token, data, action, user) => {
 
     await token.actor.update({ "system.movement": Math.max(Number(token.actor.system.movement) - sqr, 0) }, { diff: false });
     await token.actor.fireStatusEffects(Triggers.MOVE);
+    if (dest.elevation == origin.elevation) {
+      await handleHazardMovement(token, centerPosition(origin), centerPosition(dest));
+    }
   }
 });
 
 function distanceBetween(v1, v2) {
   return Math.hypot(v2.x - v1.x, v2.y - v1.y);
+}
+
+export function gridDistanceBetween(v1, v2) {
+  return Math.hypot(v2.x - v1.x, v2.y - v1.y) / canvas.grid.size;
 }
 
 export function scale(distance) {

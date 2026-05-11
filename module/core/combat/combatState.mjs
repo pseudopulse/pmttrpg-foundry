@@ -1,5 +1,6 @@
 import { findBoundActors, searchForActor } from "../../pmttrpg.mjs";
 import { getActorUser } from "../helpers/netmsg.mjs";
+import { roundEnd } from "./hazards.mjs";
 
 export let currentRound = 0;
 export let currentTurn = 0;
@@ -14,6 +15,10 @@ export function setRound(round, turn) {
 export async function roundChange(combat, round, turn) {
     currentRound = round;
     alreadyDoneThisRound = [];
+
+    if (game.user.isActiveGM) {
+        roundEnd();
+    }
 
     if (round != 1) {
         for (const token of canvas.tokens.placeables) {
@@ -55,7 +60,7 @@ export async function turnChange(combat, round, turn) {
 export async function updateCombatant(combatant, data, id) {
     let actor = combatant.token.actor;
 
-    if (actor != null && game.user.isGM) {
+    if (actor != null && game.user.isActiveGM) {
         await actor.handleCombatStart();
         await actor.handleNextTurn();
 

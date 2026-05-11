@@ -1,9 +1,10 @@
 import { getRollContextFromData } from "../../documents/item.mjs";
-import { clearLastToken, findActorsOfTeam, getBloodfeast, getDistance, lastClickedToken, searchByObject } from "../../pmttrpg.mjs";
+import { findActorsOfTeam, getActorToken, getBloodfeast, getDistance, searchByObject } from "../../pmttrpg.mjs";
 import { calculateTechniqueCost } from "../../sheets/item.mjs";
 import { RollContext } from "../combat/rollContext.mjs";
 import { createClashMessage, enrichClashData } from "../helpers/clash.mjs";
 import { findByID, getActorUser, sendNetworkMessage } from "./netmsg.mjs";
+import { requestTargeting, TargetType } from "../combat/targeting.mjs";
 
 export function createAlertBox(alert) {
     const dialog = new Dialog({
@@ -937,21 +938,13 @@ export async function getSkillOptions(actor) {
             });
 
             html.on('click', '#sto-targetButton', async (event) => {
-                ui.notifications.info("Click on a token to target.");
-                clearLastToken();
-                new Promise((resolve) => {
-                    const checkVariable = setInterval(() => {
-                        if (lastClickedToken != null) {
-                            clearInterval(checkVariable);
-                            resolve(lastClickedToken);
-                        }
-                    }, 100); 
-                }).then((token) => {
-                    ui.notifications.clear();
-                    token.setTarget(true, { releaseOthers: true });
-                    $("#sto-targetButton").text(token.actor.name);
-                    target = token;
-                })
+                requestTargeting(TargetType.TOKEN).then((result) => {
+                    if (result == null) return;
+
+                    result.setTarget(true, { releaseOthers: true });
+                    $("#sto-targetButton").text(result.actor.name);
+                    target = result;
+                });
             });
         }
     }, {
@@ -995,6 +988,19 @@ export async function getAttackOptions(actor) {
         targets: targetList
     });
     
+    let ranges = [];
+    let rangeLabels = {};
+    let weapons = actor.items.filter(x => x.type == "weapon" && actor.getCanUseItem(x));
+
+    for (let weapon of weapons) {
+        let ctx = getRollContextFromData(weapon);
+        let range = ctx.getRange();
+        if (rangeLabels[range] == null) {
+            rangeLabels[range] = [];
+        }
+        rangeLabels[range].push(weapon.name);
+        ranges.push(ctx.getRange());
+    }
 
     const dialog = new Dialog({
         title: "",
@@ -1069,23 +1075,18 @@ export async function getAttackOptions(actor) {
             });
 
             html.on('click', '#at-targetButton', async (event) => {
-                ui.notifications.info("Click on a token to target.");
-                clearLastToken();
-                new Promise((resolve) => {
-                    const checkVariable = setInterval(() => {
-                        if (lastClickedToken != null) {
-                            clearInterval(checkVariable);
-                            resolve(lastClickedToken);
-                        }
-                    }, 100); 
-                }).then((token) => {
-                    ui.notifications.clear();
-                    token.setTarget(true, { releaseOthers: true });
-                    $("#at-targetButton").text(token.actor.name);
-                    target = token;
+                requestTargeting(TargetType.TOKEN, {
+                    ranges: ranges,
+                    rangeLabels: rangeLabels,
+                    originToken: getActorToken(actor),
+                    tokenFilter: (x) => x.actor.system.id != actor.system.id
+                }).then((result) => {
+                    if (result == null) return;
 
-                    updateWeapons();
-                })
+                    result.setTarget(true, { releaseOthers: true });
+                    $("#at-targetButton").text(result.actor.name);
+                    target = result;
+                });
             });
         }
     }, {

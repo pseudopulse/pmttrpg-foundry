@@ -3,13 +3,15 @@ import { checkDraw, createAbnoPageMessage, createClashMessage, createEffectsMess
 import { createClashResponse, getAttackOptions, getSkillOptions, pollReduceStatus, pollUserInputBurst, pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "../core/helpers/dialog.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
-import { findActorsOfTeam, findOfTypeForActor, fixRollContext, generateUUID, getActorTeam, getActorToken, getAlliesWithinRadius, getBloodfeast, getDistance, getEnemiesWithinRadius, playSound, reduceBloodfeast, searchByObject, weightedPick } from "../pmttrpg.mjs";
+import { findActorsOfTeam, findOfTypeForActor, fixRollContext, generateUUID, getActorTeam, getActorToken, getAlliesWithinRadius, getBloodfeast, getDistance, getEnemiesWithinRadius, getTokenCenter, playSound, reduceBloodfeast, searchByObject, weightedPick } from "../pmttrpg.mjs";
 import { currentRound } from "../core/combat/combatState.mjs";
 import { getRollContextFromData, getRollContextFromDataFull, getRollContextFromDataFullTargeted } from "./item.mjs";
 import { registerEffectMacro } from "../core/combat/macros.mjs";
 import { Mark, MarkNames, MARKS } from "../core/status/mark.mjs";
 import { findByID, sendNetworkMessage } from "../core/helpers/netmsg.mjs";
 import { abnoCards } from "../core/effects/abnoCards.mjs";
+import { requestTargeting, TargetType } from "../core/combat/targeting.mjs";
+import { addHazard, getHazardAtTile, HazardNames, HazardType } from "../core/combat/hazards.mjs";
 
 let pending = {};
 let pendingStagger = {};
@@ -1371,6 +1373,12 @@ export class PTActor extends Actor {
     }
 
     async takeDamage(damage, context, flatHP = 0, flatST = 0, flatSP = 0, silent = false, selfCtx = null, header = "()") {
+        if (context == null) {
+            context = new RollContext();
+            context.target = this;
+            context.actor = this;
+        }
+
         if (selfCtx != null && selfCtx.reactive) {
             return;
         }
@@ -1920,6 +1928,7 @@ export class PTActor extends Actor {
 
         speed -= Number(this.system.movementPenalty);
 
+        await this.update({ "system.alreadyTriggeredHazards": [] }, { diff: false });
         await this.update({ "system.movement": Math.max(0, 6 + speed) }, { diff: false });
         await this.update({ "system.nextRoundMovement": 0 }, { diff: false });
         await this.update({ "system.kineticStorageMovement": kMovement }, { diff: false });
@@ -1932,6 +1941,37 @@ export class PTActor extends Actor {
         await this.update({ "system.actions": actions }, { diff: false });
 
         await this.updateOverheatedWeapons();
+
+        let token = getActorToken(this);
+
+        if (token && getHazardAtTile(getTokenCenter(token)) == HazardType.CLEANSING_GAS) {
+            let roll = await this.doRoll(`2d6+${token.actor.system.abilities.Fortitude.value}-2`);
+            let line = '';
+                
+            if (roll <= 6) {
+                let damage = await this.doRoll(`4d6`);
+                await this.takeDamage(0, null, 0, damage, 0, false);
+                line = `Rolls ${roll} and takes ${damage} ST damage from the Cleansing Gas!`;
+            }
+            else if (roll <= 9) {
+                let damage = await this.doRoll(`2d6`);
+                await this.takeDamage(0, null, 0, damage, 0, false);
+                line = `Rolls ${roll} and takes ${damage} ST damage from the Cleansing Gas!`;
+            }
+            else {
+                line = `Resists the Cleansing Gas with a roll of ${roll}!`;
+            }
+
+            createEffectsMessage(this.name, line);
+            await this.update({ "system.alreadyTriggeredHazards": [getTokenCenter(token)] }, { diff: false });
+        }
+    }
+
+    async doRoll(formula) {
+        let roll = new Roll(formula);
+        let res = await roll.evaluate();
+
+        return res.total;
     }
 
     getStatusCount(status) {
@@ -2597,24 +2637,21 @@ export class PTActor extends Actor {
     }
 
     async handleTails() {
-        if (game.user.targets.keys().length == 0) {
-            ui.notifications.info("You need targets to heal!");
-            return
-        }
-
-        if (game.user.targets.keys().length >= 5) {
-            ui.notifications.info("You are targeting too many units!");
-            return
-        }
-
-        let targets = [];
-
         let dispo = getActorTeam(this);
 
-        for (let target of game.user.targets) {
-            if (target.document.disposition == dispo) {
-                targets.push(target.actor.system.id);
-            }
+        let results = await requestTargeting(TargetType.MULTI_TOKEN, {
+            tokenFilter: (x) => {
+                return x.document.disposition == dispo;
+            },
+            maxSelections: 5,
+            targetIcon: "status/Heal_Efficiency.png"
+        });
+
+        let targets = results.map(x => x.actor.system.id);
+
+        if (targets.length == 0) {
+            ui.notifications.info("You haven't selected any targets!");
+            return;
         }
 
         sendNetworkMessage("HANDLE_TAIL_HEAL", {
@@ -2910,6 +2947,31 @@ export class PTActor extends Actor {
             }, "icons/Abnormality_Synchronization.png"));
         }
 
+        if (true) {
+            hotbar.push(await registerEffectMacro("Create Hazard", async (actor) => {
+                let options = [];
+                for (let hazard of Object.values(HazardType)) {
+                    options.push({ name: hazard, displayName: HazardNames[hazard] });
+                }
+
+                let hazard = await pollUserInputOptions(actor, "Select a Hazard to create.", options);
+                if (hazard == HazardType.NONE) {
+                    return;
+                }
+
+                let length = await pollUserInputText(actor, "Enter the length of the hazard in rounds.", "1");
+                length = Number(length);
+                
+                let tiles = await requestTargeting(TargetType.MULTI_GRID, {
+                    maxSelections: 9999,
+                    originToken: getActorToken(actor),
+                    maxRange: -1,
+                    enforceRange: false,
+                });
+
+                addHazard(hazard, length, actor.system.id, tiles);
+            }, "Create_Hazard.png"));
+        }
         
         let data = {};
         for (let i = 0; i < hotbar.length; i++) {
