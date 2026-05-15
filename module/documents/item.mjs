@@ -3,7 +3,7 @@
 // import { ChatMessage } from "@client/config.mjs";
 import { RollContext } from "../core/combat/rollContext.mjs";
 import { createClashMessage, createEffectsMessage } from "../core/helpers/clash.mjs";
-import { createAlertBox, getActionModifiers, pollUserInputOptions } from "../core/helpers/dialog.mjs";
+import { createAlertBox, getActionModifiers, pollUserInputConfirm, pollUserInputOptions } from "../core/helpers/dialog.mjs";
 import { sendNetworkMessage } from "../core/helpers/netmsg.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
 import { findItemOwner } from "../pmttrpg.mjs";
@@ -51,6 +51,22 @@ export class PTItem extends Item {
             return false;
         }
 
+        if (this.actor.getHasRecycledEvade() && context.modifiers.item == null) {
+            let res = await pollUserInputConfirm(this.actor, `Use your Recycled Evade for this clash? (Recycled ${this.actor.getRecycledEvadeCount()} times)`);
+
+            if (res) {
+                context.recycledEvade = true;
+                await this.actor.incRecycledEvadeCount();
+                let count = this.actor.getRecycledEvadeCount();
+
+                context.dicePower = Number(context.dicePower) - (context.form == "Swift" ? count : count * 2);
+            }
+        }
+
+        if (defType != "Evade") {
+            await this.actor.setRecycledEvadeStatus(false);
+        }
+        
         const label = `[${item.type}] ${item.name} targeting ${game.user.targets.first().actor.name}`;
 
         const roll = new Roll(`1d${context.diceMax}+${context.dicePower}`, "");
@@ -170,6 +186,7 @@ export class PTItem extends Item {
         }
         else {
             context.isReaction = true;
+            await this.actor.setRecycledEvadeStatus(false);
             // await this.actor.spendReaction(true, false);
         }
 

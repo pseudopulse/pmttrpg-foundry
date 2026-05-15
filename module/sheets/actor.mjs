@@ -158,6 +158,10 @@ export class PTActorSheet extends ActorSheet {
             this.actor.update({ system }, { diff: false, render: true });
         });
 
+        html.on('click', '.as-reset-button', async (ev) => {
+            await this.actor.resetStats();
+        });
+
         html.on('click', '.dispo-entry-2', (ev) => {
             const system = this.actor.toObject(false).system;
             system.secondaryDisposition = ev.currentTarget.textContent;

@@ -21,7 +21,7 @@
                                                 title='Counter' width='24' height='24' />
                                         </a>
                                     </div>
-                                    <h4 class="crw-item-text">{{item.name}}</h4>
+                                    <h4 class="crw-item-text" style="text-wrap-mode: wrap !important; width: 12rem !important;">{{item.name}}</h4>
                                 </div>
                                 <div>
                                     {{#with (rctx item) as |rollContext|}}
@@ -37,7 +37,7 @@
                         {{#each outfits as |item id|}}
                         <li class='item flexrow' data-item-id='{{item._id}}'>
                             <div class="crw-resource">
-                                <h4 class="crw-item-text" style="width: 8rem;">{{item.name}}</h4>
+                                <h4 class="crw-item-text" style="text-wrap-mode: wrap !important; width: 8rem !important; text-align: center;">{{item.name}}</h4>
                                 <div class="cr-def-roll">
                                     {{#with (drctx item "Block") as |rollContext|}}
                                     <a class='rollable' data-roll-type='Block'>

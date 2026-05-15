@@ -81,6 +81,7 @@
       "reactions": 0,
       "emotionLevelUsed": 0,
       "indomitableSpent": false,
+      "unstoppableSpent": false,
       "kineticStorageMovement": 0,
       "poisePaused": false,
       "ruinPaused": false,
@@ -109,7 +110,9 @@
       "id": null,
       "activeAbnoPages": [],
       "defeated": false,
-      "alreadyTriggeredHazards": []
+      "alreadyTriggeredHazards": [],
+      "recycledEvadeCount": 0,
+      "canRecycledEvade": false
     }
   },
   "Item": {

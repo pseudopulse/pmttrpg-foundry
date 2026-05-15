@@ -50,6 +50,7 @@ export class RollContext {
         this.forcedBurst = [];
         this.forcedExcludeBurst = [];
         this.ignoringInflictions = false;
+        this.recycledEvade = false;
         // power null stuff
         this.nonSkillDicePower = 0;
         this.skillDicePower = 0;

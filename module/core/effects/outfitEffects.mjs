@@ -154,6 +154,27 @@ export const outfitEffects = [
         5, false, true
     ),
     new Effect(
+        "Bloodletting",
+        (context, count, trigger) => {
+            context.events["Combat Start"].push(async (context) => {
+                if (count > 0) {
+                    let php = Number(context.actor.system.attributes.health);
+                    let dmg = Number(context.actor.system.attributes.health.max) * (0.03 * Number(count));
+                    dmg = Math.round(dmg);
+                    await context.actor.takeDamage(0, context, dmg, 0, 0);
+                    let hp = Number(context.actor.system.attributes.health);
+                    createEffectsMessage(context.actor.name, `Loses ${dmg} HP from Bloodletting! (${php} -> ${hp})`);
+                }
+            });
+        },
+        (count) => {
+           return `Take HP damage equal to ${3 * Number(count)}% maximum health.`
+        },
+        ["Combat Start"],
+        true,
+        5, false, true
+    ),
+    new Effect(
         "Shock Absorbant",
         (context, count, trigger) => {
             context.events["Combat Start"].push(async (context) => {

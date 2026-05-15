@@ -574,7 +574,7 @@ export const skillEffects = [
         `Ruin Bonus`,
         (context, count, trigger) => {
             let req = Number(count);
-            if (context.actor && context.actor.getAugmentCount("Ruin Bonus") > 0) {
+            if (context.actor && context.actor.augmentEffectCount("Ruin Bonus") > 0) {
                 req += 3;
             }
 
@@ -1009,7 +1009,7 @@ export const skillEffects = [
                 if (sinking <= 0) return;
 
                 await context.target.takeDamageStatus(Math.floor(context.target.system.staggered || context.target.system.attributes.sanity.value <= 0 ? sinking * 2 : sinking * 1.5),
-                "none", "HP", "Takes %DMG% HP damage from [/status/Sinking] Sinking Deluge! (%PHP% -> %HP)");
+                "none", "HP", "Takes %DMG% HP damage from [/status/Sinking] Sinking Deluge! (%PHP% -> %HP%)");
             })
         },
         (count) => {
@@ -1919,6 +1919,9 @@ export const skillEffects = [
         false,
         5, false, true
     ),
+    markerEffect("Absolve Sorrow", false, 1, "On Crit", (count) => {
+        return `Do not deal [/status/Critical] Critical damage. Burst [/status/Sinking] Sinking once for every [/status/Critical] Critical on self.`
+    }),
 ]
 
 async function findAllyTarget(actor, msg) {

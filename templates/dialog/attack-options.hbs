@@ -26,7 +26,7 @@
                                                 title='Attack' width='24' height='24' />
                                         </a>
                                     </div>
-                                    <h4 class="atw-item-text">{{item.name}}</h4>
+                                    <h4 class="atw-item-text" style="text-wrap-mode: wrap !important; width: 12rem !important;">{{item.name}}</h4>
                                 </div>
                                 <div>
                                     {{#with (rctx item) as |rollContext|}}
@@ -34,7 +34,8 @@
                                         {{rollContext.diceCount}}d{{rollContext.diceMax}}+{{rollContext.dicePower}}</h4>
                                     {{/with}}
                                 </div>
-                                <h4 class="atw-item-text at-range-indicator" style="color: red; position: absolute; right: 8%">Too Far!</h4>
+                                {{!-- hidden to disable --}}
+                                <h4 class="atw-item-text at-range-indicator" hidden="true" style="color: red; position: absolute; right: 8%"></h4>
                             </div>
                         </li>
                         {{/each}}
@@ -50,7 +51,7 @@
                                                     title='Recycled' width='24' height='24' />
                                             </a>
                                         </div>
-                                        <h4 class="atw-item-text">{{roll.name}}</h4>
+                                        <h4 class="atw-item-text" style="text-wrap-mode: wrap !important; width: 11rem !important;">{{roll.name}}</h4>
                                     </div>
                                     <div>
                                     <h4 class="atw-item-text atw-rollText">{{roll.diceCount}}d{{roll.diceMax}}+{{roll.dicePower}} / {{roll.result}}</h4>
@@ -270,14 +271,15 @@
         background: rgb(147, 161, 175);
     }
 
-    .atw-dropdown-holder {}
+    .atw-dropdown-holder {
+
+    }
 
     .atw-item-text {
         text-wrap-mode: nowrap;
         margin: 0px;
         font-size: 20px;
         color: black;
-        width: 5rem;
     }
 
     .atw-attack-type-button {

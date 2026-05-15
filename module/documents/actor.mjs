@@ -118,6 +118,33 @@ export class PTActor extends Actor {
         }
     }
 
+    async resetStats() {
+        const actorData = this;
+        const system = actorData.toObject(false).system;
+        system.staggerRounds = 0;
+        system.staggered = false;
+        system.panic = false;
+        system.attributes.health.value = system.attributes.health.max;
+        system.attributes.stagger.value = system.attributes.stagger.max;
+        system.attributes.sanity.value = system.attributes.sanity.max;
+        system.attributes.light.value = system.attributes.light.max;
+        system.attributes.health.temp = 0;
+        system.attributes.stagger.temp = 0;
+        system.attributes.sanity.temp = 0;
+        await this.update({ system }, { diff: false, render: true });
+    }
+
+    async resetStagger() {
+        const actorData = this;
+        const system = actorData.toObject(false).system;
+        system.staggerRounds = 0;
+        system.staggered = false;
+        system.attributes.stagger.value = system.attributes.stagger.max;
+        await this.update({ system }, { diff: false, render: true });
+
+        createEffectsMessage(this.name, `${this.name} has recovered from stagger!`);
+    }
+
     sendTriggerActionSkill(item, target) {
         sendNetworkMessage("USE_ACTION_SKILL", {
             attacker: this.system.id,
@@ -193,6 +220,10 @@ export class PTActor extends Actor {
         system.exsanguinateData = null;
         system.persistentVenom = false;
         system.activeAbnoPages = [];
+        system.hasRecycledEvade = false;
+        system.recycledEvadeCount = 0;
+        system.indomitableSpent = false;
+        system.unstoppableSpent = false;
 
         await this.update({ system }, { diff: false, render: true });
     }
@@ -371,11 +402,11 @@ export class PTActor extends Actor {
 
         if (checkDraw(ctx1, ctx2)) {
             if (ctx1.isReaction) {
-                if (ctx1.actor.hasAbnoPage("Visions of your Fate") && ctx1.damageType == "Evade") {
-                    
+                if ((ctx1.actor.hasAbnoPage("Visions of your Fate") && ctx1.damageType == "Evade") || (ctx1.recycledEvade)) {
+                    await ctx1.actor.spendReaction(true, true);
                 }
                 else {
-                    await ctx1.actor.spendReaction(true, true);
+                    await ctx1.actor.spendReaction(true, false);
                 }
             }
             else {
@@ -383,7 +414,12 @@ export class PTActor extends Actor {
             }
 
             if (ctx2.isReaction) {
-                await ctx2.actor.spendReaction(true, true);
+                if ((ctx2.actor.hasAbnoPage("Visions of your Fate") && ctx2.damageType == "Evade") || (ctx2.recycledEvade)) {
+                    await ctx2.actor.spendReaction(true, true);
+                }
+                else {
+                    await ctx2.actor.spendReaction(true, false);
+                }
             }
             else {
                 await ctx2.actor.spendAction(true, false);
@@ -620,17 +656,29 @@ export class PTActor extends Actor {
                 if (ctx2.actor.hasMarkApplied(ctx1.actor, MARKS.Commander)) {
                     bonusCritical += 1;
                 }
-                let modifier = "";
-                if (ctx1.actor.system.activeStance == "Slasher") {
-                    modifier = "kh";
+                
+                if (ctx1.hasEffect("Absolve Sorrow")) {
+                    if (ctx2.actor.getStatusCount("Sinking") > 0) {
+                        for (let i = 0; i < critical + bonusCritical; i++) {
+                            await ctx2.actor.fireStatusEffect("Sinking", i < critical + bonusCritical);
+                            await ctx1.fireEvent("Sinking Burst");
+                        }
+                    }
+                }
+                else {
+                    let modifier = "";
+                    if (ctx1.actor.system.activeStance == "Slasher") {
+                        modifier = "kh";
+                    }
+
+                    tmp = new Roll(`${critical + bonusCritical}d10${modifier}`);
+                    await tmp.evaluate();
+                    let damage = tmp.total + (3 * ctx1.effectCount("Critical DMG+"));
+                    await ctx2.actor.takeDamageStatus(damage, "Poise", "HP", `Received a [/status/Critical] Critical hit for %DMG% HP damage! (%PHP% -> %HP%), crit roll was ${critical + bonusCritical}d10${modifier}`);
                 }
 
-                tmp = new Roll(`${critical + bonusCritical}d10${modifier}`);
-                await tmp.evaluate();
-                let damage = tmp.total + (3 * ctx1.effectCount("Critical DMG+"));
                 await ctx1.actor.setStatus("Poise", 0);
                 await ctx1.actor.setStatus("Critical", 0);
-                await ctx2.actor.takeDamageStatus(damage, "Poise", "HP", `Received a [/status/Critical] Critical hit for %DMG% HP damage! (%PHP% -> %HP%), crit roll was ${critical + bonusCritical}d10${modifier}`);
                 await ctx1.fireEvent("Critical Hit");
                 landedCrit = true;
                 totalAssassinationDamage += 3;
@@ -698,9 +746,15 @@ export class PTActor extends Actor {
         let bursts = await pollUserInputBurst(ctx1.actor, ctx2.actor);
 
         if (bursts.sinkingBurst && doDamageEffects) {
+            let sinking = ctx2.actor.getStatusCount("Sinking");
             await ctx1.fireEvent("Sinking Burst");
             await ctx2.actor.fireStatusEffect("Sinking");
             attackerTriggers.push("Sinking Burst");
+
+            if (ctx2.hasEffect("Pitiful")) {
+                await ctx1.actor.applyStatus("Sinking", 0, Math.floor(sinking / 2));
+                createEffectsMessage(ctx1.actor, `Receives ${Math.floor(sinking / 2)} [/status/Sinking] Sinking next round from Pitiful!`);
+            }
         }
 
         if (bursts.tremorBurst && doDamageEffects) {
@@ -1127,6 +1181,7 @@ export class PTActor extends Actor {
                     await this.heal(0, respCtx.result, 0, this);
                     let st = this.system.attributes.stagger.value;
                     createEffectsMessage(this.name, `Recovers ${respCtx.result} ST from Evade! (${pst} -> ${st})`);
+                    await this.setRecycledEvadeStatus(true);
                 }
                 else {
                     pendingTakeDamageCalls.push([this, damage, context, 0, 0, 0, false, null, "()"]);
@@ -1660,6 +1715,13 @@ export class PTActor extends Actor {
         await this.update({ "system.attributes.sanity.value": 0 }, { diff: false });
         await this.update({ "system.panic": true }, { diff: false });
         createEffectsMessage(this.name, `[/status/Panic] ${this.name} has entered a state of panic!`);
+
+        if (this.augmentEffectCount("Unstoppable") > 0 && !this.system.unstoppableSpent) {
+            await this.update({ "system.attributes.sanity.value": this.system.attributes.sanity.max }, { diff: false });
+            await this.update({ "system.panic": false }, { diff: false });
+            await this.update({ "system.unstoppableSpent": true }, { diff: false });
+            createEffectsMessage(this.name, `${this.name} is Unstoppable! Recovered from panic.`);
+        }
     }
 
     /**
@@ -1985,7 +2047,33 @@ export class PTActor extends Actor {
 
             createEffectsMessage(this.name, line);
             await this.update({ "system.alreadyTriggeredHazards": [getTokenCenter(token)] }, { diff: false });
+
+            await this.setRecycledEvadeStatus(false);
         }
+    }
+
+    getRecycledEvadeCount() {
+        return this.system.recycledEvadeCount;
+    }
+
+    getHasRecycledEvade() {
+        return this.system.canRecycledEvade;
+    }
+
+    async resetRecycledEvadeCount() {
+        await this.update({ "system.recycledEvadeCount": 0 }, { diff: false });
+    }
+
+    async setRecycledEvadeStatus(val) {
+        if (val == false) {
+            await this.update({ "system.recycledEvadeCount": 0 }, { diff: false });
+        }
+
+        await this.update({ "system.canRecycledEvade": val }, { diff: false });
+    }
+
+    async incRecycledEvadeCount() {
+        await this.update({ "system.recycledEvadeCount": Number(this.getRecycledEvadeCount()) + 1 }, { diff: false });
     }
 
     async doRoll(formula) {
@@ -2084,6 +2172,7 @@ export class PTActor extends Actor {
             system2.attributes.stagger.value = system2.attributes.stagger.max;
             system2.staggerRounds = 0;
             system2.staggered = false;
+            system2.indomitableSpent = true;
             await this.update({ system2 }, { diff: false, render: true });
             createEffectsMessage(this.name, `${this.name} is Indomitable! Recovered from stagger.`);
         }
@@ -2298,7 +2387,7 @@ export class PTActor extends Actor {
         return 0;
     }
 
-    async fireStatusEffect(status) {
+    async fireStatusEffect(status, ignoreDecay = false) {
         let def = statusList.find(x => x.name == status);
         let count = this.getStatusCount(status);
 
@@ -2327,6 +2416,10 @@ export class PTActor extends Actor {
 
         if (status == "Frostbite" && this.getStatusCount("Deep_Chill") > 0) {
             await this.reduceStatus("Deep_Chill", 1);
+            return;
+        }
+
+        if (ignoreDecay) {
             return;
         }
 
@@ -2934,6 +3027,20 @@ export class PTActor extends Actor {
             }, "status/PanicBlue.png"));
         }
 
+        if (this.system.staggered && game.user.isGM) {
+            hotbar.push(await registerEffectMacro("Resolve Stagger", async (actor) => {
+                if (!actor.system.staggered) {
+                    ui.notifications.info("You aren't staggered!");
+                    return;
+                }
+
+                await actor.update({ "system.staggered": false }, { diff: false, render: true });
+                await actor.update({ "system.attributes.stagger.value": system.attributes.stagger.max}, { diff: false, render: true });
+
+                createEffectsMessage(this.name, `${this.name} has recovered from stagger!`);
+            }, "icons/Unstagger.png"));
+        }
+
         if (this.augmentEffectCount("Tearful Tails") > 0) {
             hotbar.push(await registerEffectMacro("Tearful Tails", async (actor) => {
                 await this.handleTails();
@@ -2991,7 +3098,7 @@ export class PTActor extends Actor {
                 });
 
                 addHazard(hazard, length, actor.system.id, tiles);
-            }, "Create_Hazard.png"));
+            }, "icons/Create_Hazard.png"));
         }
         
         let data = {};

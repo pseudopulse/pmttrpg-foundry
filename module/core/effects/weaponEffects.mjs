@@ -715,6 +715,16 @@ export const weaponEffects = [
         ["Clash Win", "Clash Lose"], false, 1
     ),
     simpleStatusEffect("Poison", false, true),
+    new Effect(
+        `Pitiful`,
+        (context, count, trigger) => {
+        },
+        (count) => {
+            return `If [/status/Sinking] Sinking is burst on self, inflict next round [/status/Sinking] Sinking equal to half the stack to the attacker.`;
+        },
+        ["Clash Lose"],
+        false, 1,
+    ),
 ]
 
 function simpleStatusEffect(status, nextRound, allowNegative) {

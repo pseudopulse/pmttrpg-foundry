@@ -653,6 +653,7 @@ export const augmentEffects = [
         1, false, true
     ),
     markerEffect("Extra Action", false, 9999),
+    markerEffect("Unstoppable", false, 1),
 
     // hidden gm effects ------
     // spider
@@ -824,7 +825,7 @@ function simpleStatusEffect(status, nextRound, invert = false) {
             return `${invert ? "Gain" : "Inflict"} ${Number(count)} [/status/${status}] ${status}` + str;
         },
         ["Clash Win", "Clash Lose"],
-        false
+        false, status == "Rupture" ? 6 : 5
     );
 }
 
