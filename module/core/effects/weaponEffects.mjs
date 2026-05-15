@@ -731,7 +731,7 @@ function simpleStatusEffect(status, nextRound, allowNegative) {
             count);
         },
         ["Clash Win", "Clash Lose"],
-        allowNegative
+        allowNegative, status == "Rupture" ? 6 : 5
     );
 }
 

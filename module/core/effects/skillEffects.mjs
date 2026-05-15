@@ -571,6 +571,26 @@ export const skillEffects = [
         return `If the target would exceed 10 [/status/Ruin] Ruin from this skill, set [/status/Ruin] Ruin to 1 and apply 1 [/status/Devastation] Devastation.`
     }),
     new Effect(
+        `Ruin Bonus`,
+        (context, count, trigger) => {
+            let req = Number(count);
+            if (context.actor && context.actor.getAugmentCount("Ruin Bonus") > 0) {
+                req += 3;
+            }
+
+            if (context.target != null && context.target.getStatusCount("Ruin") >= req) {
+                context.dicePower = Number(context.dicePower) + count;
+                context.skillDicePower = Number(context.skillDicePower) + count;
+            }
+        },
+        (count) => {
+            return `If the target has ${count}+ [/status/Ruin] Ruin, gain ${Number(count)} Dice Power.`
+        },
+        ["On Use"],
+        false,
+        5
+    ),
+    new Effect(
         `Ruin Pause`,
         (context, count, trigger) => {
             context.events["Clash Win"].push(async (context) => {
@@ -2133,7 +2153,7 @@ function simpleStatusEffect(status, nextRound, allowNegative, nameOverride = nul
             count);
         },
         ["Clash Win", "Clash Lose"],
-        allowNegative
+        allowNegative, status == "Rupture" ? 6 : 5
     );
 }
 
@@ -2306,6 +2326,6 @@ function skillBonusEffect(status, req, max = 5, multReq = 1) {
         },
         ["On Use"],
         false,
-        max
+        5
     );
 }
