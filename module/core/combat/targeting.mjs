@@ -346,7 +346,7 @@ export async function requestTargeting(type, options = {}) {
 
                         if (range.label != null) {
                             let label = range.label;
-                            label.resolution = 3 * getZoom() * range.range;
+                            label.resolution = 5;
                             label.style.strokeThickness = 0;
                             label.style.fontSize = 25 * getZoom() * range.range;
                             label.position.set(pos.x - label.width / 2, pos.y - (radius + (20 * getZoom() * range.range)) - label.height / 2);

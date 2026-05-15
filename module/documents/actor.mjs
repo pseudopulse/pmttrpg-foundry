@@ -935,6 +935,19 @@ export class PTActor extends Actor {
             }
         }
 
+        if (actor.checkDisposition("Ruina")) {
+            triggers["On Use"].emotion += 1;
+            triggers["On Use"].emotion += 1;
+
+            if (context.result == context.maxRoll) {
+                triggers["On Use"].emotion += 1;
+            }
+
+            if (context.result == context.minRoll) {
+                triggers["On Use"].emotion -= 1;
+            }
+        }
+
         if (actor.checkDisposition("Vengeful") && context.defTwoHandedFree) {
             triggers["On Use"].emotion += 1;
             ignoreLoss = true;
@@ -1860,6 +1873,14 @@ export class PTActor extends Actor {
     }
 
     checkDisposition(dispo) {
+        if (dispo == "Ruina" && this.augmentEffectCount("Abnormality Synchronization") > 0) {
+            return true;
+        }
+
+        if (this.augmentEffectCount("Abnormality Synchronization") > 0) {
+            return false;
+        }
+
         return this.system.disposition == dispo || (this.system.secondaryDisposition == dispo && this.augmentEffectCount("Multifaceted") > 0);
     }
 
@@ -1938,7 +1959,7 @@ export class PTActor extends Actor {
         await this.update({ "system.reactions": reactions }, { diff: false });
 
         let actions = Math.max(Math.ceil(Number(this.system.attributes.rank.value) / 2), 1);
-        await this.update({ "system.actions": actions }, { diff: false });
+        await this.update({ "system.actions": Number(actions) + Number(this.augmentEffectCount("Extra Action")) }, { diff: false });
 
         await this.updateOverheatedWeapons();
 

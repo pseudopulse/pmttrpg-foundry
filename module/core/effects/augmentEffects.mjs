@@ -2,7 +2,7 @@ import { Effect } from "./effect.mjs";
 import { handleNegativeText } from "../../core/effects/effectHelpers.mjs";
 import { currentRound } from "../combat/combatState.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
-import { scale } from "../../pmttrpg.mjs";
+import { findActorsOfTeam, scale } from "../../pmttrpg.mjs";
 import { Conditional } from "../combat/rollContext.mjs";
 import { pollReduceStatus, pollUserInputText } from "../helpers/dialog.mjs";
 import { MarkNames, MARKS } from "../status/mark.mjs";
@@ -583,7 +583,7 @@ export const augmentEffects = [
         ["Clash Win"], false, 1
     ),
     //
-    markerEffect("Steady", false, 4),
+    markerEffect("Steady", true, 4),
     //
     markerEffect("Belt Feeder", false, 3),
     // markerEffect("Unlock", false, 1), // X
@@ -652,6 +652,7 @@ export const augmentEffects = [
         false,
         1, false, true
     ),
+    markerEffect("Extra Action", false, 9999),
 
     // hidden gm effects ------
     // spider
@@ -673,6 +674,21 @@ export const augmentEffects = [
         return 'All [/status/Devastation] Devastation and [/status/Ruin] Ruin infliction is resolved instantly.'
     }, ["On Use"], false, 1, false, true),
     new Effect("Abnormality Synchronization", (context, count, trigger) => {}, null, ["Always Active"], false, 1, false, true),
+    new Effect(
+        "Lone Fixer",
+        (context, count, trigger) => { 
+            if (context.actor != null) {
+                if (findActorsOfTeam(context.actor.system.team).length <= 0) {
+                    context.dicePower = Number(context.dicePower) + 2;
+                    context.nonSkillDicePower = Number(context.nonSkillDicePower) + 2;
+                }
+            }    
+        },
+        (count) => {
+            return `Gain 2 Dice Power when there are no allies.`
+        },
+        ["On Use"], false, 1, false, false, false, true
+    ),
 ];
 
 function augmentThresholdEffect(name, bar, mult, status, negativeStatus = []) {
@@ -758,8 +774,8 @@ function augmentVigorEffect(status, req) {
         `${status} Vigor`,
         (context, count, trigger) => {
             if (context.actor != null) {
-                context.dicePower = Number(context.dicePower) + (Math.clamp(context.actor.getStatusCount(status) / req, 0, 3));
-                context.nonSkillDicePower = Number(context.nonSkillDicePower) + (Math.clamp(context.actor.getStatusCount(status) / req, 0, 3));
+                context.dicePower = Number(context.dicePower) + (Math.clamp(Math.floor(context.actor.getStatusCount(status) / req), 0, 3));
+                context.nonSkillDicePower = Number(context.nonSkillDicePower) + (Math.clamp(Math.floor(context.actor.getStatusCount(status) / req), 0, 3));
             }
         },
         (count) => {

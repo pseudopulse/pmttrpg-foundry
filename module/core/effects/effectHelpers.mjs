@@ -79,7 +79,7 @@ export function validate(effects, category) {
                 effect.trigger = def.validTriggers[0];
             }
 
-            if (Math.abs(effect.count) > def.maxCount) {
+            if (Math.abs(effect.count) > def.maxCount && !game.user.isGM) {
                 effect.count = effect.count < 0 ? -def.maxCount : def.maxCount;
             }
 
