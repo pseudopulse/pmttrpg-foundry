@@ -402,27 +402,17 @@ export class PTActor extends Actor {
 
         if (checkDraw(ctx1, ctx2)) {
             if (ctx1.isReaction) {
-                if ((ctx1.actor.hasAbnoPage("Visions of your Fate") && ctx1.damageType == "Evade") || (ctx1.recycledEvade)) {
-                    await ctx1.actor.spendReaction(true, true);
-                }
-                else {
-                    await ctx1.actor.spendReaction(true, false);
-                }
+                await ctx1.actor.spendReaction(true, true);
             }
             else {
-                await ctx1.actor.spendAction(true, false);
+                await ctx1.actor.spendAction(true, true);
             }
 
             if (ctx2.isReaction) {
-                if ((ctx2.actor.hasAbnoPage("Visions of your Fate") && ctx2.damageType == "Evade") || (ctx2.recycledEvade)) {
-                    await ctx2.actor.spendReaction(true, true);
-                }
-                else {
-                    await ctx2.actor.spendReaction(true, false);
-                }
+                await ctx2.actor.spendReaction(true, true);
             }
             else {
-                await ctx2.actor.spendAction(true, false);
+                await ctx2.actor.spendAction(true, true);
             }
 
             return;
@@ -538,15 +528,25 @@ export class PTActor extends Actor {
         await ctx2.fireEvent("On Use");
 
         if (ctx1.isReaction) {
-            await ctx1.actor.spendReaction(true, false);
+            if (ctx1.hasAbnoPage("Visions of your Fate") && (ctx1.damageType == "Evade")) {
+                await ctx1.actor.spendReaction(true, true);
+            }
+            else {
+                await ctx1.actor.spendReaction(true, false);
+            }
         }
         else {
             await ctx1.actor.spendAction(true, false);
         }
 
-        if (!ctx2.result == "X") {
+        if (ctx2.result != "X") {
             if (ctx2.isReaction) {
-                await ctx2.actor.spendReaction(true, false);
+                if (ctx2.hasAbnoPage("Visions of your Fate") && (ctx2.damageType == "Evade")) {
+                    await ctx2.actor.spendReaction(true, true);
+                }
+                else {
+                    await ctx2.actor.spendReaction(true, false);
+                }
             }
             else {
                 await ctx2.actor.spendAction(true, false);
@@ -572,7 +572,7 @@ export class PTActor extends Actor {
 
         let landedDevastating = false;
 
-        if (ruin > 0 && !ctx2.actor.system.ruinPaused && ctx1.actor.damageType != "Block" && ctx1.actor.damageType != "Evade" && ctx1.actor.type != "Block" && ctx1.actor.type != "Evade" && doDamageEffects) {
+        if (ruin > 0 && !ctx2.actor.system.ruinPaused && ctx1.damageType != "Block" && ctx1.damageType != "Evade" && ctx1.type != "Block" && ctx1.type != "Evade" && doDamageEffects) {
             let tmp = new Roll(this.getDevastationRoll(ctx1));
             await tmp.evaluate();
             let roll = tmp.total;
@@ -637,7 +637,7 @@ export class PTActor extends Actor {
 
         let landedCrit = false;
 
-        if (poise > 0 && !ctx1.actor.system.poisePaused && ctx1.actor.damageType != "Block" && ctx1.actor.damageType != "Evade" && ctx1.actor.type != "Block" && ctx1.actor.type != "Evade" && doDamageEffects) {
+        if (poise > 0 && !ctx1.actor.system.poisePaused && ctx1.damageType != "Block" && ctx1.damageType != "Evade" && ctx1.type != "Block" && ctx1.type != "Evade" && doDamageEffects) {
             let tmp = new Roll(this.getCritRoll(ctx1));
             await tmp.evaluate();
             let roll = tmp.total;

@@ -225,7 +225,13 @@ export class RollContext {
 
             for (const func of data.modify) {
                 if (func != null) {
-                    await func(this, data);
+                    try {
+                        await func(this, data);
+                    }
+                    catch (exception) {
+                        console.log('roll context resolvetrigger error!');
+                        console.log(exception);
+                    }
                 }
             }
 
@@ -334,7 +340,13 @@ export class RollContext {
 
             for (const func of data.modify) {
                 if (func != null) {
-                    await func(this, data);
+                    try {
+                        await func(this, data);
+                    }
+                    catch (exception) {
+                        console.log('roll context resolvetrigger error!');
+                        console.log(exception);
+                    }
                 }
             }
 
@@ -566,12 +578,27 @@ export class RollContext {
                 this.dicePower = Number(this.dicePower);
                 this.nonSkillDicePower = Number(this.nonSkillDicePower);
                 this.skillDicePower = Number(this.skillDicePower);
-                effect.effect.apply(this, Number(effect.count), effect.trigger);
+
+                try {
+                    effect.effect.apply(this, Number(effect.count), effect.trigger);
+                }
+                catch (exception) {
+                    console.log('rollcontext error');
+                    console.log(exception);
+                }
             }
             
             for (const conditional of this.activeConditionals) {
                 let def = this.conditionals.find(x => x.name == conditional);
-                await def.onUse(this);
+
+                try {
+                    await def.onUse(this);
+                }
+                catch (exception) {
+                    console.log('rollcontext error');
+                    console.log(exception);
+                }
+
                 for (let cost of def.costs) {
                     this.costs.push(cost);
                 }
@@ -656,7 +683,13 @@ export class RollContext {
         }
 
         for (const effect of this.effects) {
-            effect.effect.apply(this, effect.count, effect.trigger);
+            try {
+                effect.effect.apply(this, Number(effect.count), effect.trigger);
+            }
+            catch (exception) {
+                console.log('rollcontext error');
+                console.log(exception);
+            }
         }
     }
 
@@ -741,7 +774,13 @@ export class RollContext {
         for (const effect of this.effects) {
             effect.effect = getEffectsArray(effect.source).find(x => x.name == effect.name);
             if (effect.effect.reapply) {
-                effect.effect.apply(this, effect.count, effect.trigger);
+                try {
+                    effect.effect.apply(this, Number(effect.count), effect.trigger);
+                }
+                catch (exception) {
+                    console.log('rollcontext error');
+                    console.log(exception);
+                }
             }
         }
     }
