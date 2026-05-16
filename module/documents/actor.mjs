@@ -536,7 +536,7 @@ export class PTActor extends Actor {
         await ctx2.fireEvent("On Use");
 
         if (ctx1.isReaction) {
-            if (ctx1.hasAbnoPage("Visions of your Fate") && (ctx1.damageType == "Evade")) {
+            if (ctx1.actor.hasAbnoPage("Visions of your Fate") && (ctx1.damageType == "Evade")) {
                 await ctx1.actor.spendReaction(true, true);
             }
             else {
