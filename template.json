@@ -104,7 +104,8 @@
         "useLightOverride": false,
         "linkedActor": null,
         "isAbnormalityPart": false,
-        "initiativeBound": false
+        "initiativeBound": false,
+        "usePvpResistance": false
       },
       "mountedCharacter": null,
       "id": null,

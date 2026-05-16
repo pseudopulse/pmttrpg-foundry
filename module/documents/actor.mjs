@@ -286,6 +286,14 @@ export class PTActor extends Actor {
             return 2;
         }
 
+        if (this.system.settings.usePvpResistance) {
+            if (cat == "ST") {
+                return 0.5;
+            }
+
+            return 1;
+        }
+
         switch (type) {
             case "Slash":
                 return cat == "ST" ? this.outfit.system.slashResST : this.outfit.system.slashRes;
