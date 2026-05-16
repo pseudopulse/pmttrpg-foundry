@@ -819,6 +819,8 @@ export class PTActor extends Actor {
 
         let hits = 1;
 
+        let devastationApplication = ctx1.findAfflictions("Devastation", ["Clash Win"]);
+
         if (pending[ctx2.actor.name] != null) {
             createEffectsMessage(pending[ctx2.actor.name].subject, pending[ctx2.actor.name].effect);
             pending[ctx2.actor.name] = null;
@@ -837,6 +839,13 @@ export class PTActor extends Actor {
                         text = await ctx1.target.takeDamage(roll, ctx1, 0, 0, 0, true, null, `[${ctx1.actor.name}'s Multi-Hit roll of ${roll} wins against ${ctx2.actor.name}'s roll of ${result}!]`);
                         hits++;
                         multihitText = multihitText + "\n" + text + "\n";
+
+                        if (ctx1.hasEffect("Multihit Devastation")) {
+                            for (let affliction of devastationApplication) {
+                                await ctx1.target.applyStatus("Devastation", affliction.nextRound ? 0 : affliction.count, affliction.nextRound ? affliction.count : 0);
+                                multihitText = multihitText + "\n" + `Inflict ${affliction.count} [/status/Devastation] Devastation${affliction.nextRound ? ' next round' : ''}.` + "\n";
+                            }
+                        }
                     }
                     else {
                         text = `[${ctx1.actor.name}'s Multi-Hit roll of ${roll} wins against ${ctx2.actor.name}'s roll of ${result}!]`;

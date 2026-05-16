@@ -1922,6 +1922,17 @@ export const skillEffects = [
     markerEffect("Absolve Sorrow", false, 1, "On Crit", (count) => {
         return `Do not deal [/status/Critical] Critical damage. Burst [/status/Sinking] Sinking once for every [/status/Critical] Critical on self.`
     }),
+    new Effect(
+        "Multihit Devastation",
+        (context, count, trigger) => {
+            
+        },
+        (count) => {
+            return '[/status/Devastation] Devastation from this skill applies on multi-hit attacks.'
+        },
+        ["On Use"],
+        false, 1, false, true, 0, true
+    ),
 ]
 
 async function findAllyTarget(actor, msg) {

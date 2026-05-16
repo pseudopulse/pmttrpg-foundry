@@ -785,6 +785,21 @@ export class RollContext {
         }
     }
 
+    findAfflictions(status, triggers) {
+        let afflictions = [];
+
+        for (let trigger of triggers) {
+            let data = this.triggers[trigger];
+
+            for (let affliction of data.inflictions) {
+                if (affliction.key == status) {
+                    afflictions.push(affliction);
+                }
+            }
+        }
+
+        return afflictions;
+    }
 
     append(desc, triggers) {
         for (const str of triggers) {
