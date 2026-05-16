@@ -643,7 +643,7 @@ export const weaponEffects = [
             context.events["Critical Hit"].push(async (context) => {
                 let poise = context.poise - 10;
                 if (poise > 0) {
-                    let damage = Math.min(poise * 2, 20);
+                    let damage = poise;
                     let dummyCtx = new RollContext();
                     dummyCtx.damageType = "Slash";
                     dummyCtx.actor = context.actor;
@@ -654,7 +654,7 @@ export const weaponEffects = [
             })
         },
         (count) => {
-            return `Deal [/damageTypes/Slash] Slash damage equal to ([/status/Poise] Poise - 10) * 2, max 20.`;
+            return `Deal additional [/damageTypes/Slash] Slash damage equal to ([/status/Poise] Poise - 10).`;
         },
         ["On Crit"],
         false, 1, false, true
