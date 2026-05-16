@@ -2097,10 +2097,10 @@ function simpleStatusEffectSelf(status, amount, altStatus = null) {
         `${status}`,
         (context, count, trigger) => {
             if (count < 0) {
-                context.triggers[trigger].applyInfliction(altStatus.replace(" ", "_"), amount, true);
+                context.triggers[trigger].applyInfliction(altStatus.replace(" ", "_"), -amount, true);
             }
             else {
-                context.triggers[trigger].applyInfliction(status.replace(" ", "_"), amount, true);
+                context.triggers[trigger].applyInfliction(status.replace(" ", "_"), -amount, true);
             }
         },
         (count) => {
