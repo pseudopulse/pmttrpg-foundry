@@ -162,7 +162,7 @@ async function drawStatus(bar, token, scaleFactor) {
     let barPosY = 150;
     //
 
-    let maxIcons = Math.floor(2 * scaleFactor);
+    let maxIcons = Math.floor(2 * scaleFactor * (canvas.grid.size / 256));
 
     let totalWidth = offset * Math.min(effects.length, maxIcons);
 

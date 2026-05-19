@@ -59,12 +59,6 @@ export async function turnChange(combat, round, turn) {
         for (const token of getCombatantTokens()) {
             if (token != null && token.actor != null && game.user.isGM) {
                 await token.actor.handleNextRound();
-
-                let results = findBoundActors(token.actor);
-
-                for (let res of results) {
-                    await res.handleNextRound();
-                }
             }
         }
 

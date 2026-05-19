@@ -113,7 +113,8 @@
       "defeated": false,
       "alreadyTriggeredHazards": [],
       "recycledEvadeCount": 0,
-      "canRecycledEvade": false
+      "canRecycledEvade": false,
+      "strikerPerkCount": 0
     }
   },
   "Item": {

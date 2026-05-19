@@ -662,6 +662,18 @@ export const weaponEffects = [
     //
     markerEffect("Ballistic", false, 1),
     new Effect(
+        'Volatile',
+        (context, count, trigger) => {
+            context.events["Round End"].push(async (context) => {
+                await context.actor.takeDamageStatus(count, "", "SP", "Takes %DMG% SP damage from their volatile weapon! (%PSP% -> %SP%)");
+            });
+        },
+        (count) => {
+            return `Lose ${count} SP if this weapon is held.`
+        },
+        ["Round End"], false, 99999, false, true
+    ),
+    new Effect(
         `Charged Blade`,
         (context, count, trigger) => {
         },

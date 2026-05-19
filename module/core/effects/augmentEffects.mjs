@@ -766,6 +766,9 @@ export const augmentEffects = [
     ),
     markerEffect("Extra Action", false, 9999),
     markerEffect("Unstoppable", false, 1),
+    markerEffect("Mental Link", false, 1),
+    markerEffect("Companion", false, 1),
+    markerEffect("Companion - Striker", false, 1),
 
     // hidden gm effects ------
     // spider

@@ -5,11 +5,11 @@ import { getEffectsArray } from "../effects/effectHelpers.mjs";
 import { currentRound } from "./combatState.mjs";
 import { MARKS } from "../status/mark.mjs";
 import { bulletList } from "../effects/bullets.mjs";
-import { pollUserInputOptions } from "../helpers/dialog.mjs";
+import { pollUserInputConfirm, pollUserInputOptions } from "../helpers/dialog.mjs";
 import { calculateTechniqueCost } from "../../sheets/item.mjs";
 
-const triggerTypes = ["Clash Win", "Clash Lose", "On Use", "Always Active", "On Crit", "Devastating Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Augment Passive", "Combat Start", "Round Start", "Effective Heal"];
-const eventTypes = ["Kill", "Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Clash Win", "Clash Lose", "On Use", "Clash Win Instant", "Clash Lose Instant"];
+const triggerTypes = ["Round End", "Clash Win", "Clash Lose", "On Use", "Always Active", "On Crit", "Devastating Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Augment Passive", "Combat Start", "Round Start", "Effective Heal"];
+const eventTypes = ["Round End", "Kill", "Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Clash Win", "Clash Lose", "On Use", "Clash Win Instant", "Clash Lose Instant"];
 const statusPlusValid = ["Burn", "Bleed", "Frostbite", "Sinking", "Tremor", "Rupture", "Poise", "Ruin"];
 
 export class RollContext {
@@ -337,6 +337,30 @@ export class RollContext {
             }
         }
 
+        if (this.modifiers != null && this.modifiers.item != null) {
+            if (this.actor.augmentEffectCount("Companion") > 0) {
+                if (this.actor.augmentEffectCount("Companion - Striker") > 0) {
+                    let count = this.actor.system.strikerPerkCount;
+
+                    if (count < this.actor.system.abilities.Charm.value && await pollUserInputConfirm(this.actor, 
+                        `Activate Striker Companion cost reduction? ${this.actor.system.abilities.Charm.value - count} uses remaining.`)
+                    ) {
+                        await (await this.actor.getLinkedActor()).deductLight(Math.max(Number(this.modifiers.item.system.light) - 1, 0));
+                        await this.actor.update({ "system.strikerPerkCount": Number(count) + 1 });
+                    }
+                    else {
+                        await (await this.actor.getLinkedActor()).deductLight(this.modifiers.item.system.light);
+                    }
+                }
+                else {
+                    await (await this.actor.getLinkedActor()).deductLight(this.modifiers.item.system.light);
+                }
+            }
+            else {
+                await this.actor.deductLight(this.modifiers.item.system.light);
+            }
+        }
+
         let alreadyApplied = [];
         let totalAidHP = 0;
 
@@ -585,7 +609,7 @@ export class RollContext {
                 if (!effect.effect) {
                     continue;
                 }
-                
+
                 this.dicePower = Number(this.dicePower);
                 this.nonSkillDicePower = Number(this.nonSkillDicePower);
                 this.skillDicePower = Number(this.skillDicePower);
@@ -715,7 +739,7 @@ export class RollContext {
             triggers[trigger] = [];
         }
 
-        let valid = ["Clash Win", "Clash Lose", "On Use", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Effective Heal"]
+        let valid = ["Clash Win", "Clash Lose", "On Use", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Effective Heal", "Round End"]
         if (fakeFirstRound) {
             valid.push("Combat Start");
             valid.push("Round Start");
@@ -769,6 +793,7 @@ export class RollContext {
         desc = this.append(desc, triggers["Sinking Burst"]);
         desc = this.append(desc, triggers["Tremor Burst"]);
         desc = this.append(desc, triggers["Effective Heal"]);
+        desc = this.append(desc, triggers["Round End"]);
         if (validTriggers.includes("Clash Win")) desc = this.append(desc, triggers["Clash Win"]);
         if (validTriggers.includes("Clash Lose")) desc = this.append(desc, triggers["Clash Lose"]);
 
@@ -866,6 +891,8 @@ export class RollContext {
                 return "#ffedb0ff";
             case "Effective Heal":
                 return "#ff5858ff";
+            case "Round End":
+                return "#2f3550ff";
         }
 
         return "#000000";

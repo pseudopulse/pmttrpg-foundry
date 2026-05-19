@@ -11,7 +11,7 @@ import { Mark, MarkNames, MARKS } from "../core/status/mark.mjs";
 import { findByID, sendNetworkMessage } from "../core/helpers/netmsg.mjs";
 import { abnoCards } from "../core/effects/abnoCards.mjs";
 import { requestTargeting, TargetType } from "../core/combat/targeting.mjs";
-import { addHazard, getHazardAtTile, HazardNames, HazardType } from "../core/combat/hazards.mjs";
+import { addHazard, getHazardAtTile, HazardNames, HazardType, roundEnd } from "../core/combat/hazards.mjs";
 
 let pending = {};
 let pendingStagger = {};
@@ -234,6 +234,7 @@ export class PTActor extends Actor {
         system.recycledEvadeCount = 0;
         system.indomitableSpent = false;
         system.unstoppableSpent = false;
+        system.strikerPerkCount = 0;
 
         await this.update({ system }, { diff: false, render: true });
     }
@@ -1251,17 +1252,19 @@ export class PTActor extends Actor {
     }
 
     async takeDamageStatus(damage, status, cat, string, silent = false) {
+        let linkedSystem = await this.getSystemMindLinked();
+
         let hp = this.system.attributes.health.value;
         let st = this.system.attributes.stagger.value;
-        let sp = this.system.attributes.sanity.value;
+        let sp = linkedSystem.attributes.sanity.value;
         
-        if (cat == "SP" && this.hasNoSanity()) {
+        if (cat == "SP" && this.hasNoSanity() && this.augmentEffectCount("Mental Link") <= 0) {
             cat = "HP";
             string = string.replace("SP", "HP");
         }
 
         if (this.getAbnoPart()) {
-            await this.getLinkedActor().takeDamageStatus(damage, status, cat, string, true);
+            await (await this.getLinkedActor()).takeDamageStatus(damage, status, cat, string, true);
         }
 
         let resist = this.augmentEffectCount(`${status} Resistance`) + this.outfitEffectCount(`${status} Resistance`);
@@ -1333,19 +1336,19 @@ export class PTActor extends Actor {
                     break;
                 case "SP":
                     sp -= damage;
-                    if (sp >= this.system.attributes.sanity.value) {
+                    if (sp >= linkedSystem.attributes.sanity.value) {
                         let lost = prevSP - sp;
-                        await this.update({ "system.attributes.sanity.temp": this.system.attributes.sanity.temp - lost }, { diff: false });
+                        (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": linkedSystem.attributes.sanity.temp - lost }, { diff: false });
 
-                        if (this.system.attributes.sanity.temp < 0) {
-                            await this.update({ "system.attributes.sanity.temp": 0 }, { diff: false });
-                            await this.update({ "system.attributes.sanity.value": this.system.attributes.sanity.value - Math.abs(lost) }, { diff: false });
+                        if (linkedSystem.attributes.sanity.temp < 0) {
+                            (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": 0 }, { diff: false });
+                            (await this.getActorMindLinked()).update({ "system.attributes.sanity.value": linkedSystem.attributes.sanity.value - Math.abs(lost) }, { diff: false });
                         }
                     }
                     else {
-                        sp = Math.clamp(sp, 0, this.system.attributes.sanity.max);
-                        await this.update({ "system.attributes.sanity.temp": 0 }, { diff: false });
-                        await this.update({ "system.attributes.sanity.value": sp }, { diff: false });
+                        sp = Math.clamp(sp, 0, linkedSystem.attributes.sanity.max);
+                        (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": 0 }, { diff: false });
+                        (await this.getActorMindLinked()).update({ "system.attributes.sanity.value": sp }, { diff: false });
                     }
                     break;
             }
@@ -1368,6 +1371,10 @@ export class PTActor extends Actor {
 
         if (this.system.attributes.health.value <= 0 && !this.system.defeated) {
             await this.die();
+        }
+
+        if (linkedSystem.attributes.sanity.value <= 0 && !linkedSystem.panic && !this.hasNoSanity()) {
+            (await this.getActorMindLinked()).panic();
         }
     }
 
@@ -1489,13 +1496,20 @@ export class PTActor extends Actor {
             return;
         }
 
-        if (this.getAbnoPart()) {
-            await this.getLinkedActor().takeDamage(damage, context, flatHP, flatST, flatSP, silent);
+        if (this.hasNoSanity() && this.augmentEffectCount("Mental Link") <= 0) {
+            flatHP += flatSP;
+            flatSP = 0;
         }
+
+        if (this.getAbnoPart()) {
+            await (await this.getLinkedActor()).takeDamage(damage, context, flatHP, flatST, flatSP, silent);
+        }
+
+        let linkedSystem = await this.getSystemMindLinked();
 
         let hp = this.system.attributes.health.value + this.system.attributes.health.temp;
         let st = this.system.attributes.stagger.value + this.system.attributes.stagger.temp;
-        let sp = this.system.attributes.sanity.value + this.system.attributes.sanity.temp;
+        let sp = linkedSystem.attributes.sanity.value + linkedSystem.attributes.sanity.temp;
 
         if (context != null && context.form == "Healing" && !context.isReaction) {
             let prevhp = this.system.attributes.health.value;
@@ -1669,19 +1683,19 @@ export class PTActor extends Actor {
             await this.update({ "system.attributes.stagger.value": st }, { diff: false });
         }
 
-        if (sp >= this.system.attributes.sanity.value) {
+        if (sp >= linkedSystem.attributes.sanity.value) {
             let lost = prevSP - sp;
-            await this.update({ "system.attributes.sanity.temp": this.system.attributes.sanity.temp - lost }, { diff: false });
+            await (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": linkedSystem.attributes.sanity.temp - lost }, { diff: false });
 
             if (this.system.attributes.sanity.temp < 0) {
-                await this.update({ "system.attributes.sanity.temp": 0 }, { diff: false });
-                await this.update({ "system.attributes.sanity.value": this.system.attributes.sanity.value - Math.abs(lost) }, { diff: false });
+                await (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": 0 }, { diff: false });
+                await (await this.getActorMindLinked()).update({ "system.attributes.sanity.value": linkedSystem.attributes.sanity.value - Math.abs(lost) }, { diff: false });
             }
         }
         else {
-            sp = Math.clamp(sp, 0, this.system.attributes.sanity.max);
-            await this.update({ "system.attributes.sanity.temp": 0 }, { diff: false });
-            await this.update({ "system.attributes.sanity.value": sp }, { diff: false });
+            sp = Math.clamp(sp, 0, linkedSystem.attributes.sanity.max);
+            await (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": 0 }, { diff: false });
+            await (await this.getActorMindLinked()).update({ "system.attributes.sanity.value": sp }, { diff: false });
         }
 
         await this.update({ "system.damageTaken": Number(this.system.damageTaken) + (prevHP - hp) }, { diff: false });
@@ -1714,8 +1728,8 @@ export class PTActor extends Actor {
             await this.die();
         }
 
-        if (this.system.attributes.sanity.value <= 0 && !this.system.panic) {
-            await this.panic();
+        if (linkedSystem.attributes.sanity.value <= 0 && !linkedSystem.panic) {
+            await (await this.getActorMindLinked()).panic();
         }
 
         if (!silent) {
@@ -1910,6 +1924,11 @@ export class PTActor extends Actor {
         await this.setStatus("Rupture", 0);
         await this.setStatus("Tremor", 0);
 
+        let roundEnds = await this.findAllWithTrigger("Round End");
+        for (let ctx of roundEnds) {
+            await ctx.fireEvent("Round End");
+        }
+
         if (this.system.overchargeDeclared) {
             await this.fireStatusEffect("Overcharge");
         }
@@ -1974,6 +1993,22 @@ export class PTActor extends Actor {
         }
 
         return this.system.disposition == dispo || (this.system.secondaryDisposition == dispo && this.augmentEffectCount("Multifaceted") > 0);
+    }
+
+    async getSystemMindLinked() {
+        return ((await this.getActorMindLinked())).system;
+    }
+
+    async getActorMindLinked() {
+        if (this.augmentEffectCount("Mental Link") > 0) {
+            let actor = this.getLinkedActor();
+
+            if (actor) {
+                return actor;
+            }
+        }
+
+        return this;
     }
 
     checkImpassioned(dispo) {
@@ -2779,6 +2814,20 @@ export class PTActor extends Actor {
         await technique.update({ "system.effects": [] }, { diff: false, render: true });
 
         return technique;
+    }
+
+    async findAllWithTrigger(name) {
+        let contexts = [];
+
+        for (let item of this.items) {
+            if (item.system.effects != null) {
+                if (item.system.effects.find(x => x.trigger == name)) {
+                    contexts.push(await getRollContextFromDataFull(item));
+                }
+            }
+        }
+
+        return contexts;
     }
 
     async handleTails() {

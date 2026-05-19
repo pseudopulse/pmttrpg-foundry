@@ -118,7 +118,7 @@ export async function requestTargeting(type, options = {}) {
                                 async (data) => {
                                     data.sprite = await getSprite(options.targetIcon, 128, 128, { x: selected.document.x, y: selected.document.y });
                                     data.root.addChild(data.sprite);
-                                    data.scale = 1;
+                                    data.scale = 1 * (canvas.grid.size / 256);
                                     data.scaleDirection = 1;
                                     data.target = selected;
                                 },

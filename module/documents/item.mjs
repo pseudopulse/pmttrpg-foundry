@@ -227,10 +227,6 @@ export class PTItem extends Item {
             if (rollContext.modifiers == null) {
                 return null;
             }
-            
-            if (rollContext.modifiers.item != null) {
-                await this.actor.deductLight(rollContext.modifiers.item.system.light);
-            }
         }
 
         rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
@@ -308,10 +304,6 @@ export class PTItem extends Item {
             if (rollContext.modifiers == null) {
                 return null;
             }
-
-            if (rollContext.modifiers.item != null) {
-                await this.actor.deductLight(rollContext.modifiers.item.system.light);
-            }
         }
 
         rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
@@ -341,10 +333,6 @@ export class PTItem extends Item {
             rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
             if (rollContext.modifiers == null) {
                 return null;
-            }
-
-            if (rollContext.modifiers.item != null) {
-                await this.actor.deductLight(rollContext.modifiers.item.system.light);
             }
         }
 

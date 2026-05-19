@@ -1381,6 +1381,12 @@ export const skillEffects = [
         },
         count => `apply ${Number(count) * 2} [/status/Bind] Bind and ${Number(count)} [/status/Paralysis] Paralysis next round`,
     ),
+    markEffect("Grounding Cycle",
+        (data, count) => {
+            data.applyInfliction("Charge", (Number(count) * -3), false);
+        },
+        count => `gain ${Number(count) * 3} [/status/Charge] Charge. [/status/Charge] Charge does not decay at end of round.`,
+    ),
     markEffect("Assist Attack",
         (data, count) => {
             
@@ -1641,7 +1647,7 @@ export const skillEffects = [
             context.dicePower = Number(context.dicePower) + 2;
             context.skillDicePower = Number(context.skillDicePower) + 2;
         },
-        count => `cause all damage dealt by this attack to strike Weak (1.5x), unless the target is already Fatal (2x).`,
+        count => `gain +2 Dice Power and cause all damage dealt by this attack to strike Weak (1.5x), unless the target is already Fatal (2x). Before attack, rip through space to an unoccupied tile adjacent to the target. For every SQR ripped through, take 2 ST damage and increase the attack damage by +2 (cannot stagger self).`,
         ["On Use"], 1, false
     ),
     overchargeEffectEvent("Overcharge - Replicating Shell", 1,
