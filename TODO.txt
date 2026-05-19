@@ -6,6 +6,16 @@ force damage input
 
 idfk gain effects arent working (frostbite is one)
 
+make holding shift ignore movement restrictions (instead of blink mode)
+
+make removing marks send a gm message for networking
+
+striker pet light mechanic
+
+make reduce status able to target allies
+
+automate forced movement (system is in place, just gotta go through and add it in)
+
 // to add
 new functional parts (that get used)
 new attachments (that get used)

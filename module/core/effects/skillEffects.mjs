@@ -1638,6 +1638,8 @@ export const skillEffects = [
     overchargeEffect("Overcharge - Rip Space", 4,
         (context, count, trigger) => {
             context.flags.push("Rip Space");
+            context.dicePower = Number(context.dicePower) + 2;
+            context.skillDicePower = Number(context.skillDicePower) + 2;
         },
         count => `cause all damage dealt by this attack to strike Weak (1.5x), unless the target is already Fatal (2x).`,
         ["On Use"], 1, false
@@ -1934,6 +1936,36 @@ export const skillEffects = [
         ["On Use"],
         false, 1, false, true, 0, true
     ),
+    new Effect(
+        "Adaptation - S",
+        (context, count, trigger) => {
+            context.damageType = "Slash";
+        },
+        (count) => {
+            return 'Damage Type becomes [/damageTypes/Slash] Slash.'
+        },
+        ["On Use"], false, 1, false
+    ),
+    new Effect(
+        "Adaptation - P",
+        (context, count, trigger) => {
+            context.damageType = "Pierce";
+        },
+        (count) => {
+            return 'Damage Type becomes [/damageTypes/Pierce] Pierce.'
+        },
+        ["On Use"], false, 1, false
+    ),
+    new Effect(
+        "Adaptation - B",
+        (context, count, trigger) => {
+            context.damageType = "Blunt";
+        },
+        (count) => {
+            return 'Damage Type becomes [/damageTypes/Blunt] Blunt.'
+        },
+        ["On Use"], false, 1, false
+    )
 ]
 
 async function findAllyTarget(actor, msg) {

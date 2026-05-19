@@ -1,5 +1,6 @@
 import { libWrapper } from "../../../lib/libwrapper_shim.js";
 import { getActorToken, getDistance, scale } from "../../pmttrpg.mjs";
+import { getTexture } from "../helpers/ui.mjs";
 import { getCombatantTokens } from "./combatState.mjs";
 
 CONFIG.barPos = [-49, -35];
@@ -194,9 +195,7 @@ async function drawStatus(bar, token, scaleFactor) {
     index = 0;
 
     for (let status of effects) {
-        let texture = await foundry.canvas.loadTexture(
-            `systems/pmttrpg/assets/status/${status.name.replace(" ", "_")}.png`
-        );
+        let texture = await getTexture(`systems/pmttrpg/assets/status/${status.name.replace(" ", "_")}.png`);
 
         let icon = new PIXI.Sprite(texture);
         icon.width = baseWidth;
@@ -213,9 +212,7 @@ async function drawStatus(bar, token, scaleFactor) {
 }
 
 async function drawSanity(bar, data) {
-    let texture = await foundry.canvas.loadTexture(
-        "systems/pmttrpg/assets/bars/Sanity.png"
-    );
+    let texture = await getTexture("systems/pmttrpg/assets/bars/Sanity.png");
 
     let icon = new PIXI.Sprite(texture);
     icon.width = CONFIG.sanityWH[0] * CONFIG.barScale;
@@ -243,9 +240,7 @@ async function addBars(bar, data, type) {
 
     let perct = Math.clamp((data.value / data.max), 0, 1);
 
-    let texture = await foundry.canvas.loadTexture(
-        "systems/pmttrpg/assets/bars/BarSprite.png"
-    );
+    let texture = await getTexture("systems/pmttrpg/assets/bars/BarSprite.png");
 
     let fg = new PIXI.Sprite(texture);
     let bg = new PIXI.Sprite(texture);

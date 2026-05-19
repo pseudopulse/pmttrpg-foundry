@@ -42,7 +42,7 @@ export function getCombatantTokens() {
         }
     }
 
-    return tokens;
+    return tokens.filter(x => x != null);
 }
 
 export function isActorCombatant(actor) {

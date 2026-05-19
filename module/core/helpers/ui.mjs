@@ -14,9 +14,7 @@ export function getContainer(overlay = false) {
 }
 
 export async function getSprite(path, width, height, pos) {
-    let texture = await foundry.canvas.loadTexture(
-        `systems/pmttrpg/assets/${path}`
-    );
+    let texture = await getTexture(`systems/pmttrpg/assets/${path}`);
 
     let sprite = new PIXI.Sprite(texture);
     sprite.id = generateUUID();
@@ -75,4 +73,16 @@ export function lerpColor(colorA, colorB, t) {
     const b = Math.round(lerp(b1, b2, t));
 
     return (r << 16) | (g << 8) | b;
+}
+
+let assetCache = {};
+
+export async function getTexture(path) {
+    if (assetCache[path] != null) {
+        return assetCache[path];
+    }
+
+    let texture = await foundry.canvas.loadTexture(path);
+    assetCache[path] = texture;
+    return texture;
 }
