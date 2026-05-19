@@ -582,6 +582,10 @@ export class RollContext {
             }
             
             for (const effect of this.effects) {
+                if (!effect.effect) {
+                    continue;
+                }
+                
                 this.dicePower = Number(this.dicePower);
                 this.nonSkillDicePower = Number(this.nonSkillDicePower);
                 this.skillDicePower = Number(this.skillDicePower);
@@ -691,6 +695,10 @@ export class RollContext {
 
         for (const effect of this.effects) {
             try {
+                if (!effect.effect) {
+                    continue;
+                }
+
                 effect.effect.apply(this, Number(effect.count), effect.trigger);
             }
             catch (exception) {
@@ -717,6 +725,10 @@ export class RollContext {
         valid.push("Devastating Hit");
 
         for (const effect of this.effects) {
+            if (!effect.effect) {
+                continue;
+            }
+
             if (this.ignoreClashEffects) {
                 continue;
             }
@@ -784,6 +796,10 @@ export class RollContext {
 
         for (const effect of this.effects) {
             effect.effect = getEffectsArray(effect.source).find(x => x.name == effect.name);
+            if (!effect.effect) {
+                continue;
+            }
+
             if (effect.effect.reapply) {
                 try {
                     effect.effect.apply(this, Number(effect.count), effect.trigger);
