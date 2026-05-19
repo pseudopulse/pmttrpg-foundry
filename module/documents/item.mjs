@@ -381,7 +381,7 @@ export function getRollContextFromData(item, def = false, defType = "Block") {
     return rollContext;
 }
 
-export async function getRollContextFromDataFullTargeted(item, target) {
+export async function getRollContextFromDataFullTargeted(item, target, def = false, defType = "Block") {
     if (item.type == null) {
         item = item.item;
     }
@@ -389,9 +389,9 @@ export async function getRollContextFromDataFullTargeted(item, target) {
     const itemData = item;
     const systemData = itemData.system;
     const rollContext = new RollContext();
+    rollContext.target = target;
     rollContext.addEffectsList(systemData.effects, fixTypeName(item.type));
     rollContext.actor = findItemOwner(item);
-    rollContext.target = target;
     rollContext.damageType = def ? defType : systemData.damageType;
     rollContext.type = def ? defType : systemData.attackType;
     rollContext.name = item.name;

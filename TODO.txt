@@ -1,3 +1,16 @@
 functional parts (there's like 10 left to finish if i have time)
 
 force damage input
+
+// bugs
+
+idfk gain effects arent working (frostbite is one)
+
+// to add
+new functional parts (that get used)
+new attachments (that get used)
+adaptation (homebrew skill effect)
+ego weapon drain (homebrew weapon effect)
+ego skill drain (homebrew skill effect)
+pet sanity link (homebrew augment effect)
+fallback identity (functional part)

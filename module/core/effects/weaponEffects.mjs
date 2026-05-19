@@ -648,7 +648,7 @@ export const weaponEffects = [
                     dummyCtx.damageType = "Slash";
                     dummyCtx.actor = context.actor;
                     dummyCtx.target = context.target;
-                    let text = await context.target.takeDamage(damage, dummyCtx, 0, 0, 0, true, null, "[Singular Strike of the Blade]");
+                    let text = await context.target.takeDamage(damage, dummyCtx, 0, 0, 0, true, null, "[Singular Strike of the Blade]", false, true);
                     createEffectsMessage(context.target.name, text);
                 }
             })

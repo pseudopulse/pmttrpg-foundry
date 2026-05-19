@@ -4,7 +4,7 @@ import { getRollContextFromData, PTItem } from "./documents/item.mjs";
 import { PTActorSheet } from "./sheets/actor.mjs";
 import { PTItemSheet } from "./sheets/item.mjs";
 import { handler, sendNetworkMessage, registerMessages, getActorUser } from "./core/helpers/netmsg.mjs";
-import { currentRound, currentTurn, roundChange, setRound, turnChange, updateCombatant } from "./core/combat/combatState.mjs";
+import { currentRound, currentTurn, roundChange, setRound, turnChange, updateCombatant, getCombatantTokens, isActorCombatant } from "./core/combat/combatState.mjs";
 import { getEffectsArray } from "./core/effects/effectHelpers.mjs";
 import { RollContext } from "./core/combat/rollContext.mjs";
 import { createEffectsMessage, enrichClashData } from "./core/helpers/clash.mjs";
@@ -318,15 +318,15 @@ Hooks.on("createToken", (token) => {
   }
 });
 
-function updateActor(actor, forceSync, forceRegen = false) {
+async function updateActor(actor, forceSync, forceRegen = false) {
   if (actor != null && game.user.isActiveGM) {
     const system = actor.toObject(false).system;
     if (system.id == null || forceRegen) {
       system.id = generateUUID();
-      actor.update({ system }, { diff: false });
+      await actor.update({ system }, { diff: false });
     }
     else if (forceSync) {
-      actor.update({ system }, { diff: false });
+      await actor.update({ system }, { diff: false });
     }
   }
 }
@@ -349,7 +349,11 @@ Hooks.on(`renderChatMessageHTML`, (message, html, context) => {
   }
 });
 
-Hooks.on(`combatRound`, async (combat, data, options) => {
+Hooks.on(`updateCombat`, async (combat, data, options) => {
+  if (data.round == undefined) {
+    return;
+  }
+  
   await roundChange(combat, data.round, data.turn);
 });
 
@@ -617,14 +621,18 @@ export function getDistance(actor1, actor2) {
 }
 
 export function getAlliesWithinRadiusOfTarget(actor, target, radius) {
-  let actors = [];
-  let source = canvas.tokens.placeables.find(x => x.actor == target);
-  let dispo = 0;
-  if (actor != null) {
-      dispo = canvas.tokens.placeables.find(x => x.actor == actor).document.disposition;
+  if (!isActorCombatant(actor)) {
+    return [];
   }
 
-  for (let token of canvas.tokens.placeables.filter(x => x.document.disposition == dispo)) {
+  let actors = [];
+  let source = getCombatantTokens().find(x => x.actor == target);
+  let dispo = 0;
+  if (actor != null) {
+      dispo = getCombatantTokens().find(x => x.actor == actor).document.disposition;
+  }
+
+  for (let token of getCombatantTokens().filter(x => x.document.disposition == dispo)) {
     if (scale(canvas.grid.measureDistance(source, token)) <= radius && token.actor != actor) {
       if (!actors.includes(token.actor)) {
         actors.push(token.actor);
@@ -636,14 +644,18 @@ export function getAlliesWithinRadiusOfTarget(actor, target, radius) {
 }
 
 export function getAlliesWithinRadius(actor, radius) {
-  let actors = [];
-  let source = canvas.tokens.placeables.find(x => x.actor == actor);
-  let dispo = 0;
-  if (actor != null) {
-      dispo = canvas.tokens.placeables.find(x => x.actor == actor).document.disposition;
+  if (!isActorCombatant(actor)) {
+    return [];
   }
 
-  for (let token of canvas.tokens.placeables.filter(x => x.document.disposition == dispo)) {
+  let actors = [];
+  let source = getCombatantTokens().find(x => x.actor == actor);
+  let dispo = 0;
+  if (actor != null) {
+      dispo = getCombatantTokens().find(x => x.actor == actor).document.disposition;
+  }
+
+  for (let token of getCombatantTokens().filter(x => x.document.disposition == dispo)) {
     if (token.actor == null) continue;
     if (scale(canvas.grid.measureDistance(source, token)) <= radius && token.actor != actor) {
       if (!actors.includes(token.actor)) {
@@ -656,10 +668,14 @@ export function getAlliesWithinRadius(actor, radius) {
 }
 
 export function getCharactersWithinRadius(actor, radius) {
-  let actors = [];
-  let source = canvas.tokens.placeables.find(x => x.actor == actor);
+  if (!isActorCombatant(actor)) {
+    return [];
+  }
 
-  for (let token of canvas.tokens.placeables) {
+  let actors = [];
+  let source = getCombatantTokens().find(x => x.actor == actor);
+
+  for (let token of getCombatantTokens()) {
     if (token.actor == null) continue;
     if (scale(canvas.grid.measureDistance(source, token)) <= radius) {
       if (!actors.includes(token.actor) && token.actor != actor) {
@@ -672,14 +688,18 @@ export function getCharactersWithinRadius(actor, radius) {
 }
 
 export function getEnemiesWithinRadius(actor, radius) {
-  let actors = [];
-  let source = canvas.tokens.placeables.find(x => x.actor == actor);
-  let dispo = 0;
-  if (actor != null) {
-      dispo = canvas.tokens.placeables.find(x => x.actor == actor).document.disposition;
+  if (!isActorCombatant(actor)) {
+    return [];
   }
 
-  for (let token of canvas.tokens.placeables.filter(x => x.document.disposition != dispo)) {
+  let actors = [];
+  let source = getCombatantTokens().find(x => x.actor == actor);
+  let dispo = 0;
+  if (actor != null) {
+      dispo = getCombatantTokens().find(x => x.actor == actor).document.disposition;
+  }
+
+  for (let token of getCombatantTokens().filter(x => x.document.disposition != dispo)) {
     if (token.actor == null) continue;
     if (scale(canvas.grid.measureDistance(source, token)) <= radius) {
       if (!actors.includes(token.actor)) {
@@ -692,11 +712,15 @@ export function getEnemiesWithinRadius(actor, radius) {
 }
 
 export function findActorsOfTeam(actor) {
+  if (!isActorCombatant(actor)) {
+    return [];
+  }
+  
   let team = getActorTeam(actor);
   let actors = [];
 
   if (canvas.tokens != undefined) {
-    for (let token of canvas.tokens.placeables) {
+    for (let token of getCombatantTokens()) {
       if (token.actor == null) continue;
       if (token.actor.system.id != actor.system.id && token.document.disposition == team) {
         actors.push(token.actor);
@@ -709,7 +733,7 @@ export function findActorsOfTeam(actor) {
 
 export function getActorTeam(actor) {
   if (canvas.tokens != undefined) {
-    for (let token of canvas.tokens.placeables) {
+    for (let token of getCombatantTokens()) {
       if (token.actor == null) continue;
       if (token.actor.system.id == actor.system.id) {
         return token.document.disposition;

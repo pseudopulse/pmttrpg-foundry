@@ -21,7 +21,6 @@
       </div>
       <div>
         {{#with (rctx item) as |rollContext|}}
-          {{log rollContext}}
           <h4 class="aw-item-text">{{rollContext.diceCount}}d{{rollContext.diceMax}}+{{rollContext.dicePower}}</h4>
         {{/with}}
       </div>

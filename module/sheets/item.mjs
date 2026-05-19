@@ -50,6 +50,10 @@ export class PTItemSheet extends ItemSheet {
         context.enrichedDescription = this.item.system.description;
 
         // Add the item's data to context.data for easier access, as well as flags.
+
+        itemData.system.effects = validate(itemData.system.effects, this.item.type);
+        await this.item.update({ "system.effects": itemData.system.effects }, { diff: false, render: true });
+
         context.system = itemData.system;
         context.flags = itemData.flags;
 

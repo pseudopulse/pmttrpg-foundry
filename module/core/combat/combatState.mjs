@@ -1,4 +1,4 @@
-import { findBoundActors, searchForActor } from "../../pmttrpg.mjs";
+import { findBoundActors, getActorToken, searchForActor } from "../../pmttrpg.mjs";
 import { getActorUser } from "../helpers/netmsg.mjs";
 import { roundEnd } from "./hazards.mjs";
 
@@ -13,15 +13,50 @@ export function setRound(round, turn) {
 }
 
 export async function roundChange(combat, round, turn) {
-    currentRound = round;
-    alreadyDoneThisRound = [];
+    //
+}
 
-    if (game.user.isActiveGM) {
-        roundEnd();
+export function getCombatantTokens() {
+    let tokens = [];
+    if (!game.combat || !game.combat.isActive) {
+        return tokens;
     }
 
-    if (round != 1) {
-        for (const token of canvas.tokens.placeables) {
+    for (let turn of game.combat.turns) {
+        if (turn.token != null) {
+            let token = canvas.tokens.placeables.find(x => x.actor.system.id == turn.token.actor.system.id);
+            
+            if (token != null && !tokens.includes(token)) {
+                tokens.push(token);
+
+                let results = findBoundActors(token.actor);
+
+                for (let res of results) {
+                    let bToken = getActorToken(res);
+
+                    if (!tokens.includes(bToken)) {
+                        tokens.push(bToken);
+                    }
+                }
+            }
+        }
+    }
+
+    return tokens;
+}
+
+export function isActorCombatant(actor) {
+    return getCombatantTokens().find(x => x.actor.system.id == actor.system.id) != null;
+}
+
+export async function turnChange(combat, round, turn) {
+    if (combat.round == undefined || combat.round == currentRound) {
+        
+    } 
+    else {
+        currentRound = combat.round;
+
+        for (const token of getCombatantTokens()) {
             if (token != null && token.actor != null && game.user.isGM) {
                 await token.actor.handleNextRound();
 
@@ -32,15 +67,15 @@ export async function roundChange(combat, round, turn) {
                 }
             }
         }
-    }
-}
 
-export async function turnChange(combat, round, turn) {
+        alreadyDoneThisRound = [];
+    }
+
     currentTurn = turn;
 
     if (round == 1) return;
 
-    for (const token of canvas.tokens.placeables) {
+    for (const token of getCombatantTokens()) {
         if (token != null && token.id == combat.current.tokenId && game.user.isGM) {
             if (!alreadyDoneThisRound.includes(token.actor)) {
                 await token.actor.handleNextTurn();

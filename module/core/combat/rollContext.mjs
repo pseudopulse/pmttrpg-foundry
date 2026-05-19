@@ -213,6 +213,10 @@ export class RollContext {
         return false;
     }
 
+    isOffensive() {
+        return this.damageType != "Evade" && this.damageType != "Block" && this.type != "Evade" && this.type != "Block";
+    }
+
     async resolveInstantStatus(triggers) {
         let lines = [];
         let alreadyApplied = [];
@@ -220,8 +224,8 @@ export class RollContext {
 
         for (const trigger of triggers) {
             let data = new TriggerEvents();
-            Object.assign(data, JSON.parse(JSON.stringify(trigger)));
-            data.modifier = trigger.modify;
+            Object.assign(data, JSON.parse(JSON.stringify(this.triggers[trigger])));
+            data.modify = this.triggers[trigger].modify;
 
             for (const func of data.modify) {
                 if (func != null) {
@@ -239,10 +243,13 @@ export class RollContext {
                 let status = infliction.key;
                 if (this.negatePoise && status == "Poise") continue;
                 if (this.negateRuin && status == "Ruin") continue;
-
-                if ((status == "Critical" || status == "Poise") && !this.hasEffect("Instant Crit")) { continue; }
-                else if ((status == "Devastation" || status == "Ruin") && !this.hasEffect("Instant Devastation")) { continue; }
-                else if (!this.hasEffect(`Instant ${status}`)) { continue; }
+                
+                if ((status == "Critical" || status == "Poise") && !this.hasEffect("Instant Crit")) { continue;}
+                if ((status == "Devastation" || status == "Ruin") && !this.hasEffect("Instant Devastation")) { continue; }
+                if ((status != "Critical" && status != "Poise") && (status != "Devastation" && status != "Ruin") && !this.hasEffect(`Instant ${status}`)) 
+                { 
+                    continue; 
+                }
 
                 let cur = Number(infliction.count);
 
@@ -716,9 +723,13 @@ export class RollContext {
 
             if (valid.find(x => x == effect.trigger) != null && effect.effect.description != null && !effect.effect.dontFormat) {
                 let description = effect.effect.description(effect.count);
-                if (description != null && (!(description.includes("first round") && currentRound > 1) || fakeFirstRound)) {
+                if (description != null && (!(description.includes("first round") && currentRound > 1) || fakeFirstRound) && !(
+                    (description.includes("[!O]") && !this.isOffensive() && !fakeFirstRound) ||
+                    (description.includes("[!D]") && this.isOffensive() && !fakeFirstRound)
+                )) {
+                    description = description.replace("[!O]", "").replace("[!D]", "");
                     triggers[effect.trigger].push(
-                        this.format(`<span style="color: ${this.getColor(effect.trigger)} !important;">[${effect.trigger}]</span>`, effect.effect.description(effect.count), !postClash)
+                        this.format(`<span style="color: ${this.getColor(effect.trigger)} !important;">[${effect.trigger}]</span>`, description, !postClash)
                     );
                 }
             }

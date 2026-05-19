@@ -1,5 +1,6 @@
 import { getDistance, getTokenCenter, gridDistanceBetween } from "../../pmttrpg.mjs";
 import { getSprite, lerpColor, spawnDynamicUI } from "../helpers/ui.mjs";
+import { getCombatantTokens } from "./combatState.mjs";
 
 let targetingCursorOn = false;
 let currentStyleElement = null;
@@ -86,14 +87,19 @@ export async function requestTargeting(type, options = {}) {
             let point = screenToWorld(event.clientX, event.clientY);
 
             if (type == TargetType.TOKEN || type == TargetType.MULTI_TOKEN) {
-                // find the token is within the square the cursor clicked if one exists
-                let selected = canvas.tokens.placeables.find(x => {
+                let selected = getCombatantTokens().find(x => {
                     if (x.actor == null) return;
                     if (!options.tokenFilter(x)) return;
                     let bounds = x.mesh._canvasBounds;
 
                     if (options.enforceRange && options.originToken != null) {
                         if (getDistance(options.originToken, x) > options.ranges.length > 0 ? options.ranges.sort((a, b) => b - a)[0] : options.maxRange) {
+                            return false;
+                        }
+                    }
+
+                    if (options.requireLOS && options.originToken) {
+                        if (options.originToken.checkCollision({ x: point.x, y: point.y })) {
                             return false;
                         }
                     }
@@ -155,6 +161,12 @@ export async function requestTargeting(type, options = {}) {
 
                 if (options.enforceRange && options.originToken != null) {
                     if (Math.round(gridDistanceBetween(getTokenCenter(options.originToken), gridPoint)) > options.maxRange) {
+                        return;
+                    }
+                }
+
+                if (options.requireLOS && options.originToken) {
+                    if (options.originToken.checkCollision({ x: gridPoint.x, y: gridPoint.y })) {
                         return;
                     }
                 }
@@ -336,6 +348,37 @@ export async function requestTargeting(type, options = {}) {
                     bg.cullable = false;
                     mask.cullable = false;
 
+                    if (options.requireLOS) {
+                        let radius = canvas.grid.size * data.range - (canvas.grid.size / 2);
+                        let size = canvas.grid.size;
+                        
+                        let xMin = Math.floor((center.x - radius) / size) * size;
+                        let xMax = Math.floor((center.x + radius) / size) * size;
+
+                        let yMin = Math.floor((center.y - radius) / size) * size;
+                        let yMax = Math.floor((center.y + radius) / size) * size;
+
+                        mask.beginFill(0xff0000);
+
+                        for (let x = xMin; x <= xMax; x += size) {
+                            for (let y = yMin; y <= yMax; y += size) {
+                                let dx = x - center.x;
+                                let dy = y - center.y;
+
+                                if (dx * dx + dy * dy <= radius * radius) {
+                                    let valid = options.originToken.checkCollision({ x: x, y: y });
+
+                                    if (valid) {
+                                        let p = worldToScreen(x - (size / 2), y - (size / 2));
+                                        mask.drawRect(p.x, p.y, size * getZoom(), size * getZoom());
+                                    }
+                                }
+                            }
+                        }
+
+                        mask.endFill();
+                    }
+
                     for (let range of data.ranges) {
                         let indicator = range.indicator;
                         let radius = (210 * getZoom() * range.range);
@@ -433,5 +476,6 @@ export class TargetingOptions {
         this.ranges = [];
         this.rangeLabels = {};
         this.enforceRange = false;
+        this.requireLOS = false;
     }
 }

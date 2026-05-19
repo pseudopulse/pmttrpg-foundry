@@ -105,7 +105,7 @@ export const statusList = [
         await actor.applyStatus("Charge", actor.getStatusCount("Charge_Barrier"), 0);
         createEffectsMessage(actor.name, `Gains ${actor.getStatusCount("Charge_Barrier")} [/status/Charge] Charge from decaying [/status/Charge_Barrier] Charge Barrier!`);
     }, (count) => { return 0; }),
-    new StatusEffect("Overcharge", Triggers.END, async (actor) => {
+    new StatusEffect("Overcharge", Triggers.NONE, async (actor) => {
         let charge = actor.getStatusCount("Charge");
         if (charge > 15) {
             await actor.reduceStatus("Charge", 3 * (Math.floor(charge / 15)));

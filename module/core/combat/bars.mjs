@@ -1,5 +1,6 @@
 import { libWrapper } from "../../../lib/libwrapper_shim.js";
 import { getActorToken, getDistance, scale } from "../../pmttrpg.mjs";
+import { getCombatantTokens } from "./combatState.mjs";
 
 CONFIG.barPos = [-49, -35];
 CONFIG.maskPos = [100, 104];
@@ -32,7 +33,7 @@ function onHoverOut(wrapped, event) {
 }
 
 function updateAllTokens() {
-    for (let token of canvas.tokens.placeables) {
+    for (let token of getCombatantTokens()) {
         token.drawBars();
     }
 }

@@ -1,6 +1,6 @@
 import { Effect } from "./effect.mjs";
 import { handleNegativeText } from "../../core/effects/effectHelpers.mjs";
-import { currentRound } from "../combat/combatState.mjs";
+import { currentRound, getCombatantTokens } from "../combat/combatState.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
 import { findActorsOfTeam, scale } from "../../pmttrpg.mjs";
 import { Conditional } from "../combat/rollContext.mjs";
@@ -8,22 +8,38 @@ import { pollReduceStatus, pollUserInputText } from "../helpers/dialog.mjs";
 import { MarkNames, MARKS } from "../status/mark.mjs";
 
 export const augmentEffects = [
-    augmentBonusEffect("Burn", 2),
-    augmentBonusEffect("Frostbite", 2),
-    augmentBonusEffect("Bleed", 1),
-    augmentBonusEffect("Smoke", 3),
-    augmentBonusEffect("Rupture", 1),
-    augmentBonusEffect("Tremor", 1),
-    augmentBonusEffect("Sinking", 1),
-    augmentBonusEffect("Bind", 1),
-    augmentBonusEffect("Poise", 4, true),
-    augmentBonusEffect("Ruin", 4),
-    augmentBonusEffect("Poison", 10),
-    augmentVigorEffect("Burn", 3),
-    augmentVigorEffect("Frostbite", 2),
-    augmentVigorEffect("Bleed", 2),
-    augmentVigorEffect("Haste", 2),
-    augmentVigorEffect("Poison", 10),
+    augmentBonusEffect("Burn", 2, false, "O"),
+    augmentBonusEffect("Burn", 2, false, "D"),
+    augmentBonusEffect("Frostbite", 2, false, "O"),
+    augmentBonusEffect("Frostbite", 2, false, "D"),
+    augmentBonusEffect("Bleed", 1, false, "O"),
+    augmentBonusEffect("Bleed", 1, false, "D"),
+    augmentBonusEffect("Smoke", 3, false, "O"),
+    augmentBonusEffect("Smoke", 3, false, "D"),
+    augmentBonusEffect("Rupture", 1, false, "O"),
+    augmentBonusEffect("Rupture", 1, false, "D"),
+    augmentBonusEffect("Tremor", 1, false, "O"),
+    augmentBonusEffect("Tremor", 1, false, "D"),
+    augmentBonusEffect("Sinking", 1, false, "O"),
+    augmentBonusEffect("Sinking", 1, false, "D"),
+    augmentBonusEffect("Bind", 1, false, "O"),
+    augmentBonusEffect("Bind", 1, false, "D"),
+    augmentBonusEffect("Poise", 4, true, "O"),
+    augmentBonusEffect("Poise", 4, true, "D"),
+    augmentBonusEffect("Ruin", 4, false, "O"),
+    augmentBonusEffect("Ruin", 4, false, "D"),
+    augmentBonusEffect("Poison", 10, false, "O"),
+    augmentBonusEffect("Poison", 10, false, "D"),
+    augmentVigorEffect("Burn", 3, "O"),
+    augmentVigorEffect("Burn", 3, "D"),
+    augmentVigorEffect("Frostbite", 2, "O"),
+    augmentVigorEffect("Frostbite", 2, "D"),
+    augmentVigorEffect("Bleed", 2, "O"),
+    augmentVigorEffect("Bleed", 2, "D"),
+    augmentVigorEffect("Haste", 2, "O"),
+    augmentVigorEffect("Haste", 2, "D"),
+    augmentVigorEffect("Poison", 10, "O"),
+    augmentVigorEffect("Poison", 10, "D"),
     new Effect(
         `Smoke Overflow`,
         (context, count, trigger) => {
@@ -59,15 +75,24 @@ export const augmentEffects = [
         ["On Use"],
         false, 3, false, true
     ),
-    simpleStatusEffect("Burn", false),
-    simpleStatusEffect("Frostbite", false),
-    simpleStatusEffect("Smoke", false),
-    simpleStatusEffect("Bleed", false),
-    simpleStatusEffect("Rupture", true),
-    simpleStatusEffect("Tremor", true),
-    simpleStatusEffect("Sinking", true),
-    simpleStatusEffect("Poise", false, true),
-    simpleStatusEffect("Ruin", false),
+    simpleStatusEffect("Burn", false, false, "O"),
+    simpleStatusEffect("Burn", false, false, "D"),
+    simpleStatusEffect("Frostbite", false, false, "O"),
+    simpleStatusEffect("Frostbite", false, false, "D"),
+    simpleStatusEffect("Smoke", false, false, "O"),
+    simpleStatusEffect("Smoke", false, false, "D"),
+    simpleStatusEffect("Bleed", false, false, "O"),
+    simpleStatusEffect("Bleed", false, false, "D"),
+    simpleStatusEffect("Rupture", true, false, "O"),
+    simpleStatusEffect("Rupture", true, false, "D"),
+    simpleStatusEffect("Tremor", true, false, "O"),
+    simpleStatusEffect("Tremor", true, false, "D"),
+    simpleStatusEffect("Sinking", true, false, "O"),
+    simpleStatusEffect("Sinking", true, false, "D"),
+    simpleStatusEffect("Poise", false, true, "O"),
+    simpleStatusEffect("Poise", false, true, "D"),
+    simpleStatusEffect("Ruin", false, false, "O"),
+    simpleStatusEffect("Ruin", false, false, "D"),
     markerEffect("Puffy Brume", false, 1),
     markerEffect("Dizzying Smog", false, 1),
     flashEffect("Flash Fire", "Burn", true),
@@ -199,10 +224,10 @@ export const augmentEffects = [
         "Remembrance [S]",
         (context, count, trigger) => {
             context.events["Round Start"].push(async (context) => {
-                let dispo = canvas.tokens.placeables.find(x => x.actor == context.actor).document.disposition;
+                let dispo = getCombatantTokens().find(x => x.actor == context.actor).document.disposition;
                 let anyDead = false;
                 let deadCount = 0;
-                for (const token of canvas.tokens.placeables.filter(x => (x.actor != context.actor) && x.document.disposition == dispo)) {
+                for (const token of getCombatantTokens().filter(x => (x.actor != context.actor) && x.document.disposition == dispo)) {
                     if (token.actor == null) continue;
                     if (token.actor.system.attributes.health.value <= 0) {
                         anyDead = true;
@@ -238,10 +263,10 @@ export const augmentEffects = [
         "Remembrance [E]",
         (context, count, trigger) => {
             context.events["Round Start"].push(async (context) => {
-                let dispo = canvas.tokens.placeables.find(x => x.actor == context.actor).document.disposition;
+                let dispo = getCombatantTokens().find(x => x.actor == context.actor).document.disposition;
                 let anyDead = false;
                 let deadCount = 0;
-                for (const token of canvas.tokens.placeables.filter(x => (x.actor != context.actor) && x.document.disposition == dispo)) {
+                for (const token of getCombatantTokens().filter(x => (x.actor != context.actor) && x.document.disposition == dispo)) {
                     if (token.actor == null) continue;
                     if (token.actor.system.attributes.health.value <= 0) {
                         anyDead = true;
@@ -359,9 +384,13 @@ export const augmentEffects = [
         false, 1, false, true
     ),
     new Effect(
-        "Regen HP",
+        "Regen HP [O]",
         (context, count, trigger) => {
             context.events[trigger].push(async (context) => {
+                if (!context.isOffensive()) {
+                    return;
+                }
+
                 let hp = context.actor.system.attributes.health.value;
                 if (hp <= 0) return;
 
@@ -377,19 +406,55 @@ export const augmentEffects = [
         },
         (count) => {
             if (count >= 0) {
-                return `Recover ${Number(count)} HP`;
+                return `[!O]Recover ${Number(count)} HP`;
             }
             else {
-                return `Lose ${Number(count)} HP`
+                return `[!O]Lose ${Number(count)} HP`
             }
         },
         ["Clash Win", "Clash Lose"],
         true, 5, false, true
     ),
     new Effect(
-        "Regen ST",
+        "Regen HP [D]",
         (context, count, trigger) => {
             context.events[trigger].push(async (context) => {
+                if (context.isOffensive()) {
+                    return;
+                }
+                
+                let hp = context.actor.system.attributes.health.value;
+                if (hp <= 0) return;
+
+                if (count >= 0) {
+                    await context.actor.heal(count, 0, 0, context.actor);
+                    createEffectsMessage(context.actor.name, `Recovered ${Math.abs(count)} HP! (${hp} -> ${context.actor.system.attributes.health.value})`);
+                }
+                else {
+                    await context.actor.takeDamage(0, context, Math.abs(count), 0, 0, true);
+                    createEffectsMessage(context.actor.name, `Took ${Math.abs(count)} HP damage! (${hp} -> ${context.actor.system.attributes.health.value})`);
+                }
+            });
+        },
+        (count) => {
+            if (count >= 0) {
+                return `[!D]Recover ${Number(count)} HP`;
+            }
+            else {
+                return `[!D]Lose ${Number(count)} HP`
+            }
+        },
+        ["Clash Win", "Clash Lose"],
+        true, 5, false, true
+    ),
+    new Effect(
+        "Regen ST [O]",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                if (!context.isOffensive()) {
+                    return;
+                }
+
                 let hp = context.actor.system.attributes.stagger.value;
                 if (hp <= 0) return;
 
@@ -405,10 +470,42 @@ export const augmentEffects = [
         },
         (count) => {
             if (count >= 0) {
-                return `Recover ${Number(count)} ST`;
+                return `[!O]Recover ${Number(count)} ST`;
             }
             else {
-                return `Lose ${Number(count)} ST`
+                return `[!O]Lose ${Number(count)} ST`
+            }
+        },
+        ["Clash Win", "Clash Lose"],
+        true, 5, false, true
+    ),
+    new Effect(
+        "Regen ST [D]",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                if (context.isOffensive()) {
+                    return;
+                }
+
+                let hp = context.actor.system.attributes.stagger.value;
+                if (hp <= 0) return;
+
+                if (count >= 0) {
+                    await context.actor.heal(0, count, 0, context.actor);
+                    createEffectsMessage(context.actor.name, `Recovered ${Math.abs(count)} ST! (${hp} -> ${context.actor.system.attributes.stagger.value})`);
+                }
+                else {
+                    await context.actor.takeDamage(0, context, 0, Math.abs(count), 0, true);
+                    createEffectsMessage(context.actor.name, `Took ${Math.abs(count)} ST damage! (${hp} -> ${context.actor.system.attributes.stagger.value})`);
+                }
+            });
+        },
+        (count) => {
+            if (count >= 0) {
+                return `[!D]Recover ${Number(count)} ST`;
+            }
+            else {
+                return `[!D]Lose ${Number(count)} ST`
             }
         },
         ["Clash Win", "Clash Lose"],
@@ -470,15 +567,30 @@ export const augmentEffects = [
     markerEffect("Impassioned", true, 1),
     markerEffect("Multifaceted", false, 1),
     new Effect(
-        `Fervor`,
+        `Fervor [O]`,
         (context, count, trigger) => {
-            if (context.actor != null) {
+            if (context.actor != null && context.isOffensive()) {
                 context.dicePower = Number(context.dicePower) + Math.min(Number(context.actor.system.emotionLevelUsed), 3);
                 context.nonSkillDicePower = Number(context.nonSkillDicePower) + Math.min(Number(context.actor.system.emotionLevelUsed), 3);
             }
         },
         (count) => {
-            return `Gain 1 Dice Power for every time Emotion Level has been used this combat (max 3)`
+            return `[!O]Gain 1 Dice Power for every time Emotion Level has been used this combat (max 3)`
+        },
+        ["On Use"],
+        false,
+        1
+    ),
+    new Effect(
+        `Fervor [D]`,
+        (context, count, trigger) => {
+            if (context.actor != null && !context.isOffensive()) {
+                context.dicePower = Number(context.dicePower) + Math.min(Number(context.actor.system.emotionLevelUsed), 3);
+                context.nonSkillDicePower = Number(context.nonSkillDicePower) + Math.min(Number(context.actor.system.emotionLevelUsed), 3);
+            }
+        },
+        (count) => {
+            return `[!O]Gain 1 Dice Power for every time Emotion Level has been used this combat (max 3)`
         },
         ["On Use"],
         false,
@@ -679,7 +791,7 @@ export const augmentEffects = [
         "Lone Fixer",
         (context, count, trigger) => { 
             if (context.actor != null) {
-                if (findActorsOfTeam(context.actor.system.team).length <= 0) {
+                if (findActorsOfTeam(context.actor).length <= 0) {
                     context.dicePower = Number(context.dicePower) + 2;
                     context.nonSkillDicePower = Number(context.nonSkillDicePower) + 2;
                 }
@@ -745,13 +857,13 @@ function augmentThresholdEffect(name, bar, mult, status, negativeStatus = []) {
 }
 
 async function applyInAoe(origin, distance, callback, user) {
-    let source = canvas.tokens.placeables.find(x => x.actor == origin);
+    let source = getCombatantTokens().find(x => x.actor == origin);
     let dispo = 0;
     if (user != null) {
-        dispo = canvas.tokens.placeables.find(x => x.actor == user).document.disposition;
+        dispo = getCombatantTokens().find(x => x.actor == user).document.disposition;
     }
 
-    for (let token of canvas.tokens.placeables.filter(x => user == null ? true : x.document.disposition != dispo)) {
+    for (let token of getCombatantTokens().filter(x => user == null ? true : x.document.disposition != dispo)) {
         if (token.actor == null) continue;
         if (scale(canvas.grid.measureDistance(source, token)) <= distance) {
             await callback(token.actor);
@@ -770,17 +882,17 @@ function markerEffect(name, negative = false, count = 1) {
     );
 }
 
-function augmentVigorEffect(status, req) {
+function augmentVigorEffect(status, req, type) {
     return new Effect(
-        `${status} Vigor`,
+        `${status} Vigor [${type}]`,
         (context, count, trigger) => {
-            if (context.actor != null) {
+            if (context.actor != null && (type == "D" ? !this.isOffensive() : this.isOffensive)) {
                 context.dicePower = Number(context.dicePower) + (Math.clamp(Math.floor(context.actor.getStatusCount(status) / req), 0, 3));
                 context.nonSkillDicePower = Number(context.nonSkillDicePower) + (Math.clamp(Math.floor(context.actor.getStatusCount(status) / req), 0, 3));
             }
         },
         (count) => {
-            return `Gain 1 Dice Power for every ${req} [/status/${status}] ${status} on self, max 3.`
+            return `[!${type}]Gain 1 Dice Power for every ${req} [/status/${status}] ${status} on self, max 3.`
         },
         ["On Use"],
         false,
@@ -788,12 +900,12 @@ function augmentVigorEffect(status, req) {
     );
 }
 
-function augmentBonusEffect(status, req, invert = false) {
+function augmentBonusEffect(status, req, invert = false, type) {
     return new Effect(
-        `${status} Bonus`,
+        `${status} Bonus [${type}]`,
         (context, count, trigger) => {
             if (invert) {
-                if (context.actor != null && context.actor.getStatusCount(status) >= req) {
+                if (context.actor != null && context.actor.getStatusCount(status) >= req && (type == "D" ? !this.isOffensive() : this.isOffensive)) {
                     context.dicePower = Number(context.dicePower) + 1;
                     context.nonSkillDicePower = Number(context.nonSkillDicePower) + 1;
                 }
@@ -806,7 +918,7 @@ function augmentBonusEffect(status, req, invert = false) {
             }
         },
         (count) => {
-            return `If the ${invert ? "user" : "target"} has ${req > 1 ? req + " " : ""}[/status/${status}] ${status}, gain 1 Dice Power`
+            return `[!${type}]If the ${invert ? "user" : "target"} has ${req > 1 ? req + " " : ""}[/status/${status}] ${status}, gain 1 Dice Power`
         },
         ["On Use"],
         false,
@@ -814,15 +926,20 @@ function augmentBonusEffect(status, req, invert = false) {
     );
 }
 
-function simpleStatusEffect(status, nextRound, invert = false) {
+function simpleStatusEffect(status, nextRound, invert = false, type) {
     let str = nextRound ? " next round" : "";
     return new Effect(
-        `${invert ? "Gain" : "Inflict"} ${status}`,
+        `${invert ? "Gain" : "Inflict"} ${status} [${type}]`,
         (context, count, trigger) => {
-            context.triggers[trigger].applyInfliction(status, invert ? -count : count, nextRound);
+            if (type == "D" && !context.isOffensive()) {
+                context.triggers[trigger].applyInfliction(status, invert ? -count : count, nextRound);
+            }
+            else if (context.isOffensive()) {
+                context.triggers[trigger].applyInfliction(status, invert ? -count : count, nextRound);
+            }
         },
         (count) => {
-            return `${invert ? "Gain" : "Inflict"} ${Number(count)} [/status/${status}] ${status}` + str;
+            return `[!${type}]${invert ? "Gain" : "Inflict"} ${Number(count)} [/status/${status}] ${status}` + str;
         },
         ["Clash Win", "Clash Lose"],
         false, status == "Rupture" ? 6 : 5

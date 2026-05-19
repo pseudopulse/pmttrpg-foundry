@@ -6,6 +6,7 @@ import { findActorsOfTeam, getActorTeam, getAlliesWithinRadiusOfTarget, getChara
 import { Conditional } from "../combat/rollContext.mjs";
 import { findByID } from "../helpers/netmsg.mjs";
 import { getRollContextFromData } from "../../documents/item.mjs";
+import { getCombatantTokens } from "../combat/combatState.mjs";
 
 export const skillEffects = [
     new Effect(
@@ -432,7 +433,7 @@ export const skillEffects = [
     new Effect(
         `Gain Poise`,
         (context, count, trigger) => {
-            context.triggers[trigger].applyInfliction("Poise", count, false);
+            context.triggers[trigger].applyInfliction("Poise", -count, false);
         },
         (count) => {
             return handleNegativeText(
@@ -2278,13 +2279,13 @@ function statusPauseEffect(status, max = 5) {
 
 
 async function applyInAoe(origin, distance, callback, user) {
-    let source = canvas.tokens.placeables.find(x => x.actor == origin);
+    let source = getCombatantTokens().find(x => x.actor == origin);
     let dispo = 0;
     if (user != null) {
-        dispo = canvas.tokens.placeables.find(x => x.actor == user).document.disposition;
+        dispo = getCombatantTokens().find(x => x.actor == user).document.disposition;
     }
 
-    for (let token of canvas.tokens.placeables.filter(x => user == null ? true : x.document.disposition != dispo)) {
+    for (let token of getCombatantTokens().filter(x => user == null ? true : x.document.disposition != dispo)) {
         if (token.actor == null) continue;
         if (scale(canvas.grid.measureDistance(source, token)) <= distance) {
             await callback(token.actor);

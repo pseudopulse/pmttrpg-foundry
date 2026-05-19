@@ -5,14 +5,9 @@
                 <div class="sto-resource" style="height: 3.5rem; gap: 1.5rem; width: 100%;">
                     <label class="sto-item-name">Targeting:</label>
                     <div class="sto-resource-content">
-                        <button onclick="toggleAT('sto-targetDrp')" class="sts-dropbtn sts-small-dropdown" style="width: 12rem;" id="sto-targetButton">
+                        <button onclick="" class="sts-dropbtn sts-small-dropdown" style="width: 12rem;" id="sto-targetButton">
                             {{target}}
                         </button>
-                        <div id="sto-targetDrp" class="sts-dropdown-content" style="width: 12rem; text-align: center;">
-                            {{#each targets as |target|}}
-                                <a onclick="toggleAT('sto-targetDrp')" class="sto-target-entry" data-id="{{target.id}}">{{target.name}}</a>
-                            {{/each}}
-                        </div>
                     </div>
                 </div>
             </div>

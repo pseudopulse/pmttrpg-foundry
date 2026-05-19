@@ -87,5 +87,12 @@ export function validate(effects, category) {
                 effect.count = 0;
             }
         }
+        else {
+            effect.name = null;
+        }
     }
+
+    effects = effects.filter(x => x.name != null);
+
+    return effects;
 }

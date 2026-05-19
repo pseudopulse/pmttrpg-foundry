@@ -1,3 +1,5 @@
+import { getCombatantTokens } from "../combat/combatState.mjs";
+
 export const abnoCards = [
     // kod
     {
@@ -88,7 +90,7 @@ export function findHoldersOfPage(page) {
     let holders = [];
 
     if (canvas.tokens != undefined) {
-        for (let token of canvas.tokens.placeables) {
+        for (let token of getCombatantTokens()) {
             if (token.actor == null) continue;
             if (token.actor.hasAbnoPage(page)) {
                 holders.push(token.actor);
