@@ -19,7 +19,7 @@
                 </div>
             </div>
             <div class='ak-item-name'>
-                <h4 class="ak-item-text">{{item.name}}</h4>
+                <h4 class="ak-item-text" style="text-wrap-mode: wrap !important; width: 12rem !important; text-wrap-style: balance; text-align: center;">{{item.name}}</h4>
             </div>
             {{> ptSkillCosts item context=(rctx item)}}
             <div class='item-controls ak-controls'>
@@ -156,7 +156,7 @@
         display: flex;
         grid-template-columns: auto 1fr;
         align-items: center;
-        gap: 4rem;
+        gap: 0.5rem !important;
         padding: 1% 2%;
         position: relative;
     }
