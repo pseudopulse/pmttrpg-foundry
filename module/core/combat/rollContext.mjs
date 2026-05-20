@@ -9,7 +9,7 @@ import { pollUserInputConfirm, pollUserInputOptions } from "../helpers/dialog.mj
 import { calculateTechniqueCost } from "../../sheets/item.mjs";
 
 const triggerTypes = ["Round End", "Clash Win", "Clash Lose", "On Use", "Always Active", "On Crit", "Devastating Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Augment Passive", "Combat Start", "Round Start", "Effective Heal"];
-const eventTypes = ["Round End", "Kill", "Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Clash Win", "Clash Lose", "On Use", "Clash Win Instant", "Clash Lose Instant"];
+const eventTypes = ["Before Attack", "Round End", "Kill", "Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Clash Win", "Clash Lose", "On Use", "Clash Win Instant", "Clash Lose Instant"];
 const statusPlusValid = ["Burn", "Bleed", "Frostbite", "Sinking", "Tremor", "Rupture", "Poise", "Ruin"];
 
 export class RollContext {
@@ -73,6 +73,8 @@ export class RollContext {
         //
         this.form = "";
         this.hand = "";
+        //
+        this.bonusAttackDamage = 0;
 
         for (const trigger of triggerTypes) {
             this.triggers[trigger] = new TriggerEvents();

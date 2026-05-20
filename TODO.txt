@@ -1,7 +1,5 @@
 functional parts (there's like 10 left to finish if i have time)
 
-force damage input
-
 // bugs
 
 idfk gain effects arent working (frostbite is one)
@@ -10,17 +8,9 @@ make holding shift ignore movement restrictions (instead of blink mode)
 
 make removing marks send a gm message for networking
 
-striker pet light mechanic
-
 make reduce status able to target allies
 
-automate forced movement (system is in place, just gotta go through and add it in)
+add unlock (functional part)
 
 // to add
-new functional parts (that get used)
-new attachments (that get used)
-adaptation (homebrew skill effect)
-ego weapon drain (homebrew weapon effect)
 ego skill drain (homebrew skill effect)
-pet sanity link (homebrew augment effect)
-fallback identity (functional part)

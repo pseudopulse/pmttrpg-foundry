@@ -12,6 +12,7 @@ import { findByID, sendNetworkMessage } from "../core/helpers/netmsg.mjs";
 import { abnoCards } from "../core/effects/abnoCards.mjs";
 import { requestTargeting, TargetType } from "../core/combat/targeting.mjs";
 import { addHazard, getHazardAtTile, HazardNames, HazardType, roundEnd } from "../core/combat/hazards.mjs";
+import { requestForcedMovement } from "../core/combat/movement.mjs";
 
 let pending = {};
 let pendingStagger = {};
@@ -798,8 +799,8 @@ export class PTActor extends Actor {
 
         if (ctx1.actor.augmentEffectCount("Feedback Loop") > 0) {
             let charge = ctx1.getChargeCosts();
-            if (charge > 12) {
-                charge = 12;
+            if (charge > 16) {
+                charge = 16;
             }
 
             ctx1.triggers["Clash Win"].applyInfliction("Charge", charge, false);
@@ -1138,7 +1139,7 @@ export class PTActor extends Actor {
         const attr = systemData.attributes;
         const stats = systemData.abilities;
 
-        let damage = context.result;
+        let damage = context.result + Number(context.bonusAttackDamage);
 
         if (systemData.mostRecentRoll == null || context.result > systemData.mostRecentRoll.context.result) {
             if (context.attackType == "Ranged" || context.type == "Ranged") {
@@ -1703,14 +1704,25 @@ export class PTActor extends Actor {
             await context.actor.update({ "system.damageDealt": Number(context.actor.system.damageDealt) + (prevHP - hp) }, { diff: false });
         }
 
+        let hpR = this.findResistance(context.damageType, null);
+        let stR = this.findResistance(context.damageType, "ST");
+
+        if (hpR < 1.5 && context != null && context.flags.includes("Rip Space")) {
+            hpR = 1.5;
+        }
+
+        if (stR < 1.5 && context != null && context.flags.includes("Rip Space")) {
+            stR = 1.5;
+        }
+
         let text = this.removeLinesWithString(`
             ${header}
-            ${damage}${resText} x ${this.findResistance(context.damageType, null)} = ${this.getModifiedDamage(context, damage, null)} HP damage taken. (${prevHP} -> ${hp})
+            ${damage}${resText} x ${hpR} = ${this.getModifiedDamage(context, damage, null)} HP damage taken. (${prevHP} -> ${hp})
             (${snipersMarkLine})
             (${protTextHP[0] != null ? protTextHP[0] : ""})
             (${protTextHP[1] != null ? protTextHP[1] : ""})
 
-            ${damage}${resText} x ${this.findResistance(context.damageType, "ST")} = ${this.getModifiedDamage(context, damage, "ST")} ST damage taken. (${prevST} -> ${st})
+            ${damage}${resText} x ${stR} = ${this.getModifiedDamage(context, damage, "ST")} ST damage taken. (${prevST} -> ${st})
             (${protTextST[0] != null ? protTextST[0] : ""})
             (${smokeVeilLine})
             `, "()");
@@ -3195,6 +3207,7 @@ export class PTActor extends Actor {
             point.x -= token.mesh.canvasBounds.width / 2;
             point.y -= token.mesh.canvasBounds.height / 2;
 
+            await token.document.setFlag("pmttrpg", "ignoreNextMovementCheck", true);
             await token.document.update({ x: point.x, y: point.y });
         }
         else {

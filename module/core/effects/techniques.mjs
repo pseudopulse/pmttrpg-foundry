@@ -3,16 +3,22 @@ import { handleNegativeText } from "../../core/effects/effectHelpers.mjs";
 import { Conditional } from "../combat/rollContext.mjs";
 import { pollUserInputOptions } from "../helpers/dialog.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
+import { requestForcedMovement } from "../combat/movement.mjs";
 
 export const techniqueList = [
     new Effect(
         "Shove",
-        (context, count, trigger) => {},
+        (context, count, trigger) => {
+            context.events["Clash Win"].push(async (context) => {
+                createEffectsMessage(context.target.name, `Is pushed ${count} SQR by Shove!`);
+                await requestForcedMovement(context.actor, context.target, context.target, count, false, true);
+            });
+        },
         (count) => {
             return `Push the target ${Number(count)} SQR.`
         },
         ["Clash Win"],
-        false, 5, false, false, 2
+        false, 5, false, true, 2
     ),
     new Effect(
         "Sweep",

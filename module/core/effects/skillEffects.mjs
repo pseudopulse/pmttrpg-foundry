@@ -7,6 +7,7 @@ import { Conditional } from "../combat/rollContext.mjs";
 import { findByID } from "../helpers/netmsg.mjs";
 import { getRollContextFromData } from "../../documents/item.mjs";
 import { getCombatantTokens } from "../combat/combatState.mjs";
+import { requestForcedMovement } from "../combat/movement.mjs";
 
 export const skillEffects = [
     new Effect(
@@ -652,6 +653,7 @@ export const skillEffects = [
         (context, count, trigger) => {
             context.events["Devastating Hit"].push(async (context) => {
                 createEffectsMessage(context.target.name, `Is pushed ${Math.min(count, context.devastation)} SQR by Devastating Force!`);
+                await requestForcedMovement(context.actor, context.target, context.target, Math.min(count, context.devastation), true, true);
             })
         },
         (count) => {
@@ -899,6 +901,7 @@ export const skillEffects = [
                 
                 if (tremor > 2) {
                     await createEffectsMessage(ctx.target.name, `Is pushed ${Math.floor(tremor / 2)} SQR away by Tremor Slam!`);
+                    await requestForcedMovement(context.actor, context.target, context.target, Math.floor(tremor / 2), true, true);
                 }
             });
         },
@@ -1212,6 +1215,7 @@ export const skillEffects = [
             context.events["Clash Win"].push(async (context) => {
                 if (context.actor.getStatusCount("Haste") >= count) {
                     createEffectsMessage(context.target.name, `Is pushed ${count} SQR by Circle Throw!`);
+                    await requestForcedMovement(context.actor, context.target, context.target, count, false, true);
                 }
             })
         },
@@ -1603,6 +1607,7 @@ export const skillEffects = [
         (context, count, trigger) => {
             context.events[trigger].push(async (context) => {
                 await context.actor.takeForceDamage(count, context);
+                await requestForcedMovement(context.actor, context.target, context.target, count * 2, false, true);
             });
         },
         count => `deal ${Number(count)}d8 Force Damage and push target up to ${Number(count) * 2} SQR`,
@@ -1643,9 +1648,20 @@ export const skillEffects = [
     ),
     overchargeEffect("Overcharge - Rip Space", 4,
         (context, count, trigger) => {
-            context.flags.push("Rip Space");
-            context.dicePower = Number(context.dicePower) + 2;
-            context.skillDicePower = Number(context.skillDicePower) + 2;
+            if (!context.flags.includes("Rip Space")) {
+                context.flags.push("Rip Space");
+                context.dicePower = Number(context.dicePower) + 2;
+                context.skillDicePower = Number(context.skillDicePower) + 2;
+            }
+
+            context.events["Before Attack"].push(async (context) => {
+                let distance = await requestForcedMovement(context.actor, context.actor, context.target, 1, false, false, true);
+                let damage = Math.min(distance * 2, Math.max(context.actor.system.attributes.stagger.value - 1, 0));
+                if (distance != -1) {
+                    await context.actor.takeDamageStatus(damage, "", "ST", `Takes %DMG% ST damage from ripping through space! (%PST% -> %ST%)`);
+                    context.bonusAttackDamage = Number(context.bonusAttackDamage) + distance * 2;
+                }
+            });
         },
         count => `gain +2 Dice Power and cause all damage dealt by this attack to strike Weak (1.5x), unless the target is already Fatal (2x). Before attack, rip through space to an unoccupied tile adjacent to the target. For every SQR ripped through, take 2 ST damage and increase the attack damage by +2 (cannot stagger self).`,
         ["On Use"], 1, false

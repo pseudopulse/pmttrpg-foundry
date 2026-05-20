@@ -5,6 +5,7 @@ import { RollContext } from "../combat/rollContext.mjs";
 import { createEffectsMessage } from "./clash.mjs";
 import { pollUserInputConfirm, pollUserInputOptions, pollUserInputText, pollReduceStatus, pollDistributeStatus, pollUserInputBurst } from "./dialog.mjs";
 import { addHazardInternal, roundEndInternal } from "../combat/hazards.mjs";
+import { pollUserGetGridSpace } from "../combat/movement.mjs";
 
 export function sendNetworkMessage(type, data) {
     ChatMessage.create({
@@ -153,7 +154,13 @@ export function registerMessages() {
     CONFIG.queries["pmttrpg.pollReduceStatus"] = wrapperPollReduceStatus;
     CONFIG.queries["pmttrpg.pollDistributeStatus"] = wrapperPollDistributeStatus;
     CONFIG.queries["pmttrpg.pollUserInputBurst"] = wrapperPollUserInputBurst;
+    CONFIG.queries["pmttrpg.pollUserGetGridSpace"] = wrapperPollUserGetGridSpace;
 }
+
+export async function wrapperPollUserGetGridSpace(data) {
+    return await pollUserGetGridSpace(game.user, data.target, data.origin, data.range);
+}
+
 
 export async function wrapperPollUserInputOptions(data) {
     return await pollUserInputOptions(game.user, data.prompt, data.options, data.defaultIndex);

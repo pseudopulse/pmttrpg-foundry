@@ -341,7 +341,7 @@ export async function requestTargeting(type, options = {}) {
                     mask.drawRect(-1e6, -1e6, 2e6, 2e6);
                     mask.endFill();
                     mask.beginHole();
-                    mask.drawCircle(pos.x, pos.y, 210 * getZoom() * data.range);
+                    mask.drawCircle(pos.x, pos.y, 210 * getZoom() * data.range * (canvas.grid.size / 256));
                     mask.endHole();
                     mask.endFill();
 
@@ -381,7 +381,7 @@ export async function requestTargeting(type, options = {}) {
 
                     for (let range of data.ranges) {
                         let indicator = range.indicator;
-                        let radius = (210 * getZoom() * range.range);
+                        let radius = (210 * getZoom() * range.range * (canvas.grid.size / 256));
                         
                         indicator.clear();
                         indicator.lineStyle(15 * getZoom(), range.color, 1);

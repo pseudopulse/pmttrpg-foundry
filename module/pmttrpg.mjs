@@ -231,6 +231,14 @@ function safeJsonConvert(obj, ignore) {
   return res;
 }
 
+function getActorMovementArray(actor) {
+  if (ignoreMovementConsumptionCount[actor] == null) {
+    ignoreMovementConsumptionCount[actor] = [];
+  }
+
+  return ignoreMovementConsumptionCount[actor];
+}
+
 export function loadHazards() {
   let str = game.settings.get('pmttrpg', 'hazards');
   if (str == null || str == "") {
@@ -401,6 +409,11 @@ Hooks.on('preMoveToken', (token, data, action, user) => {
   }
 
   let sqr = Math.floor(dist / distScale) + (Math.max((data.destination.elevation - data.origin.elevation) / 5, 0)) + difficultTerrainMoved;
+  let baseSqr = Math.floor(dist / distScale);
+
+  if (token.getFlag("pmttrpg", "ignoreNextMovementCheck")) {
+    return true;
+  }
 
   if (token.movementAction != "blink" && sqr > token.actor.system.movement && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user && !token.actor.getRiding()) {
     ui.notifications.notify(`You cant move that far! You attempted to move ${sqr} SQR, while only having ${token.actor.system.movement} SQR remaining!`);
@@ -447,8 +460,9 @@ Hooks.on('moveToken', async (token, data, action, user) => {
   }
   
   let sqr = Math.floor(dist / distScale) + (Math.max((data.destination.elevation - data.origin.elevation) / 5, 0)) + difficultTerrainMoved;
+  let baseSqr = Math.floor(dist / distScale);
 
-  if (token.movementAction != "blink" && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user && !token.actor.getRiding()) {
+  if (token.movementAction != "blink" && (game.combat != null && game.combat.isActive) && getActorUser(token.actor) == game.user && !token.actor.getRiding() && !token.getFlag("pmttrpg", "ignoreNextMovementCheck")) {
     if (sqr > 6 && token.actor.augmentEffectCount("Velocity Generator") > 0) {
       let movement = sqr - 6;
       await token.actor.applyStatus("Charge", movement);
@@ -457,6 +471,15 @@ Hooks.on('moveToken', async (token, data, action, user) => {
 
     await token.actor.update({ "system.movement": Math.max(Number(token.actor.system.movement) - sqr, 0) }, { diff: false });
     await token.actor.fireStatusEffects(Triggers.MOVE);
+    if (dest.elevation == origin.elevation) {
+      await handleHazardMovement(token, centerPosition(origin), centerPosition(dest));
+    }
+  }
+
+  if (token.getFlag("pmttrpg", "ignoreNextMovementCheck") && getActorUser(token.actor) == game.user) {
+    await token.setFlag("pmttrpg", "ignoreNextMovementCheck", false);
+    await token.update({ movementAction: "walk" }, { render: true, diff: false });
+
     if (dest.elevation == origin.elevation) {
       await handleHazardMovement(token, centerPosition(origin), centerPosition(dest));
     }

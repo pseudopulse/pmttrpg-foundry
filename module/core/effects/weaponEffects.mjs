@@ -4,6 +4,7 @@ import { Conditional, RollContext } from "../combat/rollContext.mjs";
 import { pollUserInputOptions } from "../helpers/dialog.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
 import { getAlliesWithinRadius, getAlliesWithinRadiusOfTarget } from "../../pmttrpg.mjs";
+import { requestForcedMovement } from "../combat/movement.mjs";
 
 export const weaponEffects = [
     // Dice Manipulation
@@ -346,14 +347,16 @@ export const weaponEffects = [
         `Magnetic Drive`,
         (context, count, trigger) => {
             context.conditionals.push(new Conditional("Magnetic Drive [C]", `Spend 6 Charge to push the target 1 SQR.`, (context) => {
-                context.triggers[trigger].modify.push((ctx, data) => {
+                context.triggers[trigger].modify.push(async (ctx, data) => {
                     createEffectsMessage(context.target.name, `[/status/Aggro] Is pushed 1 SQR away from ${context.actor.name} by Magnetic Drive!`);
+                    await requestForcedMovement(context.actor, context.target, context.target, 1, true, true);
                 });
             }, [{ cost: 6, status: "Charge"}], "Magnetic Drive [O]"));
 
             context.conditionals.push(new Conditional("Magnetic Drive [O]", `Spend 1 Overcharge to push the target 2 SQR.`, (context) => {
-                context.triggers[trigger].modify.push((ctx, data) => {
+                context.triggers[trigger].modify.push(async (ctx, data) => {
                     createEffectsMessage(context.target.name, `[/status/Aggro] Is pushed 2 SQR away from ${context.actor.name} by Magnetic Drive!`);
+                    await requestForcedMovement(context.actor, context.target, context.target, 2, true, true);
                 });
             }, [{ cost: 1, status: "Overcharge"}], "Magnetic Drive [C]"));
         },
@@ -369,14 +372,16 @@ export const weaponEffects = [
         `Loaded Magnet`,
         (context, count, trigger) => {
             context.conditionals.push(new Conditional("Loaded Magnet [C]", `Spend 6 Charge to pull the target ${Number(count)} SQR.`, (context) => {
-                context.triggers[trigger].modify.push((ctx, data) => {
+                context.triggers[trigger].modify.push(async (ctx, data) => {
                     createEffectsMessage(context.target.name, `[/status/Aggro] Is pulled ${count} SQR towards ${context.actor.name} by Loaded Magnet!`);
+                    await requestForcedMovement(context.actor, context.target, context.target, count, true, true);
                 });
             }, [{ cost: count * 3, status: "Charge"}], "Loaded Magnet [O]"));
 
             context.conditionals.push(new Conditional("Loaded Magnet [O]", `Spend 1 Overcharge to pull the target ${Number(count) * 3} SQR.`, (context) => {
-                context.triggers[trigger].modify.push((ctx, data) => {
+                context.triggers[trigger].modify.push(async (ctx, data) => {
                     createEffectsMessage(context.target.name, `[/status/Aggro] Is pulled ${count * 3} SQR towards ${context.actor.name} by Loaded Magnet!`);
+                    await requestForcedMovement(context.actor, context.target, context.target, count * 3, true, true);
                 });
             }, [{ cost: count, status: "Overcharge"}], "Loaded Magnet [C]"));
         },

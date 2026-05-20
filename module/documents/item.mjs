@@ -232,6 +232,8 @@ export class PTItem extends Item {
         rollContext.addEffectsList(systemData.effects, fixTypeName(this.type));
         await rollContext.processEffects();
 
+        await rollContext.fireEvent("Before Attack");
+
         if (rollContext.hasEffect("Extra DMG Type") || rollContext.hasEffect("Versatility") || (rollContext.attackType == "Ranged" && !rollContext.hasEffect("Charge Ammo"))) {
             rollContext.damageType = await pollUserInputOptions(game.user, "Select Damage Type", [
                 {
