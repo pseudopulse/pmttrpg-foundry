@@ -894,7 +894,7 @@ export class RollContext {
             case "Effective Heal":
                 return "#ff5858ff";
             case "Round End":
-                return "#2f3550ff";
+                return "#3a4885ff";
         }
 
         return "#000000";

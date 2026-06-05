@@ -49,7 +49,7 @@ export function registerMessages() {
         const target = findByID(data.target);
         const attacker = findByID(data.attacker);
 
-        if (game.user.isGM) {
+        if (game.user.isActiveGM) {
             await attacker.sendAttackRoll();
         }
     }
@@ -58,7 +58,7 @@ export function registerMessages() {
         const target = findByID(data.target);
         const attacker = findByID(data.attacker);
 
-        if (game.user.isGM) {
+        if (game.user.isActiveGM) {
             await attacker.processActionSkill(attacker.items.find(x => x._id == data.item._id), target);
         }
     };
@@ -67,7 +67,7 @@ export function registerMessages() {
         const target = findByID(data.target);
         const attacker = findByID(data.attacker);
 
-        if (game.user.isGM) {
+        if (game.user.isActiveGM) {
             await target.applyMark(attacker, data.mark);
         }
     };
@@ -76,7 +76,7 @@ export function registerMessages() {
         const target = findByID(data.target);
         const source = findByID(data.source);
 
-        if (game.user.isGM) {
+        if (game.user.isActiveGM) {
             await target.removeMark(source, data.mark);
         }
     };
@@ -94,7 +94,7 @@ export function registerMessages() {
         const target = findByID(data.target);
         const char = findByID(data.char);
 
-        if (game.user.isGM) {
+        if (game.user.isActiveGM) {
             await target.update({ "system.mountedCharacter": char.system.id }, { diff: false, render: true });
         }
     };
@@ -102,7 +102,7 @@ export function registerMessages() {
     handler["CLEAR_MOUNT"] = async (data) => {
         const target = findByID(data.target);
 
-        if (game.user.isGM) {
+        if (game.user.isActiveGM) {
             await target.update({ "system.mountedCharacter": null }, { diff: false, render: true });
         }
     };
@@ -110,7 +110,7 @@ export function registerMessages() {
     handler["EDIT_SCALE"] = async (data) => {
         const target = findByID(data.target);
 
-        if (game.user.isGM) {
+        if (game.user.isActiveGM) {
             await target.modifyScale(data.scale);
         }
     };

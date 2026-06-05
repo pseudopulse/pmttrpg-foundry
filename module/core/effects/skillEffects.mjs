@@ -1987,7 +1987,21 @@ export const skillEffects = [
             return 'Damage Type becomes [/damageTypes/Blunt] Blunt.'
         },
         ["On Use"], false, 1, false
-    )
+    ),
+    new Effect(
+        "Push",
+        (context, count, trigger) => {
+            context.events["Clash Win"].push(async (context) => {
+                createEffectsMessage(context.target.name, `Is pushed ${count} SQR by the attack!`);
+                await requestForcedMovement(context.actor, context.target, context.target, count, true, true);
+            });
+        },
+        (count) => {
+            return `Push the target ${Number(count)} SQR.`
+        },
+        ["Clash Win", "Clash Lose"],
+        false, 5, false, true
+    ),
 ]
 
 async function findAllyTarget(actor, msg) {
