@@ -96,6 +96,13 @@ export class RollContext {
     }
 
     getRange() {
+        if (this.form == "Psionic (M)") {
+            return this.actor.system.abilities.Prudence.value + 1;
+        }
+        else if (this.form == "Psionic") {
+            return this.actor.system.abilities.Prudence.value + this.actor.system.abilities.Insight.value;
+        }
+
         if (this.type == "Melee") {
             let baseRange = 1;
 

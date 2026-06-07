@@ -280,6 +280,13 @@ export class PTItem extends Item {
             createEffectsMessage(this.actor.name, `Spends ${count} [/status/Charge] Charge to wield their weapon!`);
         }
 
+        if (rollContext.form == "Psionic (M)") {
+            await this.actor.takeDamage(0, null, 0, 0, 2);
+        }
+        else if (rollContext.form == "Psionic") {
+            await this.actor.takeDamage(0, null, 0, 0, 4);
+        }
+
         return rollContext;
     }
 

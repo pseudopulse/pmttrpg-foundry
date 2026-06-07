@@ -2088,6 +2088,19 @@ export class PTActor extends Actor {
 
         speed -= Number(this.system.movementPenalty);
 
+        let sluggish = Number(this.outfitEffectCount("Sluggish")) + Number(this.augmentEffectCount("Sluggish"));
+
+        if (this.augmentEffectCount("Sluggish Alt") > 0) {
+            if (Number(this.system.movement) < sluggish && currentRound > 1) {
+                let val = Math.max(sluggish - this.system.movement, 0)
+                await this.applyStatus("Fragile", 2 * val, 2 * val);
+                createEffectsMessage(this.name, `Gains ${val * 2} [/status/Fragile] Fragile this and next round for Sluggish squares moved!`)
+            }
+        }   
+        else {
+            speed -= sluggish;
+        }
+
         await this.update({ "system.alreadyTriggeredHazards": [] }, { diff: false });
         await this.update({ "system.movement": Math.max(0, 6 + speed) }, { diff: false });
         await this.update({ "system.nextRoundMovement": 0 }, { diff: false });

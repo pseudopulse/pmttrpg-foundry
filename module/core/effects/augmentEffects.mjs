@@ -769,6 +769,7 @@ export const augmentEffects = [
     markerEffect("Mental Link", false, 1),
     markerEffect("Companion", false, 1),
     markerEffect("Companion - Striker", false, 1),
+    markerEffect("Sluggish Alt", false, 1),
 
     // hidden gm effects ------
     // spider
