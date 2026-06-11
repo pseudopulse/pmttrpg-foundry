@@ -62,6 +62,25 @@ export const statusList = [
         let dmg = 2 * Math.floor(actor.getStatusCount("Poison") / 10);
         if (dmg > 0) {
             await actor.takeDamageStatus(dmg, "Poison", "HP", "[/status/Poison] Took %DMG% HP damage from Poison! (%PHP% -> %HP%)")
+
+            if (await actor.popEffectTrigger("Lethal Dose")) {
+                await actor.takeDamageStatus(Math.floor(actor.getStatusCount("Poison") / 2), "Poison", "HP", "[/status/Poison] Took %DMG% HP damage from Lethal Dose! (%PHP% -> %HP%)")
+            }
+
+            if (await actor.popEffectTrigger("Staggering Toxin")) {
+                await actor.takeDamageStatus(dmg, "Poison", "ST", "[/status/Poison] Took %DMG% ST damage from Staggering Toxin! (%PST% -> %ST%)")
+            }
+
+            if (await actor.popEffectTrigger("Depressing Bane")) {
+                await actor.takeDamageStatus(dmg, "Poison", "SP", "[/status/Poison] Took %DMG% SP damage from Depressing Bane! (%PSP% -> %SP%)")
+            }
+
+            if (await actor.popEffectTrigger("Centipede Venom")) {
+                if (Math.floor(dmg / 2) > 0) {
+                    await actor.applyStatus("Disarm", Math.floor(dmg / 2));
+                    createEffectsMessage(actor.name, `Receives ${Math.floor(dmg / 2)} [/status/Disarm] Disarm from Centipede Venom.`);
+                }
+            }
         }
     }, (count) => { 
         let dmg = 2 * Math.floor(count / 10);
@@ -132,6 +151,7 @@ export const statusList = [
     }, (count) => { return 0; }),
     new StatusEffect("Consumed_Bloodfeast", Triggers.NONE, async (actor) => {}, (count) => { return 0; }),
     new StatusEffect("Heal_Efficiency", Triggers.END, async (actor) => {}, (count) => { return count / 2; }),
+    new StatusEffect("Heal_Inefficiency", Triggers.NONE, async (actor) => {}, (count) => { return count; }),
     new StatusEffect("Aggro", Triggers.END, async (actor) => {}, (count) => { return 0; }),
 ];
 

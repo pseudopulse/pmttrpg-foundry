@@ -236,6 +236,7 @@ export class PTActor extends Actor {
         system.indomitableSpent = false;
         system.unstoppableSpent = false;
         system.strikerPerkCount = 0;
+        system.pendingEffectTriggers = [];
 
         await this.update({ system }, { diff: false, render: true });
     }
@@ -249,6 +250,47 @@ export class PTActor extends Actor {
         const result = damage * res;
 
         return Math.floor(result);
+    }
+
+    async addEffectTrigger(effect) {
+        const system = this.toObject(false).system;
+
+        let array = system.pendingEffectTriggers;
+
+        if (array == null) {
+            array = [];
+        }
+
+        if (!array.includes(effect)) {
+            array.push(effect);
+        }
+
+        system.pendingEffectTriggers = array;
+
+        await this.update({ system }, { diff: false });
+    }
+
+    async popEffectTrigger(effect) {
+        let val = false;
+
+        const system = this.toObject(false).system;
+
+        let array = system.pendingEffectTriggers;
+
+        if (array == null) {
+            array = [];
+        }
+
+        if (array.includes(effect)) {
+            array = array.filter(x => x != effect);
+            val = true;
+        }
+
+        system.pendingEffectTriggers = array;
+
+        await this.update({ system }, { diff: false });
+
+        return val;
     }
 
     handleProt(context, cat, type = false) {
@@ -421,20 +463,6 @@ export class PTActor extends Actor {
         createResultMessage(ctx1, ctx2);
 
         if (checkDraw(ctx1, ctx2)) {
-            if (ctx1.isReaction) {
-                await ctx1.actor.spendReaction(true, true);
-            }
-            else {
-                await ctx1.actor.spendAction(true, true);
-            }
-
-            if (ctx2.isReaction) {
-                await ctx2.actor.spendReaction(true, true);
-            }
-            else {
-                await ctx2.actor.spendAction(true, true);
-            }
-
             return;
         }
 
@@ -694,7 +722,7 @@ export class PTActor extends Actor {
                     tmp = new Roll(`${critical + bonusCritical}d10${modifier}`);
                     await tmp.evaluate();
                     let damage = tmp.total + (3 * ctx1.effectCount("Critical DMG+"));
-                    await ctx2.actor.takeDamageStatus(damage, "Poise", "HP", `Received a [/status/Critical] Critical hit for %DMG% HP damage! (%PHP% -> %HP%), crit roll was ${critical + bonusCritical}d10${modifier}`);
+                    await ctx2.actor.takeDamageStatus(damage, "Poise", "HP", `Received a [/status/Critical] Critical hit for %DMG% HP damage! (%PHP% -> %HP%)`);
                 }
 
                 await ctx1.actor.setStatus("Poise", 0);
@@ -1404,6 +1432,18 @@ export class PTActor extends Actor {
             fsp = 0;
         }
 
+        if (this.getStatusCount("Heal_Inefficiency") > 0 && fhp > 0) {
+            let count = this.getStatusCount("Heal_Inefficiency");
+            await this.setStatus("Heal_Inefficiency", 0);
+            
+            fhp -= count;
+
+            if (fhp < 0) {
+                await this.takeDamageStatus(Math.abs(fhp), "", "HP", "Takes %DMG% HP damage from Heal Inefficiency!");
+                return;
+            }
+        }
+
         if (source != null && source.getStatusCount("Heal_Efficiency") > 0 && fhp > 0) {
             let count = source.getStatusCount("Heal_Efficiency");
 
@@ -1496,6 +1536,8 @@ export class PTActor extends Actor {
         if (selfCtx != null && selfCtx.reactive) {
             return;
         }
+
+        await this.handleAllParamedic();
 
         if (this.hasNoSanity() && this.augmentEffectCount("Mental Link") <= 0) {
             flatHP += flatSP;
@@ -1911,6 +1953,8 @@ export class PTActor extends Actor {
     }
 
     async handleNextRound() {
+        await this.update({ "system.paramedicUses": this.outfitEffectCount("Paramedic") }, { diff: false, render: true });
+
         if (this.augmentEffectCount("Soothing Mist") > 0) {
             let smoke = Math.floor(this.getStatusCount("Smoke") / 4);
             if (smoke > 0) {
@@ -2479,6 +2523,10 @@ export class PTActor extends Actor {
     }
 
     async fireStatusEffect(status, ignoreDecay = false) {
+        if (status == "Poison" && await this.popEffectTrigger("Skip Next Poison")) {
+            return;
+        }
+        
         let def = statusList.find(x => x.name == status);
         let count = this.getStatusCount(status);
 
@@ -2661,6 +2709,18 @@ export class PTActor extends Actor {
         }
 
         return marks;
+    }
+
+    async handleAllParamedic() {
+        let allies = findActorsOfTeam(this);
+
+        for (let ally of allies) {
+            if (ally.system.paramedicUses > 0) {
+                await ally.update({ "system.paramedicUses": Number(ally.system.paramedicUses) - 1 }, { diff: false });
+                await ally.applyStatus("Heal_Efficiency", 2);
+                createEffectsMessage(ally.name, `Gains 2 [/status/Heal_Efficiency] Heal Efficiency from Paramedic!`);
+            }
+        }
     }
 
     async getAllMarks() {

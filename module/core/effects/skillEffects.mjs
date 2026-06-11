@@ -513,16 +513,30 @@ export const skillEffects = [
     new Effect(
         "Scattering Dance",
         (context, count, trigger) => {
-            context.flags.push("Scattering Dance");
-            context.triggers["On Crit"].modify.push(async (ctx, data) => {
-                data.applyInfliction("Hemorrhage", Math.min(Number(ctx.critical), 3), false);
+            context.events["Critical Hit"].push(async (ctx) => {
+                await context.target.applyStatus("Hemorrhage", Math.min(Number(ctx.critical), count));
+                createEffectsMessage(context.target.name, `Gains ${Math.min(Number(ctx.critical), count)} [/status/Hemorrhage] Hemorrhage from Scattering Dance!`)
             });
         },
         (count) => {
-            return `Inflict [/status/Hemorrhage] Hemorrhage equal to [/status/Critical] Critical spent, max 3.`
+            return `Inflict [/status/Hemorrhage] Hemorrhage equal to [/status/Critical] Critical spent, max ${count}.`
         },
         ["On Crit"],
         false, 5, false, true
+    ),
+    new Effect(
+        "Ink Over",
+        (context, count, trigger) => {
+            context.events["Critical Hit"].push(async (context) => {
+                for (let i = 0; i < Math.min(context.critical, count); i++) {
+                    await context.target.fireStatusEffect("Bleed");
+                }
+            })
+        },
+        (count) => {
+            return `Trigger [/status/Bleed] Bleed for every [/status/Critical] Critical spent, max ${count} times.`
+        },
+        ["On Crit"], false, 5, false, true
     ),
     new Effect(
         `Elusive`,
@@ -2001,6 +2015,71 @@ export const skillEffects = [
         },
         ["Clash Win", "Clash Lose"],
         false, 5, false, true
+    ),
+    new Effect(
+        "Bloodclot",
+        (context, count, trigger) => {
+            if (context.target != null && context.target.getStatusCount("Consumed_Bloodfeast") > 20) {
+                context.dicePower = Number(context.dicePower) + Math.floor(context.target.getStatusCount("Consumed_Bloodfeast") / 20);
+                context.nonSkillDicePower = Number(context.nonSkillDicePower) + Math.floor(context.target.getStatusCount("Consumed_Bloodfeast") / 20);
+            }
+        },
+        (count) => {
+            return `Gain 1 Dice Power for every 20 [/status/Consumed_Bloodfeast] Consumed Bloodfeast on target.`;
+        },
+        ["On Use"], false, 1
+    ),
+    new Effect(
+        "Lethal Dose",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                await context.target.addEffectTrigger("Lethal Dose");
+            });
+
+            context.events["On Use"].push(async (context) => {
+                await context.target.addEffectTrigger("Skip Next Poison");
+            });
+        },
+        (count) => {
+            return `Deal HP damage equal to half of target's [/status/Poison] Poison on next [/status/Poison] Poison proc. Do not trigger [/status/Poison] Poison this clash.`;
+        },
+        ["Clash Win"], false, 1, false, true
+    ),
+    new Effect(
+        "Staggering Toxin",
+        (context, count, trigger) => {
+            context.events["On Use"].push(async (context) => {
+                await context.target.addEffectTrigger("Staggering Toxin");
+            });
+        },
+        (count) => {
+            return `Deal ST damage equal to [/status/Poison] Poison damage dealt.`;
+        },
+        ["On Use"], false, 1, false, true
+    ),
+    new Effect(
+        "Depressing Bane",
+        (context, count, trigger) => {
+            context.events["On Use"].push(async (context) => {
+                await context.target.addEffectTrigger("Depressing Bane");
+            });
+        },
+        (count) => {
+            return `Deal SP damage equal to [/status/Poison] Poison damage dealt.`;
+        },
+        ["On Use"], false, 1, false, true
+    ),
+    new Effect(
+        "Centipede Venom",
+        (context, count, trigger) => {
+            context.events["On Use"].push(async (context) => {
+                await context.target.addEffectTrigger("Centipede Venom");
+            });
+        },
+        (count) => {
+            return `Inflict [/status/Disarm] Disarm equal to half of [/status/Poison] Poison damage dealt.`;
+        },
+        ["On Use"], false, 1, false, true
     ),
 ]
 

@@ -171,7 +171,7 @@ Hooks.once("init", async () => {
       if (actor.system.attributes.light.value < light) {
         return false;
       }
-      
+
       for (const cost of costs) {
         if (cost.status == "Bloodfeast") {
           return actor.canSpendBloodfeast(actor.getModifiedBloodfeastCost(cost.cost));
@@ -227,7 +227,7 @@ function safeJsonConvert(obj, ignore) {
 
     return value;
   })
-  
+
   return res;
 }
 
@@ -274,20 +274,19 @@ export function playSound(key, global = true) {
 }
 
 // https://stackoverflow.com/a/873856
-export function generateUUID()
-{
-    // http://www.ietf.org/rfc/rfc4122.txt
-    var s = [];
-    var hexDigits = "0123456789abcdef";
-    for (var i = 0; i < 36; i++) {
-        s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
-    }
-    s[14] = "4";  // bits 12-15 of the time_hi_and_version field to 0010
-    s[19] = hexDigits.substr((s[19] & 0x3) | 0x8, 1);  // bits 6-7 of the clock_seq_hi_and_reserved to 01
-    s[8] = s[13] = s[18] = s[23] = "-";
+export function generateUUID() {
+  // http://www.ietf.org/rfc/rfc4122.txt
+  var s = [];
+  var hexDigits = "0123456789abcdef";
+  for (var i = 0; i < 36; i++) {
+    s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
+  }
+  s[14] = "4";  // bits 12-15 of the time_hi_and_version field to 0010
+  s[19] = hexDigits.substr((s[19] & 0x3) | 0x8, 1);  // bits 6-7 of the clock_seq_hi_and_reserved to 01
+  s[8] = s[13] = s[18] = s[23] = "-";
 
-    var uuid = s.join("");
-    return uuid;
+  var uuid = s.join("");
+  return uuid;
 }
 
 export function clearLastToken() {
@@ -361,7 +360,7 @@ Hooks.on(`updateCombat`, async (combat, data, options) => {
   if (data.round == undefined) {
     return;
   }
-  
+
   await roundChange(combat, data.round, data.turn);
 });
 
@@ -439,10 +438,10 @@ Hooks.on('preMoveToken', (token, data, action, user) => {
 
     let t1 = getActorToken(token.actor.getMountedActor());
 
-    let point = canvas.grid.getCenterPoint({x: data.destination.x, y: data.destination.y });
+    let point = canvas.grid.getCenterPoint({ x: data.destination.x, y: data.destination.y });
     point.x -= t1.mesh.canvasBounds.width / 2;
     point.y -= t1.mesh.canvasBounds.height / 2;
-    
+
     ignoreNextMountFlag.push(token.actor.getMountedActor());
     getActorToken(token.actor.getMountedActor()).document.update({ x: point.x, y: point.y });
     return true;
@@ -458,7 +457,7 @@ Hooks.on('moveToken', async (token, data, action, user) => {
   if (dest.elevation != origin.elevation) {
     difficultTerrainMoved = 0;
   }
-  
+
   let sqr = Math.floor(dist / distScale) + (Math.max((data.destination.elevation - data.origin.elevation) / 5, 0)) + difficultTerrainMoved;
   let baseSqr = Math.floor(dist / distScale);
 
@@ -652,7 +651,7 @@ export function getAlliesWithinRadiusOfTarget(actor, target, radius) {
   let source = getCombatantTokens().find(x => x.actor == target);
   let dispo = 0;
   if (actor != null) {
-      dispo = getCombatantTokens().find(x => x.actor == actor).document.disposition;
+    dispo = getCombatantTokens().find(x => x.actor == actor).document.disposition;
   }
 
   for (let token of getCombatantTokens().filter(x => x.document.disposition == dispo)) {
@@ -675,7 +674,7 @@ export function getAlliesWithinRadius(actor, radius) {
   let source = getCombatantTokens().find(x => x.actor == actor);
   let dispo = 0;
   if (actor != null) {
-      dispo = getCombatantTokens().find(x => x.actor == actor).document.disposition;
+    dispo = getCombatantTokens().find(x => x.actor == actor).document.disposition;
   }
 
   for (let token of getCombatantTokens().filter(x => x.document.disposition == dispo)) {
@@ -719,7 +718,7 @@ export function getEnemiesWithinRadius(actor, radius) {
   let source = getCombatantTokens().find(x => x.actor == actor);
   let dispo = 0;
   if (actor != null) {
-      dispo = getCombatantTokens().find(x => x.actor == actor).document.disposition;
+    dispo = getCombatantTokens().find(x => x.actor == actor).document.disposition;
   }
 
   for (let token of getCombatantTokens().filter(x => x.document.disposition != dispo)) {
@@ -738,7 +737,7 @@ export function findActorsOfTeam(actor) {
   if (!isActorCombatant(actor)) {
     return [];
   }
-  
+
   let team = getActorTeam(actor);
   let actors = [];
 
@@ -755,12 +754,10 @@ export function findActorsOfTeam(actor) {
 }
 
 export function getActorTeam(actor) {
-  if (canvas.tokens != undefined) {
-    for (let token of getCombatantTokens()) {
-      if (token.actor == null) continue;
-      if (token.actor.system.id == actor.system.id) {
-        return token.document.disposition;
-      }
+  for (let token of getCombatantTokens()) {
+    if (token.actor == null) continue;
+    if (token.actor.system.id == actor.system.id) {
+      return token.document.disposition;
     }
   }
 

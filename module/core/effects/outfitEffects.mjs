@@ -125,6 +125,7 @@ export const outfitEffects = [
     ),
     //
     markerEffect("Heavy Material", true, 5),
+    markerEffect("Paramedic", false, 5),
     new Effect(
         "Padded Clothing",
         (context, count, trigger) => {
@@ -158,11 +159,11 @@ export const outfitEffects = [
         (context, count, trigger) => {
             context.events["Combat Start"].push(async (context) => {
                 if (count > 0) {
-                    let php = Number(context.actor.system.attributes.health);
+                    let php = Number(context.actor.system.attributes.health.value);
                     let dmg = Number(context.actor.system.attributes.health.max) * (0.03 * Number(count));
                     dmg = Math.round(dmg);
                     await context.actor.takeDamage(0, context, dmg, 0, 0);
-                    let hp = Number(context.actor.system.attributes.health);
+                    let hp = Number(context.actor.system.attributes.health.value);
                     createEffectsMessage(context.actor.name, `Loses ${dmg} HP from Bloodletting! (${php} -> ${hp})`);
                 }
             });

@@ -818,8 +818,12 @@ export class RollContext {
             this.prepareForDeserialization();
         }
         else {
-            this.target = searchByObject(this.target);
-            this.actor = searchByObject(this.actor);
+            if (this.target != null) {
+                this.target = searchByObject(this.target);
+            }
+            if (this.actor != null) {
+                this.actor = searchByObject(this.actor);
+            }
         }
 
         this.fixTriggers();

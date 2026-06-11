@@ -771,6 +771,20 @@ export const augmentEffects = [
     markerEffect("Companion - Striker", false, 1),
     markerEffect("Sluggish Alt", false, 1),
 
+    new Effect(
+        "Vampire Killer",
+        (context, count, trigger) => {
+            if (context.target != null && context.target.getStatusCount("Consumed_Bloodfeast") > 0) {
+                context.dicePower = Number(context.dicePower) + 1;
+                context.nonSkillDicePower = Number(context.nonSkillDicePower) + 1;
+            }
+        },
+        (count) => {
+            return `If the target has [/status/Consumed_Bloodfeast] Consumed Bloodfeast, gain 1 Dice Power`;
+        },
+        ["On Use"], false, 1
+    ),
+
     // hidden gm effects ------
     // spider
     new Effect("Dear Mother", (context, count, trigger) => {}, null, ["Always Active"], false, 1, false, true),

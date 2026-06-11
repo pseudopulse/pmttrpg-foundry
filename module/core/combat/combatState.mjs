@@ -46,7 +46,7 @@ export function getCombatantTokens() {
 }
 
 export function isActorCombatant(actor) {
-    return getCombatantTokens().find(x => x.actor.system.id == actor.system.id) != null;
+    return getCombatantTokens().find(x => actor != null && x.actor != null && actor.system != null && x.actor.system != null && x.actor.system.id == actor.system.id) != null;
 }
 
 export async function turnChange(combat, round, turn) {

@@ -57,6 +57,8 @@ export const weaponEffects = [
     simpleStatusEffect("Rupture", true),
     simpleStatusEffect("Tremor", true),
     simpleStatusEffect("Sinking", true),
+    simpleStatusEffect("Poison", false),
+    simpleStatusEffect("Heal_Inefficiency", false, true),
     simpleStatusEffect("Smoke", false),
     simpleStatusEffect("Paralysis", true),
     simpleStatusEffect("Fragile", true),
@@ -758,7 +760,7 @@ function simpleStatusEffect(status, nextRound, allowNegative) {
             count);
         },
         ["Clash Win", "Clash Lose"],
-        allowNegative, status == "Rupture" ? 6 : 5
+        allowNegative, status == "Rupture" || status == "Poison" ? 6 : 5
     );
 }
 
