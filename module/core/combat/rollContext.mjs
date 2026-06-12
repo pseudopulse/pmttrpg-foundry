@@ -239,7 +239,7 @@ export class RollContext {
             for (const func of data.modify) {
                 if (func != null) {
                     try {
-                        await func(this, data);
+                        // await func(this, data);
                     }
                     catch (exception) {
                         console.log('roll context resolvetrigger error!');

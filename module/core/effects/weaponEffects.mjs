@@ -67,6 +67,10 @@ export const weaponEffects = [
         "Inflict [Type] Fragile",
         (context, count, trigger) => {
             context.triggers[trigger].modify.push(async (ctx, data) => {
+                if (context.flags.includes("DidTypeFragile")) {
+                    return;
+                }
+                context.flags.push("DidTypeFragile");
                 let type = await pollUserInputOptions(ctx.actor, "Choose [Type] Fragility to inflict.", [
                     {
                         name: "Slash Fragility",
