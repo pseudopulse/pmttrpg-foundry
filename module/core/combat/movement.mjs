@@ -26,9 +26,17 @@ export async function requestForcedMovement(source, target, origin, range, canDe
     point.y -= (token.document.height * canvas.grid.size) / 2;
 
     await token.document.setFlag("pmttrpg", "ignoreNextMovementCheck", true);
-    let action = teleport ? "blink" : token.document.movementAction;
-    await token.document.update({ movementAction: action }, { render: true, diff: false });
     await token.document.update({ x: point.x, y: point.y }, { render: true, diff: false });
+    await token.document.move(
+    {
+        x: point.x, y: point.y,
+    },
+    {
+        animate: !teleport,
+        constrainOptions: {
+            ignoreWalls: true
+        }
+    })
 
     if (canDealDamage) {
         let unspent = range - distance;

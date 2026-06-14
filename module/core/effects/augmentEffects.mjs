@@ -770,6 +770,7 @@ export const augmentEffects = [
     markerEffect("Companion", false, 1),
     markerEffect("Companion - Striker", false, 1),
     markerEffect("Sluggish Alt", false, 1),
+    markerEffect("Unlock", false, 1),
 
     new Effect(
         "Vampire Killer",
@@ -846,6 +847,10 @@ function augmentThresholdEffect(name, bar, mult, status, negativeStatus = []) {
                 }
 
                 if (count >= 0) {
+                    if (count == 0) {
+                        return;
+                    }
+
                     for (let effect in status) {
                         await context.actor.applyStatus(effect, thresholds * mult, 0);
                     }
@@ -904,7 +909,7 @@ function augmentVigorEffect(status, req, type) {
     return new Effect(
         `${status} Vigor [${type}]`,
         (context, count, trigger) => {
-            if (context.actor != null && (type == "D" ? !this.isOffensive() : this.isOffensive)) {
+            if (context.actor != null && (type == "D" ? !context.isOffensive() : context.isOffensive)) {
                 context.dicePower = Number(context.dicePower) + (Math.clamp(Math.floor(context.actor.getStatusCount(status) / req), 0, 3));
                 context.nonSkillDicePower = Number(context.nonSkillDicePower) + (Math.clamp(Math.floor(context.actor.getStatusCount(status) / req), 0, 3));
             }
@@ -923,7 +928,7 @@ function augmentBonusEffect(status, req, invert = false, type) {
         `${status} Bonus [${type}]`,
         (context, count, trigger) => {
             if (invert) {
-                if (context.actor != null && context.actor.getStatusCount(status) >= req && (type == "D" ? !this.isOffensive() : this.isOffensive)) {
+                if (context.actor != null && context.actor.getStatusCount(status) >= req && (type == "D" ? !context.isOffensive() : context.isOffensive)) {
                     context.dicePower = Number(context.dicePower) + 1;
                     context.nonSkillDicePower = Number(context.nonSkillDicePower) + 1;
                 }

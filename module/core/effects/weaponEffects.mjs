@@ -40,7 +40,7 @@ export const weaponEffects = [
     new Effect(
         "Enemy Power Down",
         (context, count, trigger) => {
-            context.enemyPowerMod += count;
+            context.enemyPowerMod += count * -1;
         },
         (count) => {
             return handleNegativeText(
@@ -48,7 +48,7 @@ export const weaponEffects = [
                 "Increase target's Dice Power by %", 
             count);
         },
-        ["On Use"],
+        ["On Use"], true, 5
     ),
     // Status Effects
     simpleStatusEffect("Burn", false),
@@ -58,7 +58,7 @@ export const weaponEffects = [
     simpleStatusEffect("Tremor", true),
     simpleStatusEffect("Sinking", true),
     simpleStatusEffect("Poison", false),
-    simpleStatusEffect("Heal_Inefficiency", false, true),
+    simpleStatusEffect("Heal Inefficiency", false, true),
     simpleStatusEffect("Smoke", false),
     simpleStatusEffect("Paralysis", true),
     simpleStatusEffect("Fragile", true),
@@ -154,7 +154,7 @@ export const weaponEffects = [
                 context.triggers[trigger].applyInfliction("Bind", count, true);
             }
             else {
-                context.triggers[trigger].applyInfliction("Haste", -count, false);
+                context.triggers[trigger].applyInfliction("Haste", -count, true);
             }
         },
         (count) => {

@@ -237,6 +237,8 @@ export class PTActor extends Actor {
         system.unstoppableSpent = false;
         system.strikerPerkCount = 0;
         system.pendingEffectTriggers = [];
+        system.unlockSkillsUsed = [];
+        system.hasUnlocked = false;
 
         await this.update({ system }, { diff: false, render: true });
     }
@@ -267,6 +269,36 @@ export class PTActor extends Actor {
 
         system.pendingEffectTriggers = array;
 
+        await this.update({ system }, { diff: false });
+    }
+
+    async useSkill(skill) {
+        if (this.augmentEffectCount("Unlock") <= 0) {
+            return;
+        }
+
+        const system = this.toObject(false).system;
+
+        let array = system.unlockSkillsUsed;
+
+        if (array == null) {
+            array = [];
+        }
+
+        if (!array.includes(skill.id)) {
+            array.push(skill.id);
+        }
+
+        if (array.length >= this.items.filter(x => x.type == "skill").length && !system.hasUnlocked) {
+            system.hasUnlocked = true;
+            await this.applyStatus("Strength", 1);
+            await this.applyStatus("Endurance", 1);
+            let light = Number(system.attributes.rank.value) + Number(system.abilities.Prudence.value);
+            system.attributes.light.value = Math.min(system.attributes.light.max, Number(system.attributes.light.value) + light);
+            createEffectsMessage(this.name, `Restores ${light} Light and gains 1 [/status/Strength] Strength and [/status/Endurance] Endurance from Unlock!`);
+        }
+
+        system.unlockSkillsUsed = array;
         await this.update({ system }, { diff: false });
     }
 
@@ -432,6 +464,9 @@ export class PTActor extends Actor {
     }
 
     processIgnorePower(ctx1, ctx2) {
+        ctx1.result = Number(ctx1.result) + Number(ctx2.enemyPowerMod);
+        ctx2.result = Number(ctx2.result) + Number(ctx1.enemyPowerMod);
+
         if (ctx2.hasEffect("Ignore Power")) {
             ctx1.nullifyPower(true);
             ctx2.nullifyPower(false);
@@ -1980,6 +2015,12 @@ export class PTActor extends Actor {
         await this.setStatus("Rupture", 0);
         await this.setStatus("Tremor", 0);
 
+        if (this.system.hasUnlocked && this.augmentEffectCount("Unlock") > 0) {
+            await this.applyStatus("Strength", 1);
+            await this.applyStatus("Endurance", 1);
+            createEffectsMessage(this.name, `Gains 1 [/status/Strength] Strength and [/status/Endurance] Endurance from Unlock!`);
+        }
+
         let roundEnds = await this.findAllWithTrigger("Round End");
         for (let ctx of roundEnds) {
             await ctx.fireEvent("Round End");
@@ -2765,8 +2806,8 @@ export class PTActor extends Actor {
     async deductLight(cost) {
         const system = this.toObject(false).system;
 
-        system.attributes.light.value = Number(system.attributes.light.value) - cost;
-        if (Number(system.attributes.light.value) - cost < 0) {
+        system.attributes.light.value = Number(system.attributes.light.value) - Number(cost);
+        if (Number(system.attributes.light.value) - Number(cost) < 0) {
             system.attributes.light.value = 0;
         }
 
@@ -3293,6 +3334,18 @@ export class PTActor extends Actor {
 
         for (let status of this.system.statusEffects) {
             if (status.count > 0) {
+                effects.push(status);
+            }
+        }
+
+        return effects;
+    }
+
+    getNextRoundStatusEffects() {
+        let effects = [];
+
+        for (let status of this.system.statusEffects) {
+            if (status.nextRoundCount > 0) {
                 effects.push(status);
             }
         }

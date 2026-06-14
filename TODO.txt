@@ -2,15 +2,8 @@ functional parts (there's like 10 left to finish if i have time)
 
 // bugs
 
-idfk gain effects arent working (frostbite is one)
-
 make holding shift ignore movement restrictions (instead of blink mode)
 
 make removing marks send a gm message for networking
 
 make reduce status able to target allies
-
-add unlock (functional part)
-
-// to add
-ego skill drain (homebrew skill effect)

@@ -51,7 +51,7 @@ export const skillEffects = [
     new Effect(
         "Enemy Power Down",
         (context, count, trigger) => {
-            context.enemyPowerMod += count;
+            context.enemyPowerMod += count * -1;
         },
         (count) => {
             return handleNegativeText(
@@ -59,7 +59,7 @@ export const skillEffects = [
                 "Increase target's Dice Power by %", 
             count);
         },
-        ["On Use"],
+        ["On Use"], true, 5
     ),
     skillVigorEffect("Bind", 1, 0),
     skillBonusEffect("Bind", 0),

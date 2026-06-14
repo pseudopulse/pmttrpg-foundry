@@ -116,7 +116,9 @@
       "canRecycledEvade": false,
       "strikerPerkCount": 0,
       "pendingEffectTriggers": [],
-      "paramedicUses": 0
+      "paramedicUses": 0,
+      "unlockSkillsUsed": [],
+      "hasUnlocked": false
     }
   },
   "Item": {

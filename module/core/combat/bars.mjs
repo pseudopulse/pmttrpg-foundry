@@ -42,6 +42,14 @@ function updateAllTokens() {
 async function drawBars() {
     this.bars.removeChildren();
 
+    if (currentlyHoveredToken == this) {
+        const maxSort = canvas.tokens.getMaxSort();
+
+        await this.document.update({
+            sort: maxSort + 1
+        });
+    }
+
     if (!this.actor) {
         return;
     }
@@ -79,7 +87,7 @@ async function drawBars() {
 
     this.nameplate.position.y -= (height * 1.1);
 
-    if (!(this.actor.getAbnoPart() && currentlyHoveredToken != this)) {
+    if (currentlyHoveredToken == this) {
         await this._drawBar(0, getBar(this, "HP", 0, 0, holder), {
             attribute: "attributes.health",
             max: this.actor.system.attributes.health.max,
@@ -99,25 +107,7 @@ async function drawBars() {
                 value: this.actor.system.attributes.sanity.value,
             });
         }
-    }
 
-    let shouldShowStatusBar = true;
-
-    if (this.actor.getAbnoPart() && currentlyHoveredToken != this) {
-        shouldShowStatusBar = false;
-    }
-    else if (currentlyHoveredToken != null && scale(canvas.grid.measureDistance(currentlyHoveredToken, this)) <= 2) {
-        if (this != currentlyHoveredToken) shouldShowStatusBar = false;
-    }
-    else if (game.user.character != null) {
-        let focused = getActorToken(game.user.character);
-
-        if (focused != null && focused != this && scale(canvas.grid.measureDistance(focused, this)) <= 1) {
-            shouldShowStatusBar = false;
-        }
-    }
-
-    if (shouldShowStatusBar) {
         await drawStatus(getBar(this, "STATUS", 0, 0, holder), this, tex.scaleX * w * grid);
     }
 }
@@ -150,7 +140,10 @@ async function drawBar(wrapped, number, bar, data) {
 }
 
 async function drawStatus(bar, token, scaleFactor) {
-    let effects = token.actor.getActiveStatusEffects();
+    let sameRoundEffects = token.actor.getActiveStatusEffects();
+    let nextRoundEffects = token.actor.getNextRoundStatusEffects();
+
+    let effects = sameRoundEffects.concat(nextRoundEffects);
 
     // conf
     let baseWidth = 32;
@@ -202,9 +195,13 @@ async function drawStatus(bar, token, scaleFactor) {
         icon.height = baseHeight;
         icon.position.set(xPositions[index], yPositions[index]);
 
+        if (index >= sameRoundEffects.length) {
+            icon.alpha = 0.5;
+        }
+
         bar.addChild(icon);
 
-        drawLabel(bar, status.count, xPositions[index] + (baseWidth / 4), yPositions[index] + baseHeight, 0xe0edffff, 20, 2);
+        drawLabel(bar, index >= sameRoundEffects.length ? status.nextRoundCount : status.count, xPositions[index] + (baseWidth / 4), yPositions[index] + baseHeight, 0xe0edffff, 20, 2, icon.alpha);
         index++;
     }
 
@@ -311,7 +308,7 @@ async function addBars(bar, data, type) {
     drawLabel(bar, data.value, bar.width * 0.175 * bar.scale.x, bar.height * 0.75, fgCol);
 }
 
-function drawLabel(bar, text, posX, posY, col, size = 25, width = 3) {
+function drawLabel(bar, text, posX, posY, col, size = 25, width = 3, alpha = 1) {
     let barText = new PIXI.Text(text, {
         resolution: 15,
         strokeThickness: width * CONFIG.barScale,
@@ -319,13 +316,14 @@ function drawLabel(bar, text, posX, posY, col, size = 25, width = 3) {
         fontSize: size * CONFIG.barScale,
         fill: `#${col.toString(16).padStart(6, "0")}`,
         stroke: "#000000",
-        alpha: 1
+        alpha: alpha
     });
 
     barText.name = bar.name + "-text";
     barText.x = posX;
     barText.y = posY;
     barText.anchor.set(0.5);
+    barText.alpha = alpha;
 
     barText.resolution = 3;
     

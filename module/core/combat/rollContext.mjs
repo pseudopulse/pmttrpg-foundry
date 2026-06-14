@@ -346,7 +346,9 @@ export class RollContext {
             }
         }
 
-        if (this.modifiers != null && this.modifiers.item != null) {
+        if (this.modifiers != null && this.modifiers.item != null && !this.flags.includes("SpentLight")) {
+            await this.actor.useSkill(this.modifiers.item);
+            this.flags.push("SpentLight"); // idk
             if (this.actor.augmentEffectCount("Companion") > 0) {
                 if (this.actor.augmentEffectCount("Companion - Striker") > 0) {
                     let count = this.actor.system.strikerPerkCount;

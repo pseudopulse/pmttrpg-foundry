@@ -49,14 +49,19 @@ export const outfitEffects = [
         ["Always Active"],
         false
     ),
-    markerEffect("Enemy Power Down", true, 5, (count) => {
-        if (count >= 0) {
-            return [`Target loses ${Number(count)} Dice Power.`, null, null, null, null, null];
-        }
-        else {
-            return [`Target gains ${Number(count)} Dice Power.`, null, null, null, null, null];
-        }
-    }),
+    new Effect(
+        "Enemy Power Down",
+        (context, count, trigger) => {
+            context.enemyPowerMod += count * -1;
+        },
+        (count) => {
+            return handleNegativeText(
+                "Decrease target's Dice Power by %", 
+                "Increase target's Dice Power by %", 
+            count);
+        },
+        ["On Use"], true, 5
+    ),
     //
     markerEffect("Burn Resistance", true, 5),
     markerEffect("Frostbite Resistance", true, 5),
