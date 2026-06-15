@@ -464,8 +464,12 @@ export class PTActor extends Actor {
     }
 
     processIgnorePower(ctx1, ctx2) {
-        ctx1.result = Number(ctx1.result) + Number(ctx2.enemyPowerMod);
-        ctx2.result = Number(ctx2.result) + Number(ctx1.enemyPowerMod);
+        if (ctx1.result != "X") {
+            ctx1.result = Number(ctx1.result) + Number(ctx2.enemyPowerMod);
+        }
+        if (ctx2.result != "X") {
+            ctx2.result = Number(ctx2.result) + Number(ctx1.enemyPowerMod);
+        }
 
         if (ctx2.hasEffect("Ignore Power")) {
             ctx1.nullifyPower(true);
