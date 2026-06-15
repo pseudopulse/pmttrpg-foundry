@@ -43,11 +43,11 @@ async function drawBars() {
     this.bars.removeChildren();
 
     if (currentlyHoveredToken == this) {
-        const maxSort = canvas.tokens.getMaxSort();
+        // const maxSort = canvas.tokens.getMaxSort();
 
-        await this.document.update({
+        /*await this.document.update({
             sort: maxSort + 1
-        });
+        });*/
     }
 
     if (!this.actor) {
