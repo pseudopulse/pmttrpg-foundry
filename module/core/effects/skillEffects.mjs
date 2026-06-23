@@ -2,7 +2,7 @@ import { Effect } from "./effect.mjs";
 import { handleNegativeText } from "../../core/effects/effectHelpers.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
 import { pollDistributeStatus, pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "../helpers/dialog.mjs";
-import { findActorsOfTeam, getActorTeam, getAlliesWithinRadiusOfTarget, getCharactersWithinRadius, getEnemiesWithinRadius, scale } from "../../pmttrpg.mjs";
+import { findActorsOfTeam, getActorTeam, getAlliesWithinRadius, getAlliesWithinRadiusOfTarget, getCharactersWithinRadius, getEnemiesWithinRadius, scale } from "../../pmttrpg.mjs";
 import { Conditional } from "../combat/rollContext.mjs";
 import { findByID } from "../helpers/netmsg.mjs";
 import { getRollContextFromData } from "../../documents/item.mjs";
@@ -1793,6 +1793,80 @@ export const skillEffects = [
         },
         ["Clash Win", "Clash Lose"],
         false, 5
+    ),
+    new Effect(
+        'Spit Blood',
+        (context, count, trigger) => {
+            context.costs.push({
+                cost: count * 5,
+                status: "Consumed_Bloodfeast",
+            });
+
+            context.dicePower = Number(context.dicePower) + count;
+            context.nonSkillDicePower = Number(context.nonSkillDicePower) + count;
+        },
+        (count) => {
+            return `Consume ${count * 5} [/status/Consumed_Bloodfeast] Consumed Bloodfeast to gain ${count} Dice Power.`
+        },
+        ["On Use"],
+        false, 5
+    ),
+    new Effect(
+        'Chains of Others',
+        (context, count, trigger) => {
+            context.costs.push({
+                cost: count * 10,
+                status: "Bloodfeast",
+            });
+
+            context.triggers[trigger].applyInfliction("Bind", count, true);
+        },
+        (count) => {
+            return `Consume ${count * 10} [/status/Bloodfeast] Bloodfeast to inflict ${count} [/status/Bind] Bind next round.`
+        },
+        ["Clash Win"],
+        false, 5
+    ),
+    new Effect(
+        'Bloody Whirlpool',
+        (context, count, trigger) => {
+            context.costs.push({
+                cost: count * 8,
+                status: "Bloodfeast",
+            });
+
+            context.events[trigger].push(async (context) => {
+                let targets = getAlliesWithinRadius(context.actor, count + 1).concat(getEnemiesWithinRadius(context.actor, count + 1));
+
+                for (let target of targets) {
+
+                }
+            });
+        },
+        (count) => {
+            return `Consume ${count * 8} [/status/Bloodfeast] Bloodfeast to pull all characters within ${count + 1} SQR towards you by ${count} SQR.`
+        },
+        ["Clash Win"],
+        false, 5, false, true
+    ),
+    new Effect(
+        "Steal Sustenance",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                let bloodfeast = Math.min(count * 5, context.target.getStatusCount("Consumed_Bloodfeast"));
+                
+                if (bloodfeast > 0) {
+                    await context.target.reduceStatus("Consumed_Bloodfeast", bloodfeast);
+                    await context.actor.applyStatus("Consumed_Bloodfeast", bloodfeast);
+
+                    createEffectsMessage(context.actor.name, `Steals ${bloodfeast} [/status/Consumed_Bloodfeast] Consumed Bloodfeast from the target!`);
+                }
+            });
+        },
+        (count) => {
+            return `Steal ${count * 5} [/status/Consumed_Bloodfeast] Consumed Bloodfeast from target.`;
+        },
+        ["Clash Win", "Clash Lose"], false, 5, false, true
     ),
     new Effect(
         'Exsanguinate - S',

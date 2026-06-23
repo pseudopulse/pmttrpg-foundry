@@ -13,7 +13,7 @@ import { PTTokenRuler } from "./documents/tokenRuler.mjs";
 import { macroList } from "./core/combat/macros.mjs";
 import { Triggers } from "./core/status/statusEffect.mjs";
 import { handleBarReplacement } from "./core/combat/bars.mjs";
-import { loadAllHazards, getHazardCountBetweenTwoPoints, HazardType, handleHazardMovement } from "./core/combat/hazards.mjs";
+import { loadAllHazards, getHazardCountBetweenTwoPoints, HazardType, handleHazardMovement, clearHazards } from "./core/combat/hazards.mjs";
 // import Hooks from "@client/helpers/hooks.mjs";
 
 let ignoreNextMountFlag = [];
@@ -369,7 +369,9 @@ Hooks.on(`combatTurnChange`, async (combat, data, data2) => {
 });
 
 Hooks.on(`combatStart`, async (combat, data) => {
-  setBloodfeast(0);
+  await setBloodfeast(0);
+  await updateHazards([]);
+  clearHazards();
   await roundChange(combat, data.round, data.turn);
 });
 

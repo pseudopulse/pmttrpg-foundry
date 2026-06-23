@@ -1561,7 +1561,7 @@ export class PTActor extends Actor {
         }
         let postlight = system.attributes.light.value;
 
-        await this.update(system, { diff: false, render: true });
+        await this.update({ system }, { diff: false, render: true });
         createEffectsMessage(this.name, `Gains 1 Light from Emotion Level! (${prevlight} -> ${postlight})`);
     }
 
@@ -2512,7 +2512,21 @@ export class PTActor extends Actor {
     }
 
     async spendBloodfeast(val) {
-        await reduceBloodfeast(val);
+        if (this.augmentEffectCount("Blood Replenisher") > 0) {
+            await reduceBloodfeast(Math.floor(val * 0.75));
+        }
+        else {
+            await reduceBloodfeast(val);
+        }
+
+        if (this.augmentEffectCount("Self-Destructive Dedication")) {
+            let overflow = getBloodfeast() - val;
+
+            if (overflow > 0) {
+                let damage = overflow * 3;
+                await this.takeDamageStatus(damage, "", "HP", "Spends %DMG% HP in to substitute missing [/status/Bloodfeast] Bloodfeast! (%PHP% -> %HP%)");
+            }
+        }
 
         let rbhp = this.getSpentBloodfeast();
         rbhp -= 10 * Math.floor(rbhp / 10);
@@ -2544,7 +2558,7 @@ export class PTActor extends Actor {
     }
 
     canSpendBloodfeast(val) {
-        return getBloodfeast() >= val;
+        return getBloodfeast() >= val || this.augmentEffectCount("Self-Destructive Dedication") > 0;
     }
 
     async writeExsanguinate(type, count) {

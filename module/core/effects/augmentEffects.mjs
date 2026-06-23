@@ -2,7 +2,7 @@ import { Effect } from "./effect.mjs";
 import { handleNegativeText } from "../../core/effects/effectHelpers.mjs";
 import { currentRound, getCombatantTokens } from "../combat/combatState.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
-import { findActorsOfTeam, scale } from "../../pmttrpg.mjs";
+import { findActorsOfTeam, getBloodfeast, scale } from "../../pmttrpg.mjs";
 import { Conditional } from "../combat/rollContext.mjs";
 import { pollReduceStatus, pollUserInputText } from "../helpers/dialog.mjs";
 import { MarkNames, MARKS } from "../status/mark.mjs";
@@ -771,6 +771,29 @@ export const augmentEffects = [
     markerEffect("Companion - Striker", false, 1),
     markerEffect("Sluggish Alt", false, 1),
     markerEffect("Unlock", false, 1),
+
+    markerEffect("Blood Replenisher", false, 1),
+    markerEffect("Self-Destructive Dedication", false, 1),
+    markerEffect("Coagulated Echo", false, 1),
+    
+    new Effect(
+        "Blood Skates",
+        (context, count, trigger) => {
+            context.events["Round Start"].push(async (context) => {
+                let bloodfeast = Math.floor(getBloodfeast() / 20);
+                if (bloodfeast > 0) {
+                    await context.actor.applyStatus("Haste", bloodfeast);
+                    await createEffectsMessage(context.actor.name, `Gains ${bloodfeast} [/status/Haste] Haste from Blood Skates!`);
+                }
+            });
+        },
+        (count) => {
+            return `Gain [/status/Haste] Haste for every 20 [/status/Bloodfeast] Bloodfeast available.`
+        },
+        ["Round Start"],
+        false,
+        1, false, true
+    ),
 
     new Effect(
         "Vampire Killer",

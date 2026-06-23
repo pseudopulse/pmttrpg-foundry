@@ -131,9 +131,6 @@ export const statusList = [
             createEffectsMessage(actor.name, `Loses ${3 * (Math.floor(charge / 15))} [/status/Charge] Charge from overload!`);
         }
     }, (count) => { return count; }),
-    new StatusEffect("Nails", Triggers.NONE, async (actor) => {
-        
-    }, (count) => { return count; }),
     new StatusEffect("Hemorrhage", Triggers.NONE, async (actor) => {}, (count) => { return 0; }),
     new StatusEffect("Renewed_Blaze", Triggers.NONE, async (actor) => {}, (count) => { return 0; }),
     new StatusEffect("Deep_Chill", Triggers.NONE, async (actor) => {}, (count) => { return 0; }),

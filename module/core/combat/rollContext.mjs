@@ -416,19 +416,22 @@ export class RollContext {
                 }
             }
 
-            if (data.hpDamage > 0) {
-                let php = this.target.system.attributes.health.value;
-                await this.target.takeDamage(0, null, Math.abs(data.hpDamage), 0, 0, true);
-                let hp = this.target.system.attributes.health.value;
-                lines.push(`Deal ${Math.abs(hpDamage)} HP damage (${php} -> ${hp})`);
-            }
+            try {
+                if (data.hpDamage > 0) {
+                    let php = this.target.system.attributes.health.value;
+                    await this.target.takeDamage(0, null, Math.abs(data.hpDamage), 0, 0, true);
+                    let hp = this.target.system.attributes.health.value;
+                    lines.push(`Deal ${Math.abs(hpDamage)} HP damage (${php} -> ${hp})`);
+                }
 
-            if (data.stDamage > 0) {
-                let php = this.target.system.attributes.stagger.value;
-                await this.target.takeDamage(0, null, 0, Math.abs(data.stDamage), 0, true);
-                let hp = this.target.system.attributes.stagger.value;
-                lines.push(`Deal ${Math.abs(hpDamage)} ST damage (${php} -> ${hp})`);
+                if (data.stDamage > 0) {
+                    let php = this.target.system.attributes.stagger.value;
+                    await this.target.takeDamage(0, null, 0, Math.abs(data.stDamage), 0, true);
+                    let hp = this.target.system.attributes.stagger.value;
+                    lines.push(`Deal ${Math.abs(stDamage)} ST damage (${php} -> ${hp})`);
+                }
             }
+            catch {}
 
             totalEmotion += data.emotion;
 

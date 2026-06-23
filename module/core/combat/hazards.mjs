@@ -247,6 +247,18 @@ export async function roundEnd() {
     sendNetworkMessage("ROUND_END_HAZARD", {});
 }
 
+export function clearHazards() {
+    for (let i = 0; i < activeHazards.length; i++) {
+        let hazard = activeHazards[i];
+
+        if (hazard.display) {
+            hazard.display.destroy();
+        }
+    }
+
+    activeHazards = [];
+}
+
 export function getGridPoint(point) {
     point = canvas.grid.getCenterPoint(point);
 
