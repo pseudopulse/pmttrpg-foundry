@@ -60,6 +60,7 @@ export const weaponEffects = [
     simpleStatusEffect("Poison", false),
     simpleStatusEffect("Heal Inefficiency", false, true),
     simpleStatusEffect("Smoke", false),
+    simpleStatusEffect("Nails", false),
     simpleStatusEffect("Paralysis", true),
     simpleStatusEffect("Fragile", true),
     simpleStatusEffect("Stagger Fragile", true),
@@ -374,6 +375,7 @@ export const weaponEffects = [
         1, false, true
     ),
     markerEffect("Charge Ammo", false, 1),
+    markerEffect("Coagulated Bullets", false, 1),
     new Effect(
         `Loaded Magnet`,
         (context, count, trigger) => {

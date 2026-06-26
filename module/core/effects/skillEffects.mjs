@@ -1850,6 +1850,20 @@ export const skillEffects = [
         false, 5, false, true
     ),
     new Effect(
+        `Blood-Tinged Blade`,
+        (context, count, trigger) => {
+            context.costs.push({
+                cost: 10,
+                status: "Bloodfeast",
+            });
+        },
+        (count) => {
+            return `Spend 10 [/status/Bloodfeast] Bloodfeast to attack another target with this weapon. This extra attack may not use skills.`;
+        },
+        ["Clash Win"],
+        false, 1, false, true
+    ),
+    new Effect(
         "Steal Sustenance",
         (context, count, trigger) => {
             context.events[trigger].push(async (context) => {

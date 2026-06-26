@@ -234,7 +234,7 @@ export class PTItem extends Item {
 
         await rollContext.fireEvent("Before Attack");
 
-        if (rollContext.hasEffect("Extra DMG Type") || rollContext.hasEffect("Versatility") || (rollContext.attackType == "Ranged" && !rollContext.hasEffect("Charge Ammo"))) {
+        if (rollContext.hasEffect("Extra DMG Type") || rollContext.hasEffect("Versatility") || (rollContext.attackType == "Ranged" && (!rollContext.hasEffect("Charge Ammo") && !rollContext.hasEffect("Coagulated Bullets")))) {
             rollContext.damageType = await pollUserInputOptions(game.user, "Select Damage Type", [
                 {
                     name: "Slash",
@@ -251,7 +251,7 @@ export class PTItem extends Item {
             ], ["Slash", "Pierce", "Blunt"].indexOf(rollContext.damageType));
         }
 
-        if ((rollContext.attackType == "Ranged" || rollContext.hasEffect("Ballistic") || rollContext.hasEffect("Loaded Salvo")) && (!rollContext.hasEffect("Charge Ammo") || (this.actor.augmentEffectCount("Ammo Infusion") > 0 || this.actor.augmentEffectCount("Ammo Infusion Alt")))) {
+        if (!rollContext.hasEffect("Coagulated Bullets") && (rollContext.attackType == "Ranged" || rollContext.hasEffect("Ballistic") || rollContext.hasEffect("Loaded Salvo")) && (!rollContext.hasEffect("Charge Ammo") || (this.actor.augmentEffectCount("Ammo Infusion") > 0 || this.actor.augmentEffectCount("Ammo Infusion Alt")))) {
             if (rollContext.hasEffect("Charge Ammo")) {
                 let cost = 2;
                 if (((this.actor.augmentEffectCount("Ammo Infusion") > 0 && this.actor.getStatusCount("Charge") >= 6) || (this.actor.augmentEffectCount("Ammo Infusion Alt") && this.actor.getStatusCount("Charge") >= 4))) {
@@ -272,6 +272,13 @@ export class PTItem extends Item {
             else {
                 await rollContext.loadBullet();
             }
+        }
+
+        if (rollContext.hasEffect("Coagulated Bullets")) {
+            let cost = 12 - (rollContext.effectCount("Coagulated Bullets") * 2);
+
+            await this.actor.spendBloodfeast(cost);
+            createEffectsMessage(this.actor.name, `Consumes ${cost} [/status/Bloodfeast] Bloodfeast to form coagulated bullets!`);
         }
 
         if (rollContext.hasEffect("Charged Blade")) {

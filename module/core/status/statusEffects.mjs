@@ -150,6 +150,15 @@ export const statusList = [
     new StatusEffect("Heal_Efficiency", Triggers.END, async (actor) => {}, (count) => { return count / 2; }),
     new StatusEffect("Heal_Inefficiency", Triggers.NONE, async (actor) => {}, (count) => { return count; }),
     new StatusEffect("Aggro", Triggers.END, async (actor) => {}, (count) => { return 0; }),
+    new StatusEffect("Nails", Triggers.BURST, async (actor) => {
+        let bleed = actor.getStatusCount("Bleed");
+        let nails = actor.getStatusCount("Nails");
+
+        if (nails > 0) {
+            await actor.applyStatus("Bleed", nails);
+            createEffectsMessage(actor.name, `Gains ${nails} [/status/Bleed] Bleed from [/status/Nails] Nails on self! (${bleed} -> ${bleed + nails})`);
+        }
+    }, (count) => { return count; })
 ];
 
 export function findStatusDef(name) {

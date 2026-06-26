@@ -3,7 +3,7 @@ import { checkDraw, createAbnoPageMessage, createClashMessage, createEffectsMess
 import { createClashResponse, getAttackOptions, getSkillOptions, pollReduceStatus, pollUserInputBurst, pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "../core/helpers/dialog.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
-import { findActorsOfTeam, findOfTypeForActor, fixRollContext, generateUUID, getActorTeam, getActorToken, getAlliesWithinRadius, getBloodfeast, getDistance, getEnemiesWithinRadius, getTokenCenter, playSound, reduceBloodfeast, searchByObject, weightedPick } from "../pmttrpg.mjs";
+import { addBloodfeast, findActorsOfTeam, findOfTypeForActor, fixRollContext, generateUUID, getActorTeam, getActorToken, getAlliesWithinRadius, getBloodfeast, getDistance, getEnemiesWithinRadius, getTokenCenter, playSound, reduceBloodfeast, searchByObject, weightedPick } from "../pmttrpg.mjs";
 import { currentRound } from "../core/combat/combatState.mjs";
 import { getRollContextFromData, getRollContextFromDataFull, getRollContextFromDataFullTargeted } from "./item.mjs";
 import { registerEffectMacro } from "../core/combat/macros.mjs";
@@ -1053,6 +1053,15 @@ export class PTActor extends Actor {
                     let hp = ctx1.actor.system.attributes.health.value;
                     createEffectsMessage(ctx1.actor.name, `Recovers ${cachedBleed} HP from Rare Meal! (${php} -> ${hp})`);
                 }
+
+                if (ctx2.actor.augmentEffectCount("Im So Full Of Blood") > 0) {
+                    let bleed = ctx2.actor.getStatusCount("Bleed");
+                    
+                    if (bleed > 0) {
+                        await addBloodfeast(bleed);
+                        createEffectsMessage(ctx2.actor.name, `Adds their ${bleed} [/status/Bleed] Bleed to the [/status/Bloodfeast] Bloodfeast pool!`);
+                    }
+                }
             }
         }
 
@@ -1721,6 +1730,10 @@ export class PTActor extends Actor {
             protTextHP.push(hpP.text);
             protTextHP.push(hpPT.text);
             protTextST.push(stP.text);
+
+            if (context != null && context.damageType == "Blunt") {
+                await this.fireStatusEffect("Nails");
+            };
         }
 
         hp -= flatHP;
@@ -2542,6 +2555,19 @@ export class PTActor extends Actor {
             }
         }
 
+        let rbl = this.getSpentBloodfeast();
+        rbl -= 100 * Math.floor(rbl / 100);
+        if (rbl + val >= 100) {
+            let count = Math.floor((rbl + val) / 100);
+            
+            if (this.augmentEffectCount("Rejuvenating Blood - Light") > 0) {
+                let plight = this.system.attributes.light.value;
+                await this.gainLight(count);
+                let light = this.system.attributes.light.value;
+                createEffectsMessage(this.name, `Recovers ${count} Light from Rejuvenating Blood! (${plight} -> ${light})`);
+            }
+        }
+
         await this.applyStatus("Consumed_Bloodfeast", val, 0);
     }
 
@@ -3257,7 +3283,19 @@ export class PTActor extends Actor {
             }, "icons/Tearful_Tails.png"));
         }
 
-        if (this.augmentEffectCount("Abnormality Synchronization")) {
+        if (this.augmentEffectCount("Coagulated Echo") > 0) {
+            hotbar.push(await registerEffectMacro("Coagulated Echo", async (actor) => {
+                if (actor.canSpendBloodfeast(50)) {
+                    await actor.spendBloodfeast(50);
+                    createEffectsMessage(actor.name, 'Consumes 50 [/status/Bloodfeast] Bloodfeast to use Coagulated Echo!');
+                }
+                else {
+                    ui.notifications.info("You can't spend that much Bloodfeast!");
+                }
+            }, 'status/Bloodfeast.png'));
+        }
+
+        if (this.augmentEffectCount("Abnormality Synchronization") > 0) {
             hotbar.push(await registerEffectMacro("Abnormality Synchronization", async (actor) => {
                 let emotion = actor.system.emotion;
                 if (emotion < 4) {

@@ -771,6 +771,7 @@ export const augmentEffects = [
     markerEffect("Companion - Striker", false, 1),
     markerEffect("Sluggish Alt", false, 1),
     markerEffect("Unlock", false, 1),
+    markerEffect("Rejuvenating Blood - Light", false, 1),
 
     markerEffect("Blood Replenisher", false, 1),
     markerEffect("Self-Destructive Dedication", false, 1),
@@ -794,7 +795,7 @@ export const augmentEffects = [
         false,
         1, false, true
     ),
-
+    markerEffect("Im So Full Of Blood", false, 1),
     new Effect(
         "Vampire Killer",
         (context, count, trigger) => {
