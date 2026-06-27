@@ -2005,7 +2005,24 @@ export class PTActor extends Actor {
     }
 
     async handleNextRound() {
+        let spent = Number(this.system.rejuvenatingBloodNegative);
+
+        if (spent < 10) {
+            if (this.augmentEffectCount("Rejuvenating Blood - HP") < 0) {
+                await this.takeDamageStatus(Math.abs(this.augmentEffectCount("Rejuvenating Blood - HP")) * 4, "", "HP", "Loses %DMG% HP from Rejuvenating Blood! (%PHP% -> %HP%)");
+            }
+
+            if (this.augmentEffectCount("Rejuvenating Blood - ST") < 0) {
+                await this.takeDamageStatus(Math.abs(this.augmentEffectCount("Rejuvenating Blood - ST")) * 2, "", "ST", "Loses %DMG% ST from Rejuvenating Blood! (%PST% -> %ST%)");
+            }
+
+            if (this.augmentEffectCount("Rejuvenating Blood - SP") < 0) {
+                await this.takeDamageStatus(Math.abs(this.augmentEffectCount("Rejuvenating Blood - SP")), "", "SP", "Loses %DMG% SP from Rejuvenating Blood! (%PSP% -> %SP%)");
+            }
+        }
+
         await this.update({ "system.paramedicUses": this.outfitEffectCount("Paramedic") }, { diff: false, render: true });
+        await this.update({ "system.rejuvenatingBloodNegative": 0 }, { diff: false, render: true });
 
         if (this.augmentEffectCount("Soothing Mist") > 0) {
             let smoke = Math.floor(this.getStatusCount("Smoke") / 4);
@@ -2541,17 +2558,45 @@ export class PTActor extends Actor {
             }
         }
 
+        await this.update({ "system.rejuvenatingBloodNegative": Number(this.system.rejuvenatingBloodNegative) + val }, { diff: false, render: true });
+        
         let rbhp = this.getSpentBloodfeast();
         rbhp -= 10 * Math.floor(rbhp / 10);
         if (rbhp + val >= 10) {
-            let count = Math.floor((rbhp + val) / 10);
-            let heal = this.augmentEffectCount("Rejuvenating Blood - HP") * 4;
+            if (this.augmentEffectCount("Rejuvenating Blood - HP") > 0) {
+                let count = Math.floor((rbhp + val) / 10);
+                let heal = this.augmentEffectCount("Rejuvenating Blood - HP") * 4;
 
-            if (heal > 0) {
-                let php = this.system.attributes.health.value;
-                await this.heal(heal * count, 0, 0, this);
-                let hp = this.system.attributes.health.value;
-                createEffectsMessage(this.name, `Recovers ${heal * count} HP from Rejuvenating Blood! (${php} -> ${hp})`);
+                if (heal > 0) {
+                    let php = this.system.attributes.health.value;
+                    await this.heal(heal * count, 0, 0, this);
+                    let hp = this.system.attributes.health.value;
+                    createEffectsMessage(this.name, `Recovers ${heal * count} HP from Rejuvenating Blood! (${php} -> ${hp})`);
+                }
+            }
+
+            if (this.augmentEffectCount("Rejuvenating Blood - ST") > 0) {
+                let count = Math.floor((rbhp + val) / 10);
+                let heal = this.augmentEffectCount("Rejuvenating Blood - ST") * 2;
+
+                if (heal > 0) {
+                    let php = this.system.attributes.stagger.value;
+                    await this.heal(0, heal * count, 0, this);
+                    let hp = this.system.attributes.stagger.value;
+                    createEffectsMessage(this.name, `Recovers ${heal * count} ST from Rejuvenating Blood! (${php} -> ${hp})`);
+                }
+            }
+
+            if (this.augmentEffectCount("Rejuvenating Blood - SP") > 0) {
+                let count = Math.floor((rbhp + val) / 10);
+                let heal = this.augmentEffectCount("Rejuvenating Blood - SP");
+
+                if (heal > 0) {
+                    let php = this.system.attributes.sanity.value;
+                    await this.heal(0, 0, heal * count, this);
+                    let hp = this.system.attributes.sanity.value;
+                    createEffectsMessage(this.name, `Recovers ${heal * count} SP from Rejuvenating Blood! (${php} -> ${hp})`);
+                }
             }
         }
 

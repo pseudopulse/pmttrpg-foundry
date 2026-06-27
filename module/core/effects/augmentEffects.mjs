@@ -740,7 +740,9 @@ export const augmentEffects = [
     // markerEffect("Stalwart Wall", false, 1), // X
     // markerEffect("Apathy", false, 1), // X
     markerEffect("Starved Fiend", false, 1),
-    markerEffect("Rejuvenating Blood - HP", false, 5),
+    markerEffect("Rejuvenating Blood - HP", true, 5),
+    markerEffect("Rejuvenating Blood - ST", true, 5),
+    markerEffect("Rejuvenating Blood - SP", true, 5),
     //
     markerEffect("Weak Heart", false, 3),
     markerEffect("Flat Footed", false, 5),

@@ -118,7 +118,8 @@
       "pendingEffectTriggers": [],
       "paramedicUses": 0,
       "unlockSkillsUsed": [],
-      "hasUnlocked": false
+      "hasUnlocked": false,
+      "rejuvenatingBloodNegative": 0
     }
   },
   "Item": {

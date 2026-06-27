@@ -50,6 +50,17 @@ Hooks.once("init", async () => {
     requiresReload: false
   });
 
+  await game.settings.register('pmttrpg', 'keepBloodfeast', {
+    name: 'Preserve Bloodfeast',
+    hint: 'Prevents Bloodfeast from clearing when combat starts.',
+    config: true,
+    scope: 'world',
+    type: Boolean,
+    default: false,
+    requiresReload: false
+  });
+
+
   // actor stuff
   CONFIG.Actor.documentClass = PTActor;
   CONFIG.Actor.types = ["character"];
@@ -369,7 +380,9 @@ Hooks.on(`combatTurnChange`, async (combat, data, data2) => {
 });
 
 Hooks.on(`combatStart`, async (combat, data) => {
-  await setBloodfeast(0);
+  if (!game.settings.get('pmttrpg', 'keepBloodfeast')) {
+    await setBloodfeast(0);
+  }
   await updateHazards([]);
   clearHazards();
   await roundChange(combat, data.round, data.turn);
