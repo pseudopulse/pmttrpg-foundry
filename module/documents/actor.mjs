@@ -1363,6 +1363,11 @@ export class PTActor extends Actor {
             }
         }
 
+        if (this.augmentEffectCount(`${status} Immunity`) > 0) {
+            damage = 0;
+            resText = ` (Immune)`;
+        }
+
         let prevHP = hp;
         let prevST = st;
         let prevSP = sp;

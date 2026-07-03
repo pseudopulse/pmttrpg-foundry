@@ -812,6 +812,15 @@ export const augmentEffects = [
         ["On Use"], false, 1
     ),
 
+    markerEffect("Bleed Immunity", false, 1),
+    markerEffect("Rupture Immunity", false, 1),
+    markerEffect("Tremor Immunity", false, 1),
+    markerEffect("Sinking Immunity", false, 1),
+    markerEffect("Burn Immunity", false, 1),
+    markerEffect("Frostbite Immunity", false, 1),
+    markerEffect("Poison Immunity", false, 1),
+    markerEffect("Smoke Immunity", false, 1),
+
     // hidden gm effects ------
     // spider
     new Effect("Dear Mother", (context, count, trigger) => {}, null, ["Always Active"], false, 1, false, true),
