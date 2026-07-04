@@ -274,14 +274,14 @@ export class PTItem extends Item {
             }
         }
 
-        if (rollContext.hasEffect("Coagulated Bullets")) {
+        if (rollContext.hasEffect("Coagulated Bullets") && rollContext.attackType == "Ranged") {
             let cost = 12 - (rollContext.effectCount("Coagulated Bullets") * 2);
 
             await this.actor.spendBloodfeast(cost);
             createEffectsMessage(this.actor.name, `Consumes ${cost} [/status/Bloodfeast] Bloodfeast to form coagulated bullets!`);
         }
 
-        if (rollContext.hasEffect("Charged Blade")) {
+        if (rollContext.hasEffect("Charged Blade") && rollContext.attackType == "Melee") {
             let count = 1 + Number(rollContext.effects.find(x => x.name == "Charged Blade").count);
             await this.actor.reduceStatus("Charge", count);
             createEffectsMessage(this.actor.name, `Spends ${count} [/status/Charge] Charge to wield their weapon!`);

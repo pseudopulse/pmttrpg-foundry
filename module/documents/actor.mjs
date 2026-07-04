@@ -2547,20 +2547,20 @@ export class PTActor extends Actor {
     }
 
     async spendBloodfeast(val) {
+        if (this.augmentEffectCount("Self-Destructive Dedication")) {
+            let overflow = getBloodfeast() - val;
+
+            if (overflow < 0) {
+                let damage = Math.abs(overflow) * 3;
+                await this.takeDamageStatus(damage, "", "HP", "Spends %DMG% HP in to substitute missing [/status/Bloodfeast] Bloodfeast! (%PHP% -> %HP%)");
+            }
+        }
+        
         if (this.augmentEffectCount("Blood Replenisher") > 0) {
             await reduceBloodfeast(Math.floor(val * 0.75));
         }
         else {
             await reduceBloodfeast(val);
-        }
-
-        if (this.augmentEffectCount("Self-Destructive Dedication")) {
-            let overflow = getBloodfeast() - val;
-
-            if (overflow > 0) {
-                let damage = overflow * 3;
-                await this.takeDamageStatus(damage, "", "HP", "Spends %DMG% HP in to substitute missing [/status/Bloodfeast] Bloodfeast! (%PHP% -> %HP%)");
-            }
         }
 
         await this.update({ "system.rejuvenatingBloodNegative": Number(this.system.rejuvenatingBloodNegative) + val }, { diff: false, render: true });
