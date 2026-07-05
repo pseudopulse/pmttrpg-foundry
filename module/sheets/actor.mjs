@@ -1,4 +1,4 @@
-import { findActorsOfTeam, getBloodfeast, roughSizeOfObject } from "../pmttrpg.mjs";
+import { findActorsOfTeam, getBloodfeast, roughSizeOfObject, setBloodfeast } from "../pmttrpg.mjs";
 import { statusList } from "../core/status/statusEffects.mjs";
 import { validate, handleEffectAddButton, handleEffectCounterChange, handleEffectRemoveButton, handleEffectTriggerChange, handleEffectTypeChange, getEffectsArray } from "../core/effects/effectHelpers.mjs";
 import { MarkNames } from "../core/status/mark.mjs";
@@ -77,6 +77,8 @@ export class PTActorSheet extends ActorSheet {
         }
 
         context.actorOptions = options;
+
+        context.isGM = game.user.isGM;
 
         this.prepareItems(context);
 
@@ -234,6 +236,13 @@ export class PTActorSheet extends ActorSheet {
             const target = element.closest('.item');
             const item = this.actor.items.get(target.dataset.itemId);
             element.checked = item.system.active;
+        });
+
+        html.on('change', '.as-bloodfeast-edit', async (ev) => {
+            let bloodfeast = Number(ev.currentTarget.value);
+            if (!isNaN(bloodfeast)) {
+                await setBloodfeast(bloodfeast)
+            }
         });
 
         html.find('.ase-setting-toggle').each((x, element) => {
