@@ -1175,6 +1175,10 @@ export const skillEffects = [
         (context, count, trigger) => {
             context.events[`${trigger} Instant`].push(async (context) => {
                 let smoke = Math.min(await context.actor.getStatusCount("Smoke"), count);
+                if (context.hasEffect("Gauged Release")) {
+                    smoke = await pollUserInputText(context.actor, `Gauged Release: Smoke to spend on Exhale (max ${smoke})`, 0, "number", smoke, 1);
+                }
+                
                 if (smoke <= 0) return;
 
                 await context.actor.reduceStatus("Smoke", smoke);

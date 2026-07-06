@@ -239,6 +239,7 @@ export class PTActor extends Actor {
         system.pendingEffectTriggers = [];
         system.unlockSkillsUsed = [];
         system.hasUnlocked = false;
+        system.fallbackIdentitySpent = false;
 
         await this.update({ system }, { diff: false, render: true });
     }
@@ -277,6 +278,8 @@ export class PTActor extends Actor {
             return;
         }
 
+        let unlockProgress = false;
+
         const system = this.toObject(false).system;
 
         let array = system.unlockSkillsUsed;
@@ -287,19 +290,26 @@ export class PTActor extends Actor {
 
         if (!array.includes(skill.id)) {
             array.push(skill.id);
-        }
-
-        if (array.length >= this.items.filter(x => x.type == "skill").length && !system.hasUnlocked) {
-            system.hasUnlocked = true;
-            await this.applyStatus("Strength", 1);
-            await this.applyStatus("Endurance", 1);
-            let light = Number(system.attributes.rank.value) + Number(system.abilities.Prudence.value);
-            system.attributes.light.value = Math.min(system.attributes.light.max, Number(system.attributes.light.value) + light);
-            createEffectsMessage(this.name, `Restores ${light} Light and gains 1 [/status/Strength] Strength and [/status/Endurance] Endurance from Unlock!`);
+            unlockProgress = true;
         }
 
         system.unlockSkillsUsed = array;
         await this.update({ system }, { diff: false });
+
+        if (unlockProgress) {
+            await this.applyStatus("UnlockCount", 1);
+        }
+
+        if (array.length >= this.items.filter(x => x.type == "skill").length && !system.hasUnlocked) {
+            await this.applyStatus("Strength", 1);
+            await this.applyStatus("Endurance", 1);
+            await this.update({ "system.hasUnlocked": true }, { diff: false });
+            let light = Number(system.attributes.rank.value) + Number(system.abilities.Prudence.value);
+            system.attributes.light.value = Math.min(system.attributes.light.max, Number(system.attributes.light.value) + light);
+            createEffectsMessage(this.name, `Restores ${light} Light and gains 1 [/status/Strength] Strength and [/status/Endurance] Endurance from Unlock!`);
+            await this.applyStatus("Unlock", 1);
+            await this.setStatus("UnlockCount", 0);
+        }
     }
 
     async popEffectTrigger(effect) {
@@ -614,6 +624,14 @@ export class PTActor extends Actor {
         await ctx1.fireEvent("On Use");
         await ctx2.fireEvent("On Use");
 
+        if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
+            await ctx1.fireEvent("Clash Win Instant");
+            await ctx2.fireEvent("Clash Lose Instant");
+            
+            createEffectsMessage(ctx1.actor.name, await ctx1.resolveInstantStatus(["Clash Win", "On Use"]));
+            createEffectsMessage(ctx2.actor.name, await ctx2.resolveInstantStatus(["Clash Lose", "On Use"]));
+        }
+
         if (ctx1.isReaction) {
             if (ctx1.actor.hasAbnoPage("Visions of your Fate") && (ctx1.damageType == "Evade")) {
                 await ctx1.actor.spendReaction(true, true);
@@ -638,14 +656,6 @@ export class PTActor extends Actor {
             else {
                 await ctx2.actor.spendAction(true, false);
             }
-        }
-
-        if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
-            await ctx1.fireEvent("Clash Win Instant");
-            await ctx2.fireEvent("Clash Lose Instant");
-            
-            createEffectsMessage(ctx1.actor.name, await ctx1.resolveInstantStatus(["Clash Win", "On Use"]));
-            createEffectsMessage(ctx2.actor.name, await ctx2.resolveInstantStatus(["Clash Lose", "On Use"]));
         }
 
         if (ctx1.shouldApplyDevastationConversion(["Clash Win", "On Use"])) {
@@ -776,9 +786,10 @@ export class PTActor extends Actor {
         }
 
         let smoke = ctx2.actor.getStatusCount("Smoke");
+        let smokeReduction = 2 * ctx2.actor.augmentEffectCount("Unclean Living");
 
-        if (smoke > 0 && doDamageEffects) {
-            let damage = Math.max(Math.floor(smoke / 2), 1);
+        if (smoke - smokeReduction > 0 && doDamageEffects) {
+            let damage = Math.max(Math.floor(smoke - smokeReduction / 2), 1);
             await ctx2.actor.takeDamageStatus(damage, "Smoke", null, `Takes %DMG% extra HP damage from [/status/Smoke] Smoke! (%PHP% -> %HP%)`);
             if (ctx1.actor.augmentEffectCount("Dizzying Smog") > 0) {
                 damage = Math.max(Math.floor(damage / 2), 1);
@@ -794,8 +805,13 @@ export class PTActor extends Actor {
 
         if (ctx1.hasEffect("Fumigate") && doDamageEffects) {
             let smoke = ctx1.actor.getStatusCount("Smoke");
+
+            if (ctx1.hasEffect("Gauged Release")) {
+                smoke = await pollUserInputText(ctx1.actor, `Gauged Release: Smoke to spend on Fumigate (max ${smoke})`, 0, "number", smoke, 1);
+            }
+
             if (smoke > 0) {
-                await ctx1.actor.setStatus("Smoke", 0);
+                await ctx1.actor.reduceStatus("Smoke", smoke);
                 await ctx2.actor.takeDamageStatus(smoke, "none", null, `Takes %DMG% extra HP damage from [/status/Smoke] Smoke due to Fumigate! (%PHP% -> %HP%)`);
             }
         }
@@ -908,7 +924,7 @@ export class PTActor extends Actor {
                 if (roll > result) {
                     let text = null;
                     if (ctx1.diceCount >= i) {
-                        text = await ctx1.target.takeDamage(roll, ctx1, 0, 0, 0, true, null, `[${ctx1.actor.name}'s Multi-Hit roll of ${roll} wins against ${ctx2.actor.name}'s roll of ${result}!]`, false, true);
+                        text = await ctx1.target.takeDamage(Math.floor(result * 0.8), ctx1, 0, 0, 0, true, null, `[${ctx1.actor.name}'s Multi-Hit roll of ${roll} wins against ${ctx2.actor.name}'s roll of ${result}!]`, false, true);
                         hits++;
                         multihitText = multihitText + "\n" + text + "\n";
 
@@ -927,7 +943,7 @@ export class PTActor extends Actor {
                 else if (result > roll) {
                     let text = null;
                     if (ctx2.diceCount >= i) {
-                        text = await ctx2.target.takeDamage(result, ctx1, 0, 0, 0, true, null, `[${ctx2.actor.name}'s Multi-Hit roll of ${result} wins against ${ctx1.actor.name}'s roll of ${roll}!]`, false, true);
+                        text = await ctx2.target.takeDamage(Math.floor(result * 0.8), ctx1, 0, 0, 0, true, null, `[${ctx2.actor.name}'s Multi-Hit roll of ${result} wins against ${ctx1.actor.name}'s roll of ${roll}!]`, false, true);
                         multihitText = multihitText + "\n" + text + "\n";
                     }
                     else {
@@ -1030,7 +1046,6 @@ export class PTActor extends Actor {
 
         if (pendingSmokeVeil[ctx2.actor.name] != null) {
             if (pendingStagger[ctx2.actor.name]) {
-                await ctx2.setStatus("Smoke", 0);
                 pendingStagger[ctx2.actor.name] = false;
             }
         }
@@ -1216,6 +1231,9 @@ export class PTActor extends Actor {
         const stats = systemData.abilities;
 
         let damage = context.result + Number(context.bonusAttackDamage);
+        if (context.diceCount > 1) {
+            damage = Math.floor(damage * 0.8);
+        }
 
         if (systemData.mostRecentRoll == null || context.result > systemData.mostRecentRoll.context.result) {
             if (context.attackType == "Ranged" || context.type == "Ranged") {
@@ -1579,7 +1597,7 @@ export class PTActor extends Actor {
         createEffectsMessage(this.name, `Gains 1 Light from Emotion Level! (${prevlight} -> ${postlight})`);
     }
 
-    async takeDamage(damage, context, flatHP = 0, flatST = 0, flatSP = 0, silent = false, selfCtx = null, header = "()", denyStagger = false, delayStagger = false) {
+    async takeDamage(damage, context, flatHP = 0, flatST = 0, flatSP = 0, silent = false, selfCtx = null, header = "()", denyStagger = false, delayStagger = false, dontStagger = false) {
         if (context == null) {
             context = new RollContext();
             context.target = this;
@@ -1657,8 +1675,11 @@ export class PTActor extends Actor {
         if (selfCtx != null && this.augmentEffectCount("Smoke Veil") > 0) {
             let smoke = this.getStatusCount("Smoke");
             if (await pollUserInputConfirm(this, "Spend all [/status/Smoke] Smoke to reduce incoming stagger damage by half?")) {
+                if (this.augmentEffectCount("Gauged Release") > 0) {
+                    smoke = await pollUserInputText(this, `Gauged Release: Smoke to spend on Smoke Veil (max ${smoke})`, 0, "number", smoke, 1);
+                }
                 veilResistance = Math.floor(smoke / 2);
-                await this.setStatus("Smoke", 0);
+                await this.reduceStatus("Smoke", smoke);
 
                 if (veilResistance > 0) {
                     smokeVeilLine = `Reduced by ${veilResistance} from Smoke Veil`;
@@ -1730,11 +1751,13 @@ export class PTActor extends Actor {
 
 
             hp -= Math.max(hpDmg + (hpP.damage + hpPT.damage), 0);
-            st -= Math.max(stDmg + stP.damage, 0);
-
             protTextHP.push(hpP.text);
             protTextHP.push(hpPT.text);
-            protTextST.push(stP.text);
+
+            if (!dontStagger) {
+                st -= Math.max(stDmg + stP.damage, 0);
+                protTextST.push(stP.text);
+            }
 
             if (context != null && context.damageType == "Blunt") {
                 await this.fireStatusEffect("Nails");
@@ -1768,19 +1791,21 @@ export class PTActor extends Actor {
             await this.update({ "system.attributes.health.value": hp }, { diff: false });
         }
 
-        if (st >= this.system.attributes.stagger.value) {
-            let lost = prevST - st;
-            await this.update({ "system.attributes.stagger.temp": this.system.attributes.stagger.temp - lost }, { diff: false });
+        if (!dontStagger) {
+            if (st >= this.system.attributes.stagger.value) {
+                let lost = prevST - st;
+                await this.update({ "system.attributes.stagger.temp": this.system.attributes.stagger.temp - lost }, { diff: false });
 
-            if (this.system.attributes.stagger.temp < 0) {
-                await this.update({ "system.attributes.stagger.temp": 0 }, { diff: false });
-                await this.update({ "system.attributes.stagger.value": this.system.attributes.stagger.value - Math.abs(lost) }, { diff: false });
+                if (this.system.attributes.stagger.temp < 0) {
+                    await this.update({ "system.attributes.stagger.temp": 0 }, { diff: false });
+                    await this.update({ "system.attributes.stagger.value": this.system.attributes.stagger.value - Math.abs(lost) }, { diff: false });
+                }
             }
-        }
-        else {
-            st = Math.clamp(st, 0, this.system.attributes.stagger.max);
-            await this.update({ "system.attributes.stagger.temp": 0 }, { diff: false });
-            await this.update({ "system.attributes.stagger.value": st }, { diff: false });
+            else {
+                st = Math.clamp(st, 0, this.system.attributes.stagger.max);
+                await this.update({ "system.attributes.stagger.temp": 0 }, { diff: false });
+                await this.update({ "system.attributes.stagger.value": st }, { diff: false });
+            }
         }
 
         if (sp >= linkedSystem.attributes.sanity.value) {
@@ -1825,6 +1850,16 @@ export class PTActor extends Actor {
             (${protTextST[0] != null ? protTextST[0] : ""})
             (${smokeVeilLine})
             `, "()");
+        
+        if (dontStagger) {
+            text = this.removeLinesWithString(`
+            ${header}
+            ${damage}${resText} x ${hpR} = ${this.getModifiedDamage(context, damage, null)} HP damage taken. (${prevHP} -> ${hp})
+            (${snipersMarkLine})
+            (${protTextHP[0] != null ? protTextHP[0] : ""})
+            (${protTextHP[1] != null ? protTextHP[1] : ""})
+            `, "()");
+        }
 
         if (this.system.attributes.stagger.value <= 0 && !this.system.staggered && !denyStagger) {
             if (!silent || delayStagger) {
@@ -1866,7 +1901,10 @@ export class PTActor extends Actor {
     }
 
     async panic() {
-        if (this.system.panic) return;
+        if (this.system.panic) {
+            return;
+        }
+
         await this.update({ "system.attributes.sanity.value": 0 }, { diff: false });
         await this.update({ "system.panic": true }, { diff: false });
         createEffectsMessage(this.name, `[/status/Panic] ${this.name} has entered a state of panic!`);
@@ -1876,6 +1914,15 @@ export class PTActor extends Actor {
             await this.update({ "system.panic": false }, { diff: false });
             await this.update({ "system.unstoppableSpent": true }, { diff: false });
             createEffectsMessage(this.name, `${this.name} is Unstoppable! Recovered from panic.`);
+        }
+
+        if (this.augmentEffectCount("Fallback Identity") > 0 && !this.system.fallbackIdentitySpent) {
+            await this.update({ "system.attributes.sanity.value": 10 }, { diff: false });
+            await this.update({ "system.panic": false }, { diff: false });
+            await this.update({ "system.fallbackIdentitySpent": true }, { diff: false });
+            await this.applyStatus("Strength", 1, 0);
+            await this.applyStatus("Endurance", 1, 0);
+            createEffectsMessage(this.name, `${this.name} recovers from panic, restores 10 SP, and gains 1 [/status/Strength] Strength and [/status/Endurance] Endurance permanently due to their Fallback Identity!.`);
         }
     }
 
@@ -1950,6 +1997,10 @@ export class PTActor extends Actor {
 
         system.statusEffects = [];
         system.pendingStatusEffects = [];
+
+        if (this.augmentEffectCount("Insanity") > 0) {
+            system.attributes.sanity.value = 1;
+        }
 
         await this.update({ system }, { diff: false });
 
@@ -2058,6 +2109,12 @@ export class PTActor extends Actor {
             await this.applyStatus("Strength", 1);
             await this.applyStatus("Endurance", 1);
             createEffectsMessage(this.name, `Gains 1 [/status/Strength] Strength and [/status/Endurance] Endurance from Unlock!`);
+        }
+
+        if (this.system.fallbackIdentitySpent && this.augmentEffectCount("Fallback Identity") > 0) {
+            await this.applyStatus("Strength", 1);
+            await this.applyStatus("Endurance", 1);
+            createEffectsMessage(this.name, `Gains 1 [/status/Strength] Strength and [/status/Endurance] Endurance from Fallback Identity!`);
         }
 
         let roundEnds = await this.findAllWithTrigger("Round End");
@@ -3115,7 +3172,7 @@ export class PTActor extends Actor {
                     await actor.handleApplyMark();
                     break;
                 case "Spend Action":
-                    await actor.spendAction(true);
+                    await actor.spendAction(false);
                     break;
             }
         }, "icons/Take_Action.png"));

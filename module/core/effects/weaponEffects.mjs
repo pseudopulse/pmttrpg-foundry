@@ -661,7 +661,7 @@ export const weaponEffects = [
                     dummyCtx.damageType = "Slash";
                     dummyCtx.actor = context.actor;
                     dummyCtx.target = context.target;
-                    let text = await context.target.takeDamage(damage, dummyCtx, 0, 0, 0, true, null, "[Singular Strike of the Blade]", false, true);
+                    let text = await context.target.takeDamage(damage, dummyCtx, 0, 0, 0, true, null, "[Singular Strike of the Blade]", false, false, true);
                     createEffectsMessage(context.target.name, text);
                 }
             })
@@ -718,7 +718,11 @@ export const weaponEffects = [
     ),
     new Effect(
         "Bloodied Amplifier",
-        (context, count, trigger) => { 
+        (context, count, trigger) => {
+            if (context.actor == null) {
+                return;
+            }
+
             let consumed = Math.min(Math.floor(context.actor.getSpentBloodfeast() / 20), 3);
             if (consumed > 0) {
                 context.dicePower = Number(context.dicePower) + Number(consumed); 

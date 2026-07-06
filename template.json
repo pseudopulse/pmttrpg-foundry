@@ -119,7 +119,8 @@
       "paramedicUses": 0,
       "unlockSkillsUsed": [],
       "hasUnlocked": false,
-      "rejuvenatingBloodNegative": 0
+      "rejuvenatingBloodNegative": 0,
+      "fallbackIdentitySpent": false
     }
   },
   "Item": {

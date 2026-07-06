@@ -9,11 +9,12 @@ export class StatusEffect {
      * @param {Number} triggerType 
      * @param {trigger} activation
      */
-    constructor(name, triggerType, activation, decay) {
+    constructor(name, triggerType, activation, decay, hidden = false) {
         this.name = name;
         this.triggerType = triggerType;
         this.activation = activation;
         this.decay = decay;
+        this.hidden = hidden;
     }
 }
 

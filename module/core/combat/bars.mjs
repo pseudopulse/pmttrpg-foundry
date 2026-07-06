@@ -140,8 +140,8 @@ async function drawBar(wrapped, number, bar, data) {
 }
 
 async function drawStatus(bar, token, scaleFactor) {
-    let sameRoundEffects = token.actor.getActiveStatusEffects();
-    let nextRoundEffects = token.actor.getNextRoundStatusEffects();
+    let sameRoundEffects = token.actor.getActiveStatusEffects().filter(x => x.name.toString() != "0"); // ???
+    let nextRoundEffects = token.actor.getNextRoundStatusEffects().filter(x => x.name.toString() != "0"); // ???
 
     let effects = sameRoundEffects.concat(nextRoundEffects);
 

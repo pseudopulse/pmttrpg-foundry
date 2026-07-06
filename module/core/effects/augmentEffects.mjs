@@ -821,6 +821,22 @@ export const augmentEffects = [
     markerEffect("Poison Immunity", false, 1),
     markerEffect("Smoke Immunity", false, 1),
 
+    markerEffect("Unclean Living", false, 5),
+    markerEffect("Gauged Release", false, 1),
+
+    markerEffect("Fallback Identity", false, 1),
+
+    new Effect(
+        "Insanity",
+        (context, count, trigger) => {
+            context.triggers["Clash Win"].spHeal = Number(context.triggers["Clash Win"].spHeal) + Number(count);
+            context.triggers["Clash Lose"].spHeal = Number(context.triggers["Clash Lose"].spHeal) - Number(count);
+        },
+        (count) => null,
+        ["Always Active"],
+        false, 5
+    ),
+
     // hidden gm effects ------
     // spider
     new Effect("Dear Mother", (context, count, trigger) => {}, null, ["Always Active"], false, 1, false, true),
@@ -881,19 +897,23 @@ function augmentThresholdEffect(name, bar, mult, status, negativeStatus = []) {
                     thresholds = 3 
                 }
 
+                if (thresholds < 1) {
+                    return;
+                }
+
                 if (count >= 0) {
                     if (count == 0) {
                         return;
                     }
 
-                    for (let effect in status) {
+                    for (let effect of status) {
                         await context.actor.applyStatus(effect, thresholds * mult, 0);
                     }
 
                     createEffectsMessage(context.actor.name, `Gained ${thresholds * mult} [/status/${status[0]}] ${status[0].replace("_", " ")}${status.length > 1 ? ` and [/status/${status[1]}] ${status[1].replace("_", " ")}` : ""} from ${name}!`);
                 }
                 else {
-                    for (let effect in negativeStatus) {
+                    for (let effect of negativeStatus) {
                         await context.actor.applyStatus(effect, thresholds * mult, 0);
                     }
 

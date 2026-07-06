@@ -28,7 +28,7 @@ export class PTActorSheet extends ActorSheet {
         context.flags = actorData.flags;
         context.actor = this.document;
 
-        context.statusList = statusList;
+        context.statusList = statusList.filter(x => x.hidden == false);
 
         let marks = [];
         for (let mark of context.system.outgoingMarks) {

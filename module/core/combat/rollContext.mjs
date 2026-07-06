@@ -255,7 +255,7 @@ export class RollContext {
                 
                 if ((status == "Critical" || status == "Poise") && !this.hasEffect("Instant Crit")) { continue;}
                 if ((status == "Devastation" || status == "Ruin") && !this.hasEffect("Instant Devastation")) { continue; }
-                if ((status != "Critical" && status != "Poise") && (status != "Devastation" && status != "Ruin") && !this.hasEffect(`Instant ${status}`)) 
+                if (status != "Hemorrhage" && (status != "Critical" && status != "Poise") && (status != "Devastation" && status != "Ruin") && !this.hasEffect(`Instant ${status}`)) 
                 { 
                     continue; 
                 }
@@ -398,7 +398,8 @@ export class RollContext {
                 let php = this.actor.system.attributes.health.value;
                 let pst = this.actor.system.attributes.stagger.value;
                 let psp = this.actor.system.attributes.sanity.value;
-                await this.actor.heal(data.hpHeal, data.stHeal, data.spHeal, this.actor);
+                await this.actor.heal(data.hpHeal > 0 ? data.hpHeal : 0, data.stHeal > 0 ? data.stHeal : 0, data.spHeal > 0 ? data.spHeal : 0, this.actor);
+
                 let hp = this.actor.system.attributes.health.value;
                 let st = this.actor.system.attributes.stagger.value;
                 let sp = this.actor.system.attributes.sanity.value;
@@ -414,6 +415,13 @@ export class RollContext {
                 if (data.spHeal > 0) {
                     lines.push(`Recover ${data.spHeal} SP (${psp} -> ${sp})`);
                 }
+            }
+
+            if (data.spHeal < 0) {
+                let psp = this.actor.system.attributes.sanity.value;
+                await this.actor.takeDamage(0, null, 0, 0, Math.abs(data.spHeal), true);
+                let sp = this.actor.system.attributes.sanity.value;
+                lines.push(`Lose ${Math.abs(data.spHeal)} SP (${psp} -> ${sp})`);
             }
 
             try {
@@ -442,6 +450,7 @@ export class RollContext {
                 if ((status == "Critical" || status == "Poise") && this.hasEffect("Instant Crit")) continue;
                 if ((status == "Devastation" || status == "Ruin") && this.hasEffect("Instant Devastation")) continue;
                 if (this.hasEffect(`Instant ${status}`)) continue;
+                if (status == "Hemorrhage") continue;
                 if (this.negatePoise && status == "Poise") continue;
                 if (this.negateRuin && status == "Ruin") continue;
 

@@ -145,7 +145,7 @@ export const statusList = [
     }, (count) => { return 0; }),
     new StatusEffect("Tendon_Slice", Triggers.MOVE, async (actor) => {
         await actor.fireStatusEffect("Bleed");
-    }, (count) => { return 0; }),
+    }, (count) => { return 0; }, true),
     new StatusEffect("Consumed_Bloodfeast", Triggers.NONE, async (actor) => {}, (count) => { return 0; }),
     new StatusEffect("Heal_Efficiency", Triggers.END, async (actor) => {}, (count) => { return count / 2; }),
     new StatusEffect("Heal_Inefficiency", Triggers.NONE, async (actor) => {}, (count) => { return count; }),
@@ -158,7 +158,9 @@ export const statusList = [
             await actor.applyStatus("Bleed", nails);
             createEffectsMessage(actor.name, `Gains ${nails} [/status/Bleed] Bleed from [/status/Nails] Nails on self! (${bleed} -> ${bleed + nails})`);
         }
-    }, (count) => { return count; })
+    }, (count) => { return count; }),
+    new StatusEffect("Unlock", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, true),
+    new StatusEffect("UnlockCount", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, true),
 ];
 
 export function findStatusDef(name) {
