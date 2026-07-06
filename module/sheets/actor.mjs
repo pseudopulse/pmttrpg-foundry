@@ -3,6 +3,7 @@ import { statusList } from "../core/status/statusEffects.mjs";
 import { validate, handleEffectAddButton, handleEffectCounterChange, handleEffectRemoveButton, handleEffectTriggerChange, handleEffectTypeChange, getEffectsArray } from "../core/effects/effectHelpers.mjs";
 import { MarkNames } from "../core/status/mark.mjs";
 import { findByID, sendNetworkMessage } from "../core/helpers/netmsg.mjs";
+import { pollUserInputConfirm } from "../core/helpers/dialog.mjs";
 
 //
 export class PTActorSheet extends ActorSheet {
@@ -263,6 +264,55 @@ export class PTActorSheet extends ActorSheet {
                 li.addEventListener('dragstart', handler, false);
             });
         }
+
+        html.on('click', '.ase-export', async (ev) => {
+            let holder = {};
+
+            let system = this.actor.toObject(false).system;
+            system.id = null;
+            holder["system"] = system;
+
+            let items = [];
+
+            for (let item of this.actor.items) {
+                items.push({
+                    name: item.name,
+                    type: item.type,
+                    system: item.toObject(false).system
+                });
+            }
+
+            holder["items"] = items;
+
+            await navigator.clipboard.writeText(JSON.stringify(holder));
+            ui.notifications.info("Sheet data copied!");
+        });
+
+        html.on('click', '.ase-import', async (ev) => {
+            if (!(await pollUserInputConfirm(game.user, "This will overwrite all of the data on this sheet. Are you sure?"))) {
+                return;
+            }
+
+            let text = await navigator.clipboard.readText();
+            let data = JSON.parse(text);
+
+            if (!data.system || !data.items) {
+                ui.notifications.error("Clipboard content is not exported sheet data.");
+                return;
+            }
+
+            await this.actor.update({ system: data.system }, { diff: false, render: false });
+
+            for (let item of this.actor.items) {
+                await item.delete();
+            }
+
+            for (let item of data.items) {
+                await Item.create(item, { parent: this.actor });
+            }
+
+            ui.notifications.info("Imported successfully!");
+        });
     }
 
     processData(func) {
