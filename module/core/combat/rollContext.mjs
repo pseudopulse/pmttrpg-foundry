@@ -75,6 +75,7 @@ export class RollContext {
         this.hand = "";
         //
         this.bonusAttackDamage = 0;
+        this.isDualWield = false;
 
         for (const trigger of triggerTypes) {
             this.triggers[trigger] = new TriggerEvents();

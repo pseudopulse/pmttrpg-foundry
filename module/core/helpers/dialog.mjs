@@ -957,7 +957,7 @@ export async function getSkillOptions(actor) {
 /**
     * @param {RollContext} context 
     */
-export async function getAttackOptions(actor) {
+export async function getAttackOptions(actor, isDualWield = false) {
     let targetList = [];
     for (let token of getCombatantTokens().filter(x => x.actor && x.actor != actor)) {
         if (token.actor == null) continue;
@@ -1071,6 +1071,9 @@ export async function getAttackOptions(actor) {
                 }
 
                 const item = actor.items.get(itemId);
+                if (isDualWield) {
+                    await actor.write("nextDualWield", true);
+                }
                 await item.roll(true);
                 await dialog.close();
             });

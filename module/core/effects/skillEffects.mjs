@@ -2173,6 +2173,21 @@ export const skillEffects = [
         },
         ["On Use"], false, 1, false, true
     ),
+    new Effect(
+        "Spark Discharge",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                let charge = await context.actor.getStatusCount("Charge");
+                await context.actor.reduceStatus("Charge", charge);
+                await context.target.takeDamageStatus(charge, "", "HP", "[/status/Charge] Takes %DMG% HP damage from Spark Discharge! (%PHP% -> %HP%)");
+                await context.actor.takeDamageStatus(Math.floor(charge / 2), "", "HP", "[/status/Charge] Takes %DMG% HP damage from Spark Discharge! (%PHP% -> %HP%)");
+            });
+        },
+        (count) => {
+            return `Spend all [/status/Charge] Charge. The target receives HP damage equal to [/status/Charge] Charge spent, and the user receives half of that damage.`;
+        },
+        ["Clash Win", "Clash Lose"], false, 1, false, true
+    ),
 ]
 
 async function findAllyTarget(actor, msg) {

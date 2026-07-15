@@ -552,6 +552,7 @@ export const augmentEffects = [
                 context.conditionals.push(new Conditional("Striker Stance", "Applies -2 Dice Power to a Striker Stance attack.", async (ctx) => {
                     ctx.dicePower = ctx.dicePower - 2;
                     ctx.nonSkillDicePower = ctx.nonSkillDicePower - 2;
+                    ctx.flags.push("Striker Stance");
                 }, [], null));
             }
         },

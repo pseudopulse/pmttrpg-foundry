@@ -171,6 +171,11 @@ export class PTItem extends Item {
         context.result = result.total;
         context.applyClashEffects = true;
 
+        if (this.actor.read("nextDualWield")) {
+            await this.actor.write("nextDualWield", false);
+            context.isDualWield = true;
+        }
+
         if (context.hasEffect("Overheat")) {
             await this.actor.overheatWeapon(this);
         }

@@ -3,7 +3,7 @@ import { statusList } from "../core/status/statusEffects.mjs";
 import { validate, handleEffectAddButton, handleEffectCounterChange, handleEffectRemoveButton, handleEffectTriggerChange, handleEffectTypeChange, getEffectsArray } from "../core/effects/effectHelpers.mjs";
 import { MarkNames } from "../core/status/mark.mjs";
 import { findByID, sendNetworkMessage } from "../core/helpers/netmsg.mjs";
-import { pollUserInputConfirm } from "../core/helpers/dialog.mjs";
+import { pollUserInputConfirm, pollUserInputText } from "../core/helpers/dialog.mjs";
 
 //
 export class PTActorSheet extends ActorSheet {
@@ -284,7 +284,7 @@ export class PTActorSheet extends ActorSheet {
 
             holder["items"] = items;
 
-            await navigator.clipboard.writeText(JSON.stringify(holder));
+            await game.clipboard.copyPlainText(JSON.stringify(holder));
             ui.notifications.info("Sheet data copied!");
         });
 
@@ -293,7 +293,7 @@ export class PTActorSheet extends ActorSheet {
                 return;
             }
 
-            let text = await navigator.clipboard.readText();
+            let text = await pollUserInputText(game.user, 'Paste sheet data below.', 'paste here');
             let data = JSON.parse(text);
 
             if (!data.system || !data.items) {

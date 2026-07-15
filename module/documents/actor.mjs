@@ -240,6 +240,7 @@ export class PTActor extends Actor {
         system.unlockSkillsUsed = [];
         system.hasUnlocked = false;
         system.fallbackIdentitySpent = false;
+        system.flags = {};
 
         await this.update({ system }, { diff: false, render: true });
     }
@@ -431,6 +432,14 @@ export class PTActor extends Actor {
             }
 
             await this.processClashResolution(ctx1, ctx2);
+
+            if (!ctx1.isDualWield && ctx1.actor.getCanDualWield()) {
+                let confirm = await pollUserInputConfirm(ctx1.actor, 'Dual wield following this attack?');
+
+                if (confirm) {
+                    await getAttackOptions(this, true);
+                }
+            }
         }
         else {
             pendingTakeDamageCalls = [];
@@ -632,29 +641,75 @@ export class PTActor extends Actor {
             createEffectsMessage(ctx2.actor.name, await ctx2.resolveInstantStatus(["Clash Lose", "On Use"]));
         }
 
-        if (ctx1.isReaction) {
+        if (ctx1.isDualWield) {
+            let c = Number(ctx1.actor.read("dualWieldCount"));
+            if (isNaN(c)) {
+                c = 0;
+            }
+            else {
+                c = c + 1;
+            }
+            await ctx1.actor.write("dualWieldCount", c);
+        }
+
+        if (ctx2.isDualWield) {
+            let c = Number(ctx2.actor.read("dualWieldCount"));
+            if (isNaN(c)) {
+                c = 0;
+            }
+            else {
+                c = c + 1;
+            }
+            await ctx2.actor.write("dualWieldCount", c);
+        }
+
+        if (ctx1.isReaction || ctx1.isDualWield) {
             if (ctx1.actor.hasAbnoPage("Visions of your Fate") && (ctx1.damageType == "Evade")) {
                 await ctx1.actor.spendReaction(true, true);
             }
             else {
-                await ctx1.actor.spendReaction(true, false);
+                if (ctx1.isDualWield) {
+                    if (Number(ctx1.actor.read("dualWieldCount") >= 1)) {
+                        await ctx1.actor.spendReaction(true, false, true);
+                    }
+                    else {
+                        await ctx1.actor.spendReaction(true, true);
+                    }
+                }
+                else {
+                    await ctx1.actor.spendReaction(true, false);
+                }
             }
         }
         else {
-            await ctx1.actor.spendAction(true, false);
+            if (!ctx1.flags.includes("Striker Stance")) {
+                await ctx1.actor.spendAction(true, false);
+            }
         }
 
         if (ctx2.result != "X") {
-            if (ctx2.isReaction) {
+            if (ctx2.isReaction || ctx2.isDualWield) {
                 if (ctx2.actor.hasAbnoPage("Visions of your Fate") && (ctx2.damageType == "Evade")) {
                     await ctx2.actor.spendReaction(true, true);
                 }
                 else {
-                    await ctx2.actor.spendReaction(true, false);
+                    if (ctx2.isDualWield) {
+                        if (Number(ctx2.actor.read("dualWieldCount") > 0)) {
+                            await ctx2.actor.spendReaction(true, false, true);
+                        }
+                        else {
+                            await ctx2.actor.spendReaction(true, false);
+                        }
+                    }
+                    else {
+                        await ctx2.actor.spendReaction(true, false);
+                    }
                 }
             }
             else {
-                await ctx2.actor.spendAction(true, false);
+                if (!ctx2.flags.includes("Striker Stance")) {
+                    await ctx2.actor.spendAction(true, false);
+                }
             }
         }
 
@@ -924,7 +979,7 @@ export class PTActor extends Actor {
                 if (roll > result) {
                     let text = null;
                     if (ctx1.diceCount >= i) {
-                        text = await ctx1.target.takeDamage(Math.floor(result * 0.8), ctx1, 0, 0, 0, true, null, `[${ctx1.actor.name}'s Multi-Hit roll of ${roll} wins against ${ctx2.actor.name}'s roll of ${result}!]`, false, true);
+                        text = await ctx1.target.takeDamage(Math.floor(roll * 0.8), ctx1, 0, 0, 0, true, null, `[${ctx1.actor.name}'s Multi-Hit roll of ${roll} wins against ${ctx2.actor.name}'s roll of ${result}!]`, false, true);
                         hits++;
                         multihitText = multihitText + "\n" + text + "\n";
 
@@ -1094,6 +1149,15 @@ export class PTActor extends Actor {
 
         pendingEffectiveHealEffects[ctx1.actor] = null;
         pendingEffectiveHealEffects[ctx2.actor] = null;
+    }
+
+    getCanDualWield() {
+        return this.items.filter(x => x.type == "weapon" && x.system.active).length > 1 && this.system.reactions >= this.getDualWieldCost();
+    }
+
+    getDualWieldCost() {
+        let count = Number(this.read("dualWieldCount"));
+        return count >= 0 ? 2 : 1;
     }
 
     async handleClashEmotion(actor, triggers, target, oneSided, context) {
@@ -2798,11 +2862,11 @@ export class PTActor extends Actor {
         }
     }
 
-    async spendReaction(triggerBleed = true, free = false) {
+    async spendReaction(triggerBleed = true, free = false, double = false) {
         if (!free) {
             let reactions = Number(this.system.reactions);
-            await this.update({ "system.reactions": Math.max(reactions - 1, 0) }, { diff: false });
-            createEffectsMessage(this.name, `Spends 1 Reaction! (${reactions} -> ${Math.max(reactions - 1, 0)})`)
+            await this.update({ "system.reactions": Math.max(reactions - (double ? 2 : 1), 0) }, { diff: false });
+            createEffectsMessage(this.name, `Spends ${double ? 2 : 1} Reaction${double ? 's' : ''}! (${reactions} -> ${Math.max(reactions - (double ? 2 : 1), 0)})`)
         }
 
         if (triggerBleed) {
@@ -3107,6 +3171,13 @@ export class PTActor extends Actor {
         return contexts;
     }
 
+    async handleTurnEnd() {
+        if (this.read("pendingControlledStagger")) {
+            await this.write("pendingControlledStagger", false);
+            await this.stagger(false, false);
+        }
+    }
+
     async handleTails() {
         let dispo = getActorTeam(this);
 
@@ -3183,25 +3254,22 @@ export class PTActor extends Actor {
             createEffectsMessage(actor.name, `Spends 1 Reaction! (${reactions} -> ${Math.max(reactions - 1, 0)})`);
         }, "icons/Discard_Reaction.png"));
 
-        if (this.augmentEffectCount("Concentrated Overcharge") > 0 || this.augmentEffectCount("Meditation") > 0) {
+        if ((this.augmentEffectCount("Concentrated Overcharge") > 0 || this.augmentEffectCount("Meditation") > 0) && !this.read("usedControlledStagger")) {
             hotbar.push(await registerEffectMacro("Controlled Stagger", async (actor) => {
-                if (actor.system.staggered) {
-                    ui.notifications.notify("You are already staggered!");
-                    return;
-                }
-
-                await actor.stagger();
-
                 if (actor.augmentEffectCount("Concentrated Overcharge") > 0) {
-                    await actor.applyStatus("Overcharge", 2);
-                    createEffectsMessage(actor.name, "Gains 2 [/status/Overcharge] Overcharge from Concentrated Overcharge!");
+                    await actor.applyStatus("Overcharge", 3);
+                    createEffectsMessage(actor.name, "Gains 3 [/status/Overcharge] Overcharge from Concentrated Overcharge!");
                 }
 
                 if (actor.augmentEffectCount("Meditation") > 0) {
                     let emotion = Number(actor.system.emotion);
-                    await actor.update({ "system.emotion": emotion + 8 }, { diff: false });
-                    createEffectsMessage(actor.name, `Gains 8 [/resources/EmotionIcon] Emotion from Meditation! (${emotion} -> ${emotion + 8})`);
+                    await actor.update({ "system.emotion": emotion + 6 }, { diff: false });
+                    createEffectsMessage(actor.name, `Gains 6 [/resources/EmotionIcon] Emotion from Meditation! (${emotion} -> ${emotion + 8})`);
                 }
+
+                await actor.write("usedControlledStagger", true);
+                await this.update({ "system.actions": Number(this.system.actions) + 1 }, { diff: false, render: true });
+                await actor.write("pendingControlledStagger", true);
             }, "icons/Controlled_Stagger.png"));
         }
 
@@ -3466,6 +3534,20 @@ export class PTActor extends Actor {
     }
 
     // fix z index issue later
+
+    async write(str, val) {
+        let sys = {
+            system: {
+                flags: {}
+            }
+        };
+        sys.system.flags[str] = val;
+        await this.update(sys, { diff: false, render: true });
+    }
+
+    read(str) {
+        return this.system.flags[str];
+    }
 
     async modifyScale(scale) {
         let token = getActorToken(this);

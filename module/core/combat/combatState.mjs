@@ -67,6 +67,13 @@ export async function turnChange(combat, round, turn) {
 
     currentTurn = turn;
 
+    let index = combat.turn - 1;
+    if (index < 0) {
+        index = combat.turns.length - 1;
+    }
+
+    await combat.turns[index].actor.handleTurnEnd();
+
     if (round == 1) return;
 
     for (const token of getCombatantTokens()) {
