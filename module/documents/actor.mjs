@@ -2256,6 +2256,9 @@ export class PTActor extends Actor {
         return ((await this.getActorMindLinked())).system;
     }
 
+    // why did i make this async?
+    // too lazy to fix all the await references to it
+
     async getActorMindLinked() {
         if (this.augmentEffectCount("Mental Link") > 0) {
             let actor = this.getLinkedActor();
@@ -2266,6 +2269,30 @@ export class PTActor extends Actor {
         }
 
         return this;
+    }
+
+    // so this is here
+    
+    getActorMindLinkedS() {
+        if (this.augmentEffectCount("Mental Link") > 0) {
+            let actor = this.getLinkedActor();
+
+            if (actor) {
+                return actor;
+            }
+        }
+
+        return this;
+    }
+
+    async getSP() {
+        let actor = this.getActorMindLinkedS();
+        return actor.system.attributes.sanity.value;
+    }
+
+    async getMaxSP() {
+        let actor = this.getActorMindLinkedS();
+        return actor.system.attributes.sanity.max;
     }
 
     checkImpassioned(dispo) {

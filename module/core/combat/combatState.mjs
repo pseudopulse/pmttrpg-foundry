@@ -55,14 +55,40 @@ export async function turnChange(combat, round, turn) {
     } 
     else {
         currentRound = combat.round;
+        console.log('reroll');
 
         for (const token of getCombatantTokens()) {
             if (token != null && token.actor != null && game.user.isGM) {
+                console.log('next round for ' + token.actor.name);
                 await token.actor.handleNextRound();
+
+                let turn = combat.turns.find(x => x.tokenId == token.id);
+                if (turn != null) {
+                    turn.blockNextCombatStart = true;
+                    await turn.rollInitiative();
+                }
             }
         }
 
         alreadyDoneThisRound = [];
+        let first = combat.turns[0];
+        let last = combat.turns[combat.turns.length - 1];
+        await combat.update({
+            turn: 0,
+            previous: {
+                combatantId: last._id,
+                tokenId: last.tokenId,
+                turn: combat.turns.length - 1,
+                round: combat.round - 1
+            },
+            current: {
+                combatantId: first._id,
+                tokenId: first.tokenId,
+                turn: 0,
+                round: combat.round
+            },
+            round: combat.round
+        }, { diff: false, render: true });
     }
 
     currentTurn = turn;
@@ -95,8 +121,13 @@ export async function turnChange(combat, round, turn) {
 
 export async function updateCombatant(combatant, data, id) {
     let actor = combatant.token.actor;
-
+    
     if (actor != null && game.user.isActiveGM) {
+        if (combatant.blockNextCombatStart) {
+            combatant.blockNextCombatStart = false;
+            return;
+        }
+        
         await actor.handleCombatStart();
         await actor.handleNextTurn();
 

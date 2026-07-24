@@ -1063,6 +1063,17 @@ export class RollContext {
                 });
             }
         }
+
+        let toCleanse = [];
+        for (let effect of this.effects) {
+            if ((effect.source == 'weapon' || effect.source == 'outfit') && this.effects.find(x => x.name == effect.name && x.source == 'skill') != null) {
+                let target = this.effects.find(x => x.name == effect.name && x.source == 'skill');
+                target.count = Number(target.count) + Number(effect.count);
+                toCleanse.push(effect.name);
+            }
+        }
+
+        this.effects = this.effects.filter(x => !((x.source == 'weapon' || x.source == 'outfit') && toCleanse.includes(x.name)))
     }
 }
 

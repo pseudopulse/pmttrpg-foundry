@@ -7,3 +7,7 @@ make holding shift ignore movement restrictions (instead of blink mode)
 make removing marks send a gm message for networking
 
 make reduce status able to target allies
+
+//
+
+implement poll request targeting for the status hazard stuff

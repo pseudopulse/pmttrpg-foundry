@@ -4,9 +4,10 @@ import { Conditional, RollContext } from "../combat/rollContext.mjs";
 import { pollUserInputOptions } from "../helpers/dialog.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
 import { getAlliesWithinRadius, getAlliesWithinRadiusOfTarget } from "../../pmttrpg.mjs";
-import { requestForcedMovement } from "../combat/movement.mjs";
+import { pollUserGetGridSpace, requestForcedMovement } from "../combat/movement.mjs";
+import { addHazard, HazardNames, HazardStatusEffects } from "../combat/hazards.mjs";
 
-export const weaponEffects = [
+export let weaponEffects = [
     // Dice Manipulation
     new Effect(
         "Dice Power Up",
@@ -137,6 +138,18 @@ export const weaponEffects = [
         false, 1, true
     ),
     new Effect(
+        "Vibrating",
+        (context, count, trigger) => { 
+            context.triggers["Clash Win"].applyInfliction("Tremor", 2, true);
+            context.triggers["Clash Lose"].applyInfliction("Tremor", -2, true);
+        },
+        (count) => {
+            return [null, "Inflict 2 [/status/Tremor] Tremor next round", "Gain 2 [/status/Tremor] Tremor next round", null, null];
+        },
+        ["Always Active"],
+        false, 1, true
+    ),
+    new Effect(
         "Chilling",
         (context, count, trigger) => { 
             context.triggers["Clash Win"].applyInfliction("Frostbite", 2, false);
@@ -144,6 +157,18 @@ export const weaponEffects = [
         },
         (count) => {
             return [null, "Inflict 2 [/status/Frostbite] Frostbite", "Gain 2 [/status/Frostbite] Frostbite", null, null];
+        },
+        ["Always Active"],
+        false, 1, true
+    ),
+    new Effect(
+        "Smogged",
+        (context, count, trigger) => { 
+            context.triggers["Clash Win"].applyInfliction("Smoke", 2, false);
+            context.triggers["Clash Lose"].applyInfliction("Smoke", -2, false);
+        },
+        (count) => {
+            return [null, "Inflict 2 [/status/Smoke] Smoke", "Gain 2 [/status/Smoke] Smoke", null, null];
         },
         ["Always Active"],
         false, 1, true
@@ -755,6 +780,34 @@ export const weaponEffects = [
         false, 1,
     ),
 ]
+
+export function setWeaponEffects(array) {
+    weaponEffects = array;
+}
+
+function hazardousCreation(hazard) {
+    let name = HazardStatusEffects[hazard];
+
+    return new Effect(
+        `Hazardous Creation - ${name}`,
+        (context, count, trigger) => {
+            context.flags.push("Hazardous Creation");
+
+            context.events[trigger].push(async (context) => {
+                let c = 4 * count;
+                let tiles = await requestTargeting(TargetType.MULTI_GRID, {
+                    maxSelections: c,
+                    originToken: getActorToken(context.target),
+                    maxRange: Math.ceil(c / 8),
+                    enforceRange: true,
+                    requireLOS: true
+                });
+                
+                addHazard(hazard, length, context.actor.system.id, tiles);
+            });
+        }
+    );
+}
 
 function simpleStatusEffect(status, nextRound, allowNegative) {
     let str = nextRound ? " next round" : "";

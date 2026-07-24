@@ -9,7 +9,7 @@ import { getRollContextFromData } from "../../documents/item.mjs";
 import { getCombatantTokens } from "../combat/combatState.mjs";
 import { requestForcedMovement } from "../combat/movement.mjs";
 
-export const skillEffects = [
+export let skillEffects = [
     new Effect(
         "Dice Power Up",
         (context, count, trigger) => { 
@@ -102,13 +102,19 @@ export const skillEffects = [
     new Effect(
         "Overcoming Madness",
         (context, count, trigger) => { 
-            if (context.actor != null && context.actor.system.attributes.sanity.value < context.actor.system.attributes.sanity.max * (1 - (0.2 * count))) {
+            let sp = 0;
+            let spm = 0;
+            if (context.actor != null) {
+                sp = context.actor.getSP();
+                spm = context.actor.getMaxSP();
+            }
+            if (context.actor != null && sp <= spm * (1 - (0.2 * count))) {
                 context.dicePower = Number(context.dicePower) + Number(count);
                 context.skillDicePower = Number(context.skillDicePower) + Number(count);
             }
         },
         (count) => {
-            return `Gain ${Number(count)} Dice Power if SP is less than ${(1 - (0.2 * count)) * 100}%`;
+            return `Gain ${Number(count)} Dice Power if SP is less than ${Math.ceil((1 - (0.2 * count)) * 100)}%`;
         },
         ["On Use"],
         false,
@@ -1807,7 +1813,7 @@ export const skillEffects = [
             });
 
             context.dicePower = Number(context.dicePower) + count;
-            context.nonSkillDicePower = Number(context.nonSkillDicePower) + count;
+            context.skillDicePower = Number(context.skillDicePower) + count;
         },
         (count) => {
             return `Consume ${count * 5} [/status/Consumed_Bloodfeast] Consumed Bloodfeast to gain ${count} Dice Power.`
@@ -2113,7 +2119,7 @@ export const skillEffects = [
         (context, count, trigger) => {
             if (context.target != null && context.target.getStatusCount("Consumed_Bloodfeast") > 20) {
                 context.dicePower = Number(context.dicePower) + Math.floor(context.target.getStatusCount("Consumed_Bloodfeast") / 20);
-                context.nonSkillDicePower = Number(context.nonSkillDicePower) + Math.floor(context.target.getStatusCount("Consumed_Bloodfeast") / 20);
+                context.skillDicePower = Number(context.skillDicePower) + Math.floor(context.target.getStatusCount("Consumed_Bloodfeast") / 20);
             }
         },
         (count) => {
@@ -2185,6 +2191,16 @@ export const skillEffects = [
         },
         (count) => {
             return `Spend all [/status/Charge] Charge. The target receives HP damage equal to [/status/Charge] Charge spent, and the user receives half of that damage.`;
+        },
+        ["Clash Win", "Clash Lose"], false, 1, false, true
+    ),
+    new Effect(
+        "Slip Past",
+        (context, count, trigger) => {
+            
+        },
+        (count) => {
+            return `Swap places with a target in your melee range + 1 SQR.`; 
         },
         ["Clash Win", "Clash Lose"], false, 1, false, true
     ),

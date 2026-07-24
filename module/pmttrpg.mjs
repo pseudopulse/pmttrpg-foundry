@@ -1,4 +1,4 @@
-import { weaponEffects } from "./core/effects/weaponEffects.mjs";
+import { weaponEffects, setWeaponEffects } from "./core/effects/weaponEffects.mjs";
 import { PTActor } from "./documents/actor.mjs";
 import { getRollContextFromData, PTItem } from "./documents/item.mjs";
 import { PTActorSheet } from "./sheets/actor.mjs";
@@ -14,6 +14,7 @@ import { macroList } from "./core/combat/macros.mjs";
 import { Triggers } from "./core/status/statusEffect.mjs";
 import { handleBarReplacement } from "./core/combat/bars.mjs";
 import { loadAllHazards, getHazardCountBetweenTwoPoints, HazardType, handleHazardMovement, clearHazards } from "./core/combat/hazards.mjs";
+import { skillEffects } from "./core/effects/skillEffects.mjs";
 // import Hooks from "@client/helpers/hooks.mjs";
 
 let ignoreNextMountFlag = [];
@@ -215,6 +216,8 @@ Hooks.once("init", async () => {
 
   handleBarReplacement();
 
+  setWeaponEffects(weaponEffects.concat(skillEffects.filter(x => weaponEffects.find(y => y.name == x.name) == null)));
+
   Handlebars.registerPartial('ptEffect', '{{> systems/pmttrpg/templates/item/parts/effect.hbs}}')
   Handlebars.registerPartial('ptWeaponBlock', '{{> systems/pmttrpg/templates/item/parts/weapon-block.hbs}}')
   Handlebars.registerPartial('ptOutfitBlock', '{{> systems/pmttrpg/templates/item/parts/outfit-block.hbs}}')
@@ -372,6 +375,14 @@ Hooks.on(`updateCombat`, async (combat, data, options) => {
     return;
   }
 
+  // await roundChange(combat, data.round, data.turn);
+});
+
+Hooks.on('preUpdateCombat', async (combat, data, data2) => {
+  if (data.round == undefined) {
+    return;
+  }
+  
   await roundChange(combat, data.round, data.turn);
 });
 

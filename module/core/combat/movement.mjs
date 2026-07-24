@@ -69,3 +69,20 @@ export async function pollUserGetGridSpace(user, target, origin, range) {
         requireLOS: true,
     })
 }
+
+export async function pollUserRequestTargeting(user, type, options = {}) {
+    if (user != game.user) {
+        return await getActorUser(user).query("pmttrpg.pollUserRequestTargeting", {
+            target: target,
+            origin: origin,
+            range: range
+        });
+    };
+
+    return await requestTargeting(TargetType.GRID, {
+        originToken: getActorToken(origin),
+        maxRange: range,
+        enforceRange: true,
+        requireLOS: true,
+    })
+}
