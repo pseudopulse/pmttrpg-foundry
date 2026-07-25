@@ -56,20 +56,21 @@ export async function turnChange(combat, round, turn) {
     else {
         currentRound = combat.round;
 
-        try {
-            for (const token of getCombatantTokens()) {
-                if (token != null && token.actor != null && game.user.isGM) {
-                    await token.actor.handleNextRound();
+        
+        for (const token of getCombatantTokens()) {
+            if (token != null && token.actor != null && game.user.isGM) {
+                await token.actor.handleNextRound();
 
-                    let turn = combat.turns.find(x => x.tokenId == token.id);
-                    if (turn != null) {
-                        turn.blockNextCombatStart = true;
-                        await turn.rollInitiative();
-                    }
+                let turn = combat.turns.find(x => x.tokenId == token.id);
+                if (turn != null) {
+                    turn.blockNextCombatStart = true;
+                    await turn.rollInitiative();
                 }
             }
+        }
 
-            alreadyDoneThisRound = [];
+        alreadyDoneThisRound = [];
+        if (game.user.isActiveGM) {
             let first = combat.turns[0];
             let last = combat.turns[combat.turns.length - 1];
             await combat.update({
@@ -89,10 +90,8 @@ export async function turnChange(combat, round, turn) {
                 round: combat.round
             }, { diff: false, render: true });
         }
-        catch {
-            
-        }
     }
+    
 
     currentTurn = turn;
 
