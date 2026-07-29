@@ -182,7 +182,7 @@ export async function addHazardInternal(type, rounds, source, affectedTiles) {
         },
         async (data) => {
             data.lines.clear();
-            data.lines.lineStyle(20 * getZoom(), HazardColors[hazard.type], 1);
+            data.lines.lineStyle(20 * (canvas.grid.size / 256), HazardColors[hazard.type], 1);
             data.bg.clear();
             data.bg.beginFill(HazardColors[hazard.type], 1);
 

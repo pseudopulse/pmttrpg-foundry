@@ -9,6 +9,9 @@ let currentStyleElement = null;
 * @param {TargetingOptions} options
 */
 export async function requestTargeting(type, options = {}) {
+    if (options.tokenFilter == undefined) {
+        options.tokenFilter = (x) => { return true }
+    }
     return new Promise(async (resolve, reject) => {
         let results = [];
         let resolved = false;
@@ -89,7 +92,9 @@ export async function requestTargeting(type, options = {}) {
             if (type == TargetType.TOKEN || type == TargetType.MULTI_TOKEN) {
                 let selected = getCombatantTokens().find(x => {
                     if (x.actor == null) return;
-                    if (!options.tokenFilter(x)) return;
+                    if (!options.tokenFilter(x)) {
+                        return;
+                    }
                     let bounds = x.mesh._canvasBounds;
 
                     if (options.enforceRange && options.originToken != null) {

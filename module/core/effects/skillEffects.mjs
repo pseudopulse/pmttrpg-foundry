@@ -2,12 +2,13 @@ import { Effect } from "./effect.mjs";
 import { handleNegativeText } from "../../core/effects/effectHelpers.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
 import { pollDistributeStatus, pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "../helpers/dialog.mjs";
-import { findActorsOfTeam, getActorTeam, getAlliesWithinRadius, getAlliesWithinRadiusOfTarget, getCharactersWithinRadius, getEnemiesWithinRadius, scale } from "../../pmttrpg.mjs";
+import { findActorsOfTeam, getActorTeam, getActorToken, getAlliesWithinRadius, getAlliesWithinRadiusOfTarget, getCharactersWithinRadius, getEnemiesWithinRadius, getTokenCenter, scale } from "../../pmttrpg.mjs";
 import { Conditional } from "../combat/rollContext.mjs";
 import { findByID } from "../helpers/netmsg.mjs";
 import { getRollContextFromData } from "../../documents/item.mjs";
 import { getCombatantTokens } from "../combat/combatState.mjs";
-import { requestForcedMovement } from "../combat/movement.mjs";
+import { pollUserRequestTargeting, requestForcedMovement, teleportToken } from "../combat/movement.mjs";
+import { TargetType } from "../combat/targeting.mjs";
 
 export let skillEffects = [
     new Effect(
@@ -2197,13 +2198,65 @@ export let skillEffects = [
     new Effect(
         "Slip Past",
         (context, count, trigger) => {
-            
+            context.events[trigger].push(async (context) => {
+                let c = context.getRange() + 2;
+                let token = await pollUserRequestTargeting(context.actor, TargetType.TOKEN, {
+                    originToken: getActorToken(context.actor),
+                    maxRange: c,
+                    enforceRange: false,
+                    requireLOS: false
+                });
+
+                if (token != null) {
+                    token = canvas.tokens.placeables.find(x => x.id == token);
+                    let pointA = getTokenCenter(getActorToken(context.actor));
+                    let pointB = getTokenCenter(token);
+
+                    await teleportToken(token, pointA);
+                    await teleportToken(getActorToken(context.actor), pointB);
+
+                    createEffectsMessage(context.actor.name, `${context.actor.name} switches places with ${token.actor.name}!`);
+                }
+            });
         },
         (count) => {
             return `Swap places with a target in your melee range + 1 SQR.`; 
         },
         ["Clash Win", "Clash Lose"], false, 1, false, true
     ),
+    new Effect(
+        "Discard - Reaction Cost",
+        (context, count, trigger) => {
+            if (!context.flags.includes("Discard Reaction")) {
+                context.costs.push({
+                    cost: count,
+                    status: "Discard",
+                    free: true
+                })
+                context.flags.push("Discard Reaction");
+            }
+
+            context.events[trigger].push(async (context) => {
+                await context.actor.discardReactions(count);
+            });
+        },
+        (count) => {
+            return `Discard ${count} Reactions.`
+        },
+        ["On Use"], false, 5, false, true
+    ),
+    new Effect(
+        "Discard - Dice Power Up",
+        (context, count, trigger) => {
+            let rcount = context.getDiscardCost();
+            context.dicePower = Number(context.dicePower) + rcount;
+            context.skillDicePower = Number(context.skillDicePower) + rcount;
+        },
+        (count) => {
+            return `Gain 1 Dice Power for every Reaction this skill discarded.`
+        },
+        ["On Use"], false, 1
+    )
 ]
 
 async function findAllyTarget(actor, msg) {

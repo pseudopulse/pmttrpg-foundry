@@ -165,6 +165,8 @@ export class RollContext {
 
     mergeCosts() {
         let newCosts = [];
+        let discardCosts = this.getDiscardCost();
+
         for (let cost of this.costs) {
             let existing = newCosts.find(x => x.status == cost.status);
             if (existing) {
@@ -173,6 +175,10 @@ export class RollContext {
             else {
                 newCosts.push(cost);
             }
+        }
+
+        if (this.costs.includes(x => x.name == "Discard")) {
+            this.costs.find(x => x.name == "Discard").cost = discardCosts;
         }
 
         this.costs = newCosts;
@@ -329,6 +335,10 @@ export class RollContext {
         this.mergeCosts();
         if (this.costs != null) {
             for (const cost of this.costs) {
+                if (cost.free == true) {
+                    continue;
+                }
+
                 let status = cost.status;
                 if (status == "Bloodfeast") {
                     if (triggers.includes("Clash Win")) {
@@ -540,6 +550,20 @@ export class RollContext {
         }
 
         return totalCharge;
+    }
+
+    getDiscardCost() {
+        let highest = 0;
+
+        for (let cost of this.costs) {
+            if (cost.status == "Discard") {
+                if (Number(cost.cost) > highest) {
+                    highest = Number(cost.cost);
+                }
+            }
+        }
+
+        return highest;
     }
 
     nullifyPower(nullifySkill = false) {

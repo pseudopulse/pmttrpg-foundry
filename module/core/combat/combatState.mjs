@@ -89,6 +89,8 @@ export async function turnChange(combat, round, turn) {
                 },
                 round: combat.round
             }, { diff: false, render: true });
+
+            await roundEnd();
         }
     }
     

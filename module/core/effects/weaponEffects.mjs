@@ -3,9 +3,10 @@ import { handleNegativeText } from "../../core/effects/effectHelpers.mjs";
 import { Conditional, RollContext } from "../combat/rollContext.mjs";
 import { pollUserInputOptions } from "../helpers/dialog.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
-import { getAlliesWithinRadius, getAlliesWithinRadiusOfTarget } from "../../pmttrpg.mjs";
-import { pollUserGetGridSpace, requestForcedMovement } from "../combat/movement.mjs";
-import { addHazard, HazardNames, HazardStatusEffects } from "../combat/hazards.mjs";
+import { getActorToken, getAlliesWithinRadius, getAlliesWithinRadiusOfTarget } from "../../pmttrpg.mjs";
+import { pollUserGetGridSpace, pollUserRequestTargeting, requestForcedMovement } from "../combat/movement.mjs";
+import { addHazard, HazardNames, HazardStatusEffects, HazardType } from "../combat/hazards.mjs";
+import { TargetType } from "../combat/targeting.mjs";
 
 export let weaponEffects = [
     // Dice Manipulation
@@ -779,6 +780,32 @@ export let weaponEffects = [
         ["Clash Lose"],
         false, 1,
     ),
+    hazardousCreation(HazardType.BROKEN_GLASS),
+    hazardousCreation(HazardType.EXHAUST_FUMES),
+    hazardousCreation(HazardType.CHILLING_FROST),
+    hazardousCreation(HazardType.EXPOSED_FIRE),
+    hazardousCreation(HazardType.TOXIC_FUMES),
+    new Effect(
+        "Smokeshot",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                let c = context.getRange();
+                let tiles = await pollUserRequestTargeting(context.actor, TargetType.MULTI_GRID, {
+                    maxSelections: c,
+                    originToken: getActorToken(context.actor),
+                    maxRange: c,
+                    enforceRange: true,
+                    requireLOS: true
+                });
+                
+                await addHazard(HazardType.EXHAUST_FUMES, 3, context.actor.system.id, tiles);
+            });
+        },
+        (count) => {
+            return `Create a trail of [/status/Smoke] Exhaust Fumes along the projectile's path.`
+        },
+        ["On Use"], false, 1, false, true
+    )
 ]
 
 export function setWeaponEffects(array) {
@@ -787,6 +814,7 @@ export function setWeaponEffects(array) {
 
 function hazardousCreation(hazard) {
     let name = HazardStatusEffects[hazard];
+    let hazardName = HazardNames[hazard];
 
     return new Effect(
         `Hazardous Creation - ${name}`,
@@ -795,7 +823,7 @@ function hazardousCreation(hazard) {
 
             context.events[trigger].push(async (context) => {
                 let c = 4 * count;
-                let tiles = await requestTargeting(TargetType.MULTI_GRID, {
+                let tiles = await pollUserRequestTargeting(context.actor, TargetType.MULTI_GRID, {
                     maxSelections: c,
                     originToken: getActorToken(context.target),
                     maxRange: Math.ceil(c / 8),
@@ -803,9 +831,13 @@ function hazardousCreation(hazard) {
                     requireLOS: true
                 });
                 
-                addHazard(hazard, length, context.actor.system.id, tiles);
+                await addHazard(hazard, 3, context.actor.system.id, tiles);
             });
-        }
+        },
+        (count) => {
+            return `Reduce damage dealt by 50%. Create up to ${4 * count} tiles of [/status/${name}] ${hazardName} around the target.`
+        },
+        ["Clash Win"], false, 5, false, true
     );
 }
 

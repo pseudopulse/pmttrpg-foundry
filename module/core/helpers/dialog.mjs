@@ -177,6 +177,8 @@ export async function getActionModifiers(actor, context) {
                         });
                     }
 
+                    discards = 0;
+
                     update();
                 }
 
@@ -215,7 +217,7 @@ export async function getActionModifiers(actor, context) {
                                 let available = 0;
 
                                 for (let ac of allCosts) {
-                                    if (ac.source == conditional.name) continue;
+                                    if (ac.source == conditional.name || cost.status == "Discard") continue;
 
                                     if (ac.status == status) {
                                         available -= Number(ac.cost);
@@ -243,13 +245,14 @@ export async function getActionModifiers(actor, context) {
                             }
 
                             for (let cost of ctx.costs) {
+                                if (cost.status == "Discard") continue;
                                 let status = cost.status;
                                 let amount = Number(cost.cost);
                                 
                                 let available = 0;
 
                                 for (let ac of allCosts) {
-                                    if (ac.source == item._id) continue;
+                                    if (ac.source == item._id || cost.status == "Discard") continue;
 
                                     if (ac.status == status) {
                                         available -= Number(ac.cost);
@@ -264,6 +267,18 @@ export async function getActionModifiers(actor, context) {
                                 }
 
                                 if (available < amount) {
+                                    failedAny = true;
+                                }
+                            }
+
+                            if (ctx.costs.find(x => x.status == "Discard") != null) {
+                                let discards = 0;
+                                for (let cost of ctx.costs) {
+                                    if (cost.status == "Discard") {
+                                        discards += cost.cost;
+                                    }
+                                }
+                                if (!actor.canDiscardReactions(discards)) {
                                     failedAny = true;
                                 }
                             }

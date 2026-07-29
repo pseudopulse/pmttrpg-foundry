@@ -1,5 +1,5 @@
 import { findByID, getActorUser, sendNetworkMessage } from "../helpers/netmsg.mjs";
-import { requestTargeting, TargetType } from "../combat/targeting.mjs";
+import { requestTargeting, TargetType, TargetingOptions } from "../combat/targeting.mjs";
 import { getActorToken, getTokenCenter, gridDistanceBetween, searchByObject } from "../../pmttrpg.mjs";
 import { RollContext } from "./rollContext.mjs";
 
@@ -26,7 +26,6 @@ export async function requestForcedMovement(source, target, origin, range, canDe
     point.y -= (token.document.height * canvas.grid.size) / 2;
 
     await token.document.setFlag("pmttrpg", "ignoreNextMovementCheck", true);
-    await token.document.update({ x: point.x, y: point.y }, { render: true, diff: false });
     await token.document.move(
     {
         x: point.x, y: point.y,
@@ -53,6 +52,22 @@ export async function requestForcedMovement(source, target, origin, range, canDe
     return distance;
 }
 
+export async function teleportToken(token, point) {
+    point.x -= (token.document.width * canvas.grid.size) / 2;
+    point.y -= (token.document.height * canvas.grid.size) / 2;
+    await token.document.setFlag("pmttrpg", "ignoreNextMovementCheck", true);
+    await token.document.move(
+    {
+        x: point.x, y: point.y,
+    },
+    {
+        animate: false,
+        constrainOptions: {
+            ignoreWalls: true
+        }
+    });
+}
+
 export async function pollUserGetGridSpace(user, target, origin, range) {
     if (user != game.user) {
         return await getActorUser(user).query("pmttrpg.pollUserGetGridSpace", {
@@ -70,19 +85,26 @@ export async function pollUserGetGridSpace(user, target, origin, range) {
     })
 }
 
+/**
+* @param {TargetingOptions} options
+*/
 export async function pollUserRequestTargeting(user, type, options = {}) {
     if (user != game.user) {
+        options.originToken = options.originToken.id;
         return await getActorUser(user).query("pmttrpg.pollUserRequestTargeting", {
-            target: target,
-            origin: origin,
-            range: range
+            type: type,
+            options: options,
         });
     };
 
-    return await requestTargeting(TargetType.GRID, {
-        originToken: getActorToken(origin),
-        maxRange: range,
-        enforceRange: true,
-        requireLOS: true,
-    })
+    if (options.originToken.document == null) {
+        options.originToken = canvas.tokens.placeables.find(x => x.id == options.originToken);
+    }
+
+    let val = await requestTargeting(type, options);
+    if (val.document != null) {
+        val = val.id;
+    }
+
+    return val;
 }

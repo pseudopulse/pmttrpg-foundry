@@ -105,6 +105,7 @@ export const augmentEffects = [
     transferEffect("Hemomaniac", "Bleed"),
     transferEffect("Siphon Luck", "Poise"),
     transferEffect("Siphon Curse", "Ruin"),
+    transferEffect("Energy Transfer", "Charge"),
     new Effect(
         "Systems Online",
         (context, count, trigger) => {
@@ -873,6 +874,9 @@ export const augmentEffects = [
         },
         ["On Use"], false, 1, false, false, false, true
     ),
+    new markerEffect("Bottom Deal", false, 1),
+    new markerEffect("Stacking the Deck", false, 1),
+    new markerEffect("Black Lung", false, 5),
 ];
 
 function augmentThresholdEffect(name, bar, mult, status, negativeStatus = []) {

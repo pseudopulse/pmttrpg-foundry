@@ -188,6 +188,9 @@ Hooks.once("init", async () => {
         if (cost.status == "Bloodfeast") {
           return actor.canSpendBloodfeast(actor.getModifiedBloodfeastCost(cost.cost));
         }
+        if (cost.status == "Discard") {
+          return actor.canDiscardReactions(cost.cost);
+        }
         else {
           if (actor.getStatusCount(cost.status) < cost.cost) {
             return false;

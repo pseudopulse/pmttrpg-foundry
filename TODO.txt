@@ -10,4 +10,7 @@ make reduce status able to target allies
 
 //
 
-implement poll request targeting for the status hazard stuff
+from the fog
+smokescreen
+tremor variant effects
+stagger rework

@@ -12,7 +12,7 @@ import { findByID, sendNetworkMessage } from "../core/helpers/netmsg.mjs";
 import { abnoCards } from "../core/effects/abnoCards.mjs";
 import { requestTargeting, TargetType } from "../core/combat/targeting.mjs";
 import { addHazard, getHazardAtTile, HazardNames, HazardType, roundEnd } from "../core/combat/hazards.mjs";
-import { requestForcedMovement } from "../core/combat/movement.mjs";
+import { pollUserRequestTargeting, requestForcedMovement } from "../core/combat/movement.mjs";
 
 let pending = {};
 let pendingStagger = {};
@@ -243,6 +243,7 @@ export class PTActor extends Actor {
         system.flags = {};
 
         await this.update({ system }, { diff: false, render: true });
+        await this.verifyBlackLung();
     }
 
     getModifiedDamage(context, damage, cat) {
@@ -254,6 +255,26 @@ export class PTActor extends Actor {
         const result = damage * res;
 
         return Math.floor(result);
+    }
+
+    async doSmokeAndMirrorsEffect() {
+        let smoke = this.getStatusCount("Smoke");
+        if (smoke <= 0) {
+            return;
+        }
+        await this.setStatus("Smoke", 0);
+
+        let c = Math.floor(smoke / 2);
+        let tiles = await pollUserRequestTargeting(this, TargetType.MULTI_GRID, {
+            maxSelections: c,
+            originToken: getActorToken(this),
+            maxRange: c,
+            enforceRange: true,
+            requireLOS: true
+        });
+                        
+        await addHazard(HazardType.EXHAUST_FUMES, 3, this.system.id, tiles);
+        createEffectsMessage(this.name, `Spends ${smoke} [/status/Smoke] Smoke to create Exhaust Fumes!`);
     }
 
     async addEffectTrigger(effect) {
@@ -871,6 +892,10 @@ export class PTActor extends Actor {
             }
         }
 
+        if (doDamageEffects && ctx2.hasEffect("Smoke and Mirrors")) {
+            await ctx2.doSmokeAndMirrorsEffect();
+        }
+
         let attackerTriggers = ["On Use", "Clash Win"];
         if (landedCrit) {
             attackerTriggers.push("On Crit");
@@ -959,6 +984,10 @@ export class PTActor extends Actor {
         if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {
             createEffectsMessage(ctx1.actor.name, await ctx1.resolveTriggers(attackerTriggers), true);
             createEffectsMessage(ctx2.actor.name, await ctx2.resolveTriggers(["On Use", "Clash Lose"]), true);
+        }
+
+        if (ctx1.hasEffect("Smoke and Mirrors")) {
+            await ctx1.doSmokeAndMirrorsEffect();
         }
 
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1297,6 +1326,10 @@ export class PTActor extends Actor {
         let damage = context.result + Number(context.bonusAttackDamage);
         if (context.diceCount > 1) {
             damage = Math.floor(damage * 0.8);
+        }
+
+        if (context.flags.includes("Hazardous Creation")) {
+            damage = Math.floor(damage * 0.5);
         }
 
         if (systemData.mostRecentRoll == null || context.result > systemData.mostRecentRoll.context.result) {
@@ -2238,6 +2271,8 @@ export class PTActor extends Actor {
             await this.applyStatus("Strength", 3);
             createEffectsMessage(this.name, `Gains 3 [/status/Strength] Strength from Wrath!`);
         }
+
+        await this.verifyBlackLung();
     }
 
     checkDisposition(dispo) {
@@ -2381,6 +2416,21 @@ export class PTActor extends Actor {
 
         let reactions = Number(this.system.attributes.rank.value) + this.augmentEffectCount("Additional Reaction") + this.outfitEffectCount("Additional Reaction");
         reactions += this.items.filter(x => x.type == "weapon" && x.system.form == "Small" && x.system.active == true).length;
+
+        if (this.read("discardedReactions") >= 2) {
+            if (this.augmentEffectCount("Bottom Deal") > 0) {
+                reactions += 1;
+                createEffectsMessage(this.name, `Gains 1 extra Reaction this round from Bottom Deal!`);
+            }
+
+            if (this.augmentEffectCount("Stacking the Deck") > 0) {
+                await this.gainLight(1);
+                createEffectsMessage(this.name, `Regains 1 Light from Stacking the Deck!`);
+            }
+        }
+
+        await this.write("discardedReactions", 0);
+
         await this.update({ "system.reactions": reactions }, { diff: false });
 
         let actions = Math.max(Math.ceil(Number(this.system.attributes.rank.value) / 2), 1);
@@ -2481,6 +2531,25 @@ export class PTActor extends Actor {
         }
 
         return this.system.overheatedWeapons.filter(x => x.id == item.id).length == 0;
+    }
+
+    async discardReactions(count) {
+        let pr = this.system.reactions;
+        await this.update({ "system.reactions": Math.max(Number(this.system.reactions) - count, 0) }, { diff: false, render: true });
+        let r = this.system.reactions;
+        createEffectsMessage(this.name, `Discards ${count} Reactions! (${pr} -> ${r})`);
+        await this.write("discardedReactions", this.read("discardedReactions") + count);
+
+        if (this.augmentEffectCount("Best Choice") > 0) {
+            let php = this.system.attributes.health.value;
+            await this.heal(count * 3, 0, 0, this);
+            let hp = this.system.attributes.health.value;
+            createEffectsMessage(this.name, `Restores ${count * 3} HP from Best Choice! (${php} -> ${hp})`);
+        }
+    }
+
+    canDiscardReactions(count) {
+        return Number(this.system.reactions) >= count;
     }
 
     async overheatWeapon(item) {
@@ -2602,6 +2671,7 @@ export class PTActor extends Actor {
 
         await this.verifyStatusRelation("Poise", "Critical");
         await this.verifyStatusRelation("Ruin", "Devastation");
+        await this.verifyBlackLung();
     }
 
     async reduceStatus(status, count = 0) {
@@ -2629,6 +2699,7 @@ export class PTActor extends Actor {
 
         await this.verifyStatusRelation("Poise", "Critical");
         await this.verifyStatusRelation("Ruin", "Devastation");
+        await this.verifyBlackLung();
     }
 
     async verifyStatusRelation(mainStatus, correlatedStatus) {
@@ -2665,6 +2736,17 @@ export class PTActor extends Actor {
 
         await this.verifyStatusRelation("Poise", "Critical");
         await this.verifyStatusRelation("Ruin", "Devastation");
+        await this.verifyBlackLung();
+    }
+
+    async verifyBlackLung() {
+        if (this.augmentEffectCount("Black Lung") <= 0) {
+            return;
+        }
+
+        if (this.getStatusCount("Smoke") < this.augmentEffectCount("Black Lung") * 2) {
+            await this.setStatus("Smoke", this.augmentEffectCount("Black Lung") * 2);
+        }
     }
 
     async addMovementPenalty(count) {
@@ -2692,6 +2774,7 @@ export class PTActor extends Actor {
         }
 
         await this.update({ system }, { diff: false, render: true });
+        await this.verifyBlackLung();
     }
 
     async spendBloodfeast(val) {
