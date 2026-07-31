@@ -363,6 +363,7 @@ export const outfitEffects = [
         false, 5, false, false
     ),
     markerEffect("Charged Hull", false, 1),
+    markerEffect("Smokescreen", false, 1),
 ]
 
 function simpleStatusEffect(status, nextRound) {

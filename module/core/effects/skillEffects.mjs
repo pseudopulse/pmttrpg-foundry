@@ -1226,6 +1226,9 @@ export let skillEffects = [
     smokeStatusEffectSelf("Poise", 2, false, 1),
     smokeStatusEffect("Ruin", 2, false, 1),
     smokeStatusEffect("Paralysis", 1, true, 1),
+    smokeStatusEffect("Tremor", 1, true, 1),
+    smokeStatusEffect("Rupture", 2, true, 1),
+    smokeStatusEffect("Sinking", 1, true, 1),
     smokeStatusEffectSelf("Strength", 1, true, 3),
     smokeStatusEffectSelf("Endurance", 1, true, 3),
     smokeStatusEffect("Feeble", 1, true, 3),
@@ -2256,7 +2259,8 @@ export let skillEffects = [
             return `Gain 1 Dice Power for every Reaction this skill discarded.`
         },
         ["On Use"], false, 1
-    )
+    ),
+    markerEffect("From the Fog", false, 1),
 ]
 
 async function findAllyTarget(actor, msg) {

@@ -805,7 +805,26 @@ export let weaponEffects = [
             return `Create a trail of [/status/Smoke] Exhaust Fumes along the projectile's path.`
         },
         ["On Use"], false, 1, false, true
-    )
+    ),
+    new Effect(
+        "Smoke Cartridge",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                let smoke = context.actor.getStatusCount("Smoke");
+                smoke = Math.floor(smoke / 2);
+                if (smoke < 1) smoke = 1;
+
+                await context.actor.reduceStatus("Smoke", smoke);
+                context.triggers["Clash Win"].applyInfliction("Smoke", smoke);
+
+                createEffectsMessage(context.actor.name, `Spends ${smoke} [/status/Smoke] Smoke to create ammo!`);
+            });
+        },
+        (count) => {
+            return `Spend half of [/status/Smoke] Smoke on self to fire this weapon. Inflict [/status/Smoke] Smoke equal to the amount spent on hit.`
+        },
+        ["On Use"], false, 1
+    ),
 ]
 
 export function setWeaponEffects(array) {
