@@ -82,7 +82,7 @@ export class PTItemSheet extends ItemSheet {
 
         context.enrichedClashData = enrichClashData(context.rollContext.getDescription(["Clash Win", "Clash Lose", "On Use"], false, true));
 
-        let optionsM = ["Small", "Medium", "Long", "Sturdy", "Hybrid", "Versatile", "Innate", "Healing", "Thirsty", "Psionic", "Psionic (M)"];
+        let optionsM = ["Small", "Medium", "Long", "Sturdy", "Hybrid", "Versatile", "Innate", "Healing", "Thirsty", "Psionic", "Psionic (M)", "Heavy"];
         let optionsR = ["Low Cal", "High Cal", "Reactive", "Hybrid", "Recoil", "Innate", "Healing", "Thirsty", "Psionic"];
 
         context.forms = context.system.attackType == "Ranged" ? optionsR : optionsM;

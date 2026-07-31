@@ -630,6 +630,9 @@ export class RollContext {
                 case "High Cal":
                     this.diceMax = this.diceMax + 2;
                     break;
+                case "Heavy":
+                    this.diceMax = this.diceMax + 4;
+                    break;
                 case "Armored":
                     if (this.damageType == "Block") {
                         this.dicePower = Number(this.dicePower) + 1;
