@@ -225,7 +225,7 @@ export class PTItem extends Item {
         if (rollSkill) {
             const tmpCtx = new RollContext();
             Object.assign(tmpCtx, JSON.parse(JSON.stringify(rollContext)));
-            tmpCtx.fix();
+            await tmpCtx.fix();
             tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
             await tmpCtx.processEffects();
             rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
@@ -318,7 +318,7 @@ export class PTItem extends Item {
         if (rollSkill) {
             const tmpCtx = new RollContext();
             Object.assign(tmpCtx, JSON.parse(JSON.stringify(rollContext)));
-            tmpCtx.fix();
+            await tmpCtx.fix();
             tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
             await tmpCtx.processEffects();
             rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);
@@ -348,7 +348,7 @@ export class PTItem extends Item {
         if (rollSkill) {
             const tmpCtx = new RollContext();
             Object.assign(tmpCtx, JSON.parse(JSON.stringify(rollContext)));
-            tmpCtx.fix();
+            await tmpCtx.fix();
             tmpCtx.addEffectsList(systemData.effects, fixTypeName(this.type));
             await tmpCtx.processEffects();
             rollContext.modifiers = await getActionModifiers(this.actor, tmpCtx);

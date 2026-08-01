@@ -177,8 +177,6 @@ export async function getActionModifiers(actor, context) {
                         });
                     }
 
-                    discards = 0;
-
                     update();
                 }
 
@@ -753,7 +751,7 @@ export async function pollDistributeStatus(user, team, status, count) {
     }
 
     const content = await renderTemplate("systems/pmttrpg/templates/dialog/ally-status.hbs", {
-        prompt: enrichClashData(`Choose how to spread ${count} [/status/${status}] ${status} between allies!`),
+        prompt: enrichClashData(`Choose how to spread ${count} [/status/${status}] ${status.replace("_", " ")} between allies!`),
         allies: allies
     });
 
@@ -768,9 +766,9 @@ export async function pollDistributeStatus(user, team, status, count) {
 
     let update = (html) => {
         html.find('.als-numInput').each((x, input) => {
-            let ally = allies.find(x => x.system.id == input.closest('.als-allyCard').dataset.id);
+            let ally = allies.find(x => x.id == input.closest('.als-allyCard').dataset.id);
             input.min = 0;
-            input.max = Number(input.value) + (Math.max(count - tallyAll(), 0));
+            input.max = (isNaN(input.value) ? 0 : input.value) + (Math.max(count - tallyAll(), 0));
         });
     } 
     
@@ -794,7 +792,7 @@ export async function pollDistributeStatus(user, team, status, count) {
 
                 html.on('input', '.als-numInput', (ev) => {
                     let val = Number(ev.currentTarget.value);
-                    let ally = allies.find(x => x.system.id == ev.currentTarget.closest('.als-allyCard').dataset.id);
+                    let ally = allies.find(x => x.id == ev.currentTarget.closest('.als-allyCard').dataset.id);
                     ally.allocated = val;
 
                     update(html);
@@ -1073,7 +1071,7 @@ export async function getAttackOptions(actor, isDualWield = false) {
                     if (ctx.modifiers != null) {
                         ctx.modifiers.ignoreClashEffects = ctx.ignoreClashEffects;
                     }
-                    ctx.fix();
+                    await ctx.fix();
                     createClashMessage(actor, ctx);
                     await actor.queueRoll(ctx, false);
                     sendNetworkMessage("PENDING_CLASH", {

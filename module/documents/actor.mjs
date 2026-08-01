@@ -22,6 +22,7 @@ let targetST = {};
 
 let pendingEffectiveHealEffects = {};
 let pendingTakeDamageCalls = [];
+let pendingTremorFracture = [];
 
 //
 export class PTActor extends Actor {
@@ -246,11 +247,43 @@ export class PTActor extends Actor {
         await this.verifyBlackLung();
     }
 
+    smokescreenModifier(damageType, cat) {
+        if (this.read("pickedSmokescreen") && this.getStatusCount("Smoke") >= 12) {
+            if (damageType == this.read("smokescreenDMG")) {
+                if (cat == "ST" && this.read("smokescreenType") == "ST") {
+                    return 0.5;
+                }
+                else if (cat == null && this.read("smokescreenType") == "HP") {
+                    return 0.5;
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    tremorFractureModifier(cat) {
+        if (cat == "ST" && pendingTremorFracture.includes(this)) {
+            return 0.5;
+        }
+
+        return 0;
+    }
+
     getModifiedDamage(context, damage, cat) {
         let res = this.findResistance(context.damageType, cat);
+        
+        res -= this.smokescreenModifier(context.damageType, cat);
+
+        if (res < 0.25) {
+            res = 0.25;
+        }
+
         if (context.flags.includes("Rip Space") && res < 1.5) {
             res = 1.5;
         }
+
+        res += this.tremorFractureModifier(cat);
 
         const result = damage * res;
 
@@ -438,12 +471,12 @@ export class PTActor extends Actor {
         if (alertClashResolved) {
             const ctx1 = new RollContext();
             Object.assign(ctx1, systemData.mostRecentRoll.context);
-            ctx1.fix();
+            await ctx1.fix();
 
             const ctx2 = new RollContext();
             if (ctx1.target != null && ctx1.target.system.mostRecentRoll != null) {
                 Object.assign(ctx2, ctx1.target.system.mostRecentRoll.context);
-                ctx2.fix();
+                await ctx2.fix();
             }
             else {
                 ctx2.result = "X";
@@ -467,7 +500,7 @@ export class PTActor extends Actor {
 
             const respCtx = new RollContext();
             Object.assign(respCtx, systemData.mostRecentRoll.context);
-            respCtx.fix();
+            await respCtx.fix();
 
             targetHP[respCtx.target.system.id] = respCtx.target.system.attributes.health.value;
             targetST[respCtx.target.system.id] = respCtx.target.system.attributes.stagger.value;
@@ -536,6 +569,20 @@ export class PTActor extends Actor {
         return [arr1, arr2];
     }
 
+    async handleAmplitudeConversion(tremor) {
+        let effects = this.system.statusEffects;
+
+        if (effects != null) {
+            for (let eff of effects) {
+                if (eff.name.startsWith("Tremor_")) {
+                    await this.setStatus(eff.name, 0);
+                }
+            }
+        }
+
+        await this.setStatus(tremor, 1);
+    }
+
     async processClashResolution(ctx1, ctx2) {
         this.processIgnorePower(ctx1, ctx2);
 
@@ -583,7 +630,7 @@ export class PTActor extends Actor {
 
         [multihitRollsC1, multihitRollsC2] = this.padMultihitArrays(multihitRollsC1, multihitRollsC2);
 
-        let doDamageEffects = getDistance(ctx1.actor, ctx2.actor) <= ctx1.getRange() && !ctx2.reactive;
+        let doDamageEffects = getDistance(ctx1.actor, ctx2.actor) <= ctx1.getRange() + 1 && !ctx2.reactive;
 
         let cachedBleed = ctx2.actor.getStatusCount("Bleed");
         let isHighestHP = ctx2.actor == findActorsOfTeam(ctx2.actor).sort((a, b) => {
@@ -879,6 +926,13 @@ export class PTActor extends Actor {
             await ctx2.actor.takeDamageStatus(damage, "none", null, `Takes %DMG% extra HP damage from [/status/Smoke] Smoke due to Puffy Brume! (%PHP% -> %HP%)`);
         }
 
+        if (ctx1.hasEffect("Last Breath") && doDamageEffects && ctx2.actor.getStatusCount("Smoke") > 0) {
+            let smoke = ctx2.actor.getStatusCount("Smoke");
+            await ctx2.actor.reduceStatus("Smoke", smoke);
+            let damage = smoke;
+            await ctx2.actor.takeDamageStatus(damage, "none", null, `Takes %DMG% extra HP damage from [/status/Smoke] Smoke due to Puffy Brume! (%PHP% -> %HP%)`);
+        }
+
         if (ctx1.hasEffect("Fumigate") && doDamageEffects) {
             let smoke = ctx1.actor.getStatusCount("Smoke");
 
@@ -926,6 +980,8 @@ export class PTActor extends Actor {
             ctx1.flags.push("Reflective Barrier");
         }
 
+        let tremorFractureApplied = false;
+
         if (ctx1.isOffensive()) {
             let bursts = await pollUserInputBurst(ctx1.actor, ctx2.actor);
 
@@ -942,6 +998,10 @@ export class PTActor extends Actor {
             }
 
             if (bursts.tremorBurst && doDamageEffects) {
+                if (ctx2.actor.getStatusCount("Tremor_Fracture") > 0) {
+                    tremorFractureApplied = true;
+                }
+
                 await ctx1.fireEvent("Tremor Burst");
                 await ctx2.actor.fireStatusEffect("Tremor");
                 attackerTriggers.push("Tremor Burst");
@@ -1045,6 +1105,11 @@ export class PTActor extends Actor {
             createEffectsMessage(ctx1.target.name, multihitText, true);
         }
 
+        if (tremorFractureApplied) {
+            pendingTremorFracture.push(ctx2.actor);
+            createEffectsMessage(ctx2.actor.name, `Loses 0.5 Stagger Resistance for this attack from burst [/status/Tremor_Fracture] Tremor Fracture!`);
+        }
+
         for (let call of pendingTakeDamageCalls) {
             await call[0].takeDamage(call[1], call[2], call[3], call[4], call[5], call[6], call[7], call[8], false, true);
         }
@@ -1083,6 +1148,7 @@ export class PTActor extends Actor {
         }
 
         pendingTakeDamageCalls = [];
+        pendingTremorFracture = [];
 
         if (ctx1.actor.hasAbnoPage("Tilted Scale") && isHighestHP) {
             let heal = 2 * hits;
@@ -1187,6 +1253,42 @@ export class PTActor extends Actor {
     getDualWieldCost() {
         let count = Number(this.read("dualWieldCount"));
         return count >= 0 ? 2 : 1;
+    }
+
+    async updateSmokescreen() {
+        if (this.outfitEffectCount("Smokescreen") <= 0) {
+            return;
+        }
+
+        if (!this.read("pickedSmokescreen") && this.getStatusCount("Smoke") >= 12) {
+            let dmg = await pollUserInputOptions(this, "Choose Damage Type for Smokescreen", [
+                {
+                    name: "Slash",
+                    icon: "/damageTypes/Slash.png"
+                },
+                {
+                    name: "Pierce",
+                    icon: "/damageTypes/Pierce.png"
+                },
+                {
+                    name: "Blunt",
+                    icon: "/damageTypes/Blunt.png"
+                },
+            ], 0);
+
+            let stat = await pollUserInputOptions(this, "Choose Resistance Type for Smokescreen", [
+                {
+                    name: "HP"
+                },
+                {
+                    name: "ST"
+                }
+            ], 0);
+
+            await this.write("smokescreenDMG", dmg);
+            await this.write("smokescreenType", stat);
+            await this.write("pickedSmokescreen", true);
+        }
     }
 
     async handleClashEmotion(actor, triggers, target, oneSided, context) {
@@ -1347,7 +1449,7 @@ export class PTActor extends Actor {
         if (systemData.mostRecentRoll != null && systemData.mostRecentRoll.type != "None" && canRespond) {
             const respCtx = new RollContext();
             Object.assign(respCtx, systemData.mostRecentRoll.context);
-            respCtx.fix();
+            await respCtx.fix();
             this.processIgnorePower(context, respCtx);
 
             if (respCtx.type != "Block" && respCtx.type != "Evade" && respCtx.hand == "Defensive 1H") {
@@ -1927,6 +2029,13 @@ export class PTActor extends Actor {
 
         let hpR = this.findResistance(context.damageType, null);
         let stR = this.findResistance(context.damageType, "ST");
+
+        hpR -= this.smokescreenModifier(context.damageType, null);
+        if (hpR < 0.25) hpR = 0.25;
+
+        stR -= this.smokescreenModifier(context.damageType, "ST");
+        if (stR < 0.25) stR = 0.25;
+        stR += this.tremorFractureModifier("ST");
 
         if (hpR < 1.5 && context != null && context.flags.includes("Rip Space")) {
             hpR = 1.5;
@@ -2737,6 +2846,7 @@ export class PTActor extends Actor {
         await this.verifyStatusRelation("Poise", "Critical");
         await this.verifyStatusRelation("Ruin", "Devastation");
         await this.verifyBlackLung();
+        await this.updateSmokescreen();
     }
 
     async verifyBlackLung() {

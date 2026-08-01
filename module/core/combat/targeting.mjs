@@ -237,7 +237,7 @@ export async function requestTargeting(type, options = {}) {
                 },
                 async (data) => {
                     data.bg.clear();
-                    data.bg.lineStyle(40 * getZoom(), 0xFFFF00, 1);
+                    data.bg.lineStyle(20 * (canvas.grid.size / 256), 0xFFFF00, 1);
 
                     for (let cell of data.cells) {
                         let [x, y] = cell.split(",").map(Number);

@@ -39,7 +39,7 @@ export function registerMessages() {
             context.actor = attacker;
             context.target = target;
             Object.assign(context, data.context);
-            context.fix();
+            await context.fix();
 
             await target.handlePendingClash(context);
         }

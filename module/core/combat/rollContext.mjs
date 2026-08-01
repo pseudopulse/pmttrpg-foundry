@@ -855,7 +855,7 @@ export class RollContext {
         return usePrefix ? prefix + " " + suffix : suffix;
     }
 
-    fix() {
+    async fix() {
         if (this.mustDeserialize) {
             this.prepareForDeserialization();
         }
@@ -874,6 +874,8 @@ export class RollContext {
             this.events[event] = [];
         }
 
+        this.conditionals = [];
+
         for (const effect of this.effects) {
             effect.effect = getEffectsArray(effect.source).find(x => x.name == effect.name);
             if (!effect.effect) {
@@ -888,6 +890,22 @@ export class RollContext {
                     console.log('rollcontext error');
                     console.log(exception);
                 }
+            }
+        }
+        
+        for (const conditional of this.activeConditionals) {
+            let def = this.conditionals.find(x => x.name == conditional);
+
+            try {
+                await def.onUse(this);
+            }
+            catch (exception) {
+                console.log('rollcontext error');
+                console.log(exception);
+            }
+
+            for (let cost of def.costs) {
+                this.costs.push(cost);
             }
         }
     }

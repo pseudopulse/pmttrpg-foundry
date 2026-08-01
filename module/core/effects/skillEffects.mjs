@@ -4,11 +4,12 @@ import { createEffectsMessage } from "../helpers/clash.mjs";
 import { pollDistributeStatus, pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "../helpers/dialog.mjs";
 import { findActorsOfTeam, getActorTeam, getActorToken, getAlliesWithinRadius, getAlliesWithinRadiusOfTarget, getCharactersWithinRadius, getEnemiesWithinRadius, getTokenCenter, scale } from "../../pmttrpg.mjs";
 import { Conditional } from "../combat/rollContext.mjs";
-import { findByID } from "../helpers/netmsg.mjs";
+import { findByID, wrapperPollUserInputText } from "../helpers/netmsg.mjs";
 import { getRollContextFromData } from "../../documents/item.mjs";
 import { getCombatantTokens } from "../combat/combatState.mjs";
 import { pollUserRequestTargeting, requestForcedMovement, teleportToken } from "../combat/movement.mjs";
 import { TargetType } from "../combat/targeting.mjs";
+import { HazardStatusEffects, HazardNames, addHazard, HazardType } from "../combat/hazards.mjs";
 
 export let skillEffects = [
     new Effect(
@@ -1534,9 +1535,9 @@ export let skillEffects = [
     chargeAllyStatusEffect("Endurance", 6, 1, true),
     chargeAllyStatusEffect("Haste", 3, 1, true),
     chargeAllyStatusEffect("Protection", 2, 2, true),
-    chargeAllyStatusEffect("Stagger Protection", 2, 2, true),
+    chargeAllyStatusEffect("Stagger_Protection", 2, 2, true),
     chargeAllyStatusEffect("[Type] Protection", 2, 2, true),
-    chargeAllyStatusEffect("Charge Barrier", 2, 1, true),
+    chargeAllyStatusEffect("Charge_Barrier", 2, 1, true),
     //
     chargeEffect("Charge - Multihit", 6,
         (context, count, trigger) => {
@@ -2260,8 +2261,79 @@ export let skillEffects = [
         },
         ["On Use"], false, 1
     ),
-    markerEffect("From the Fog", false, 1),
+    amplitudeConversion("Tremor_Fracture"),
+    hazardousCreation(HazardType.BROKEN_GLASS),
+    hazardousCreation(HazardType.EXHAUST_FUMES),
+    hazardousCreation(HazardType.CHILLING_FROST),
+    hazardousCreation(HazardType.EXPOSED_FIRE),
+    hazardousCreation(HazardType.TOXIC_FUMES),
+    new Effect(
+        "From the Fog",
+        (context, count, trigger) => {
+            context.dicePower = Number(context.dicePower) - 2;
+            context.skillDicePower = Number(context.skillDicePower) - 2;
+            context.flags.push("Rip Space");
+
+            context.costs.push({
+                cost: 10,
+                status: "Smoke",
+            })
+        },
+        (count) => {
+            return `Lose 10 [/status/Smoke] Smoke and 2 Dice Power. Rush through any number of connected [/status/Smoke] Exhaust Fumes before the attack, gaining +2 Dice Power and losing 1 SP for each SQR travelled.`
+        }
+    ),
+    markerEffect("Last Breath", false, 1, "Clash Win", (count) => {
+        return `Consume all [/status/Smoke] Smoke on target and deal HP damage equal to the amount consumed.`
+    }),
 ]
+
+function amplitudeConversion(name) {
+    return new Effect(
+        `Amplitude Conversion - ${name.replace("Tremor_", "")}`,
+        (context, count, trigger) => {
+            context.events["Clash Win Instant"].push(async (context) => {
+                if (context.target.getStatusCount("Tremor") > 0) {
+                    await context.target.handleAmplitudeConversion(name);
+                }
+            })
+        },
+        (count) => {
+            return `Convert all [/status/Tremor] Tremor on target into [/status/${name}] ${name.replace("_", " ")}`;
+        },
+        ["Clash Win"], false, 1, false, true
+    );
+}
+
+function hazardousCreation(hazard) {
+    let name = HazardStatusEffects[hazard];
+    let hazardName = HazardNames[hazard];
+
+    return new Effect(
+        `Hazardous Creation - ${name}`,
+        (context, count, trigger) => {
+            context.conditionals.push(new Conditional("Hazardous Creation", "USes Hazardous Creation for this attack", async (context) => {
+                context.flags.push("Hazardous Creation");
+
+                context.events[trigger].push(async (context) => {
+                    let c = 4 * count;
+                    let tiles = await pollUserRequestTargeting(context.actor, TargetType.MULTI_GRID, {
+                        maxSelections: c,
+                        originToken: getActorToken(context.target),
+                        enforceRange: false,
+                        requireLOS: true
+                    });
+                    
+                    await addHazard(hazard, 3, context.actor.system.id, tiles);
+                });
+            }, [], []));
+        },
+        (count) => {
+            return `Reduce damage dealt by 50%. Create up to ${4 * count} tiles of [/status/${name}] ${hazardName} around the target.`
+        },
+        ["Clash Win"], false, 5, false, true
+    );
+}
 
 async function findAllyTarget(actor, msg) {
     let team = findActorsOfTeam(actor);
@@ -2502,7 +2574,7 @@ function simpleStatusEffect(status, nextRound, allowNegative, nameOverride = nul
 function chargeAllyStatusEffect(status, cost, mult, nextRound) {
     let str = nextRound ? " next round" : "";
     return new Effect(
-        `Charge - ${status}`,
+        `Charge - ${status.replace("_", " ")}`,
         (context, count, trigger) => {
             context.costs.push({
                 cost: cost * count,
@@ -2530,10 +2602,10 @@ function chargeAllyStatusEffect(status, cost, mult, nextRound) {
                 let results = await pollDistributeStatus(context.actor, getActorTeam(context.actor), status, count * mult);
                 let text = "";
                 for (let res of results) {
-                    let actor = findByID(res.system.id);
+                    let actor = findByID(res.id);
                     await actor.applyStatus(status.replace(" ", "_"), nextRound ? 0 : res.allocated, nextRound ? res.allocated : 0);
                     await context.actor.handleMarkAid(actor);
-                    text = text + `${res.name} receives ${res.allocated} [/status/${status.replace(" ", "_")}] ${status}${nextRound ? " next round" : ""}!` + "\n";
+                    text = text + `${res.name} receives ${res.allocated} [/status/${status.replace(" ", "_")}] ${status.replace("_", " ")}${nextRound ? " next round" : ""}!` + "\n";
                 }
 
                 createEffectsMessage(context.actor.name, text);
@@ -2573,7 +2645,7 @@ function allyStatusEffect(status, mult, nextRound) {
                 let results = await pollDistributeStatus(context.actor, getActorTeam(context.actor), status, count * mult);
                 let text = "";
                 for (let res of results) {
-                    let actor = findByID(res.system.id);
+                    let actor = findByID(res.id);
                     await actor.applyStatus(status.replace(" ", "_"), nextRound ? 0 : res.allocated, nextRound ? res.allocated : 0);
                     await context.actor.handleMarkAid(actor);
                     text = text + `${res.name} receives ${res.allocated} [/status/${status.replace(" ", "_")}] ${status}${nextRound ? " next round" : ""}!` + "\n";

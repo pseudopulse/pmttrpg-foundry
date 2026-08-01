@@ -143,6 +143,20 @@ async function drawStatus(bar, token, scaleFactor) {
     let sameRoundEffects = token.actor.getActiveStatusEffects().filter(x => x.name.toString() != "0"); // ???
     let nextRoundEffects = token.actor.getNextRoundStatusEffects().filter(x => x.name.toString() != "0"); // ???
 
+    let conversions = sameRoundEffects.filter(x => x.name.startsWith("Tremor_"));
+
+    if (conversions.length >= 1) {
+        let count = sameRoundEffects.filter(x => x.name == "Tremor")[0].count;
+
+        for (let ef of sameRoundEffects) {
+            if (ef.name.startsWith("Tremor_")) {
+                ef.count = count;
+            }
+        }
+
+        sameRoundEffects = sameRoundEffects.filter(x => x.name != "Tremor");
+    }
+
     let effects = sameRoundEffects.concat(nextRoundEffects);
 
     // conf

@@ -838,23 +838,25 @@ function hazardousCreation(hazard) {
     return new Effect(
         `Hazardous Creation - ${name}`,
         (context, count, trigger) => {
-            context.flags.push("Hazardous Creation");
-
-            context.events[trigger].push(async (context) => {
-                let c = 4 * count;
-                let tiles = await pollUserRequestTargeting(context.actor, TargetType.MULTI_GRID, {
-                    maxSelections: c,
-                    originToken: getActorToken(context.target),
-                    maxRange: Math.ceil(c / 8),
-                    enforceRange: true,
-                    requireLOS: true
+            context.conditionals.push(new Conditional("Hazardous Creation", "Uses Hazardous Creation for this attack", (context) => {
+                context.flags.push("Hazardous Creation");
+                console.log('applied hazardous');
+                context.events["Clash Win"].push(async (context) => {
+                    console.log('event fired');
+                    let c = 4 * count;
+                    let tiles = await pollUserRequestTargeting(context.actor, TargetType.MULTI_GRID, {
+                        maxSelections: c,
+                        originToken: getActorToken(context.target),
+                        enforceRange: false,
+                        requireLOS: true
+                    });
+                    
+                    await addHazard(hazard, 3, context.actor.system.id, tiles);
                 });
-                
-                await addHazard(hazard, 3, context.actor.system.id, tiles);
-            });
+            }, [], []));
         },
         (count) => {
-            return `Reduce damage dealt by 50%. Create up to ${4 * count} tiles of [/status/${name}] ${hazardName} around the target.`
+            return `May reduce damage dealt by 50% to create up to ${4 * count} tiles of [/status/${name}] ${hazardName} around the target.`
         },
         ["Clash Win"], false, 5, false, true
     );

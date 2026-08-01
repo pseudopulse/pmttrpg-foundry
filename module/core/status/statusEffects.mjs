@@ -85,12 +85,23 @@ export const statusList = [
     }, (count) => { 
         let dmg = 2 * Math.floor(count / 10);
         return count - dmg;
-     }),
+    }),
     new StatusEffect("Rupture", Triggers.BURST, async (actor) => {
         await actor.takeDamageStatus(actor.getStatusCount("Rupture"), "Rupture", "HP", "[/status/Rupture] Rupture bursted for %DMG% HP damage! (%PHP% -> %HP%)")
     }, (count) => { return 0 }),
     new StatusEffect("Tremor", Triggers.BURST, async (actor) => {
-        await actor.takeDamageStatus(actor.getStatusCount("Tremor"), "Tremor", "ST", "[/status/Tremor] Tremor bursted for %DMG% ST damage! (%PST% -> %ST%)")
+        await actor.takeDamageStatus(actor.getStatusCount("Tremor"), "Tremor", "ST", "[/status/Tremor] Tremor bursted for %DMG% ST damage! (%PST% -> %ST%)");
+
+        let effects = actor.system.statusEffects;
+
+        if (effects != null) {
+            for (let eff of effects) {
+                if (eff.name.startsWith("Tremor_")) {
+                    await actor.setStatus(eff.name, 0);
+                }
+            }
+        }
+
     }, (count) => { return 0 }),
     new StatusEffect("Sinking", Triggers.BURST, async (actor) => {
         await actor.takeDamageStatus(actor.getStatusCount("Sinking"), "Sinking", "SP", "[/status/Sinking] Sinking bursted for %DMG% SP damage! (%PSP% -> %SP%)")
@@ -161,6 +172,7 @@ export const statusList = [
     }, (count) => { return count; }),
     new StatusEffect("Unlock", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, true),
     new StatusEffect("UnlockCount", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, true),
+    new StatusEffect("Tremor_Fracture", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, true),
 ];
 
 export function findStatusDef(name) {
