@@ -893,20 +893,25 @@ export class RollContext {
             }
         }
         
-        for (const conditional of this.activeConditionals) {
-            let def = this.conditionals.find(x => x.name == conditional);
+        try {
+            for (const conditional of this.activeConditionals) {
+                let def = this.conditionals.find(x => x.name == conditional);
 
-            try {
-                await def.onUse(this);
-            }
-            catch (exception) {
-                console.log('rollcontext error');
-                console.log(exception);
-            }
+                try {
+                    await def.onUse(this);
+                }
+                catch (exception) {
+                    console.log('rollcontext error');
+                    console.log(exception);
+                }
 
-            for (let cost of def.costs) {
-                this.costs.push(cost);
+                for (let cost of def.costs) {
+                    this.costs.push(cost);
+                }
             }
+        }
+        catch {
+            
         }
     }
 
