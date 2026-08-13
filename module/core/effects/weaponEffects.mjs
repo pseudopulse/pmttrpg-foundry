@@ -7,6 +7,7 @@ import { getActorToken, getAlliesWithinRadius, getAlliesWithinRadiusOfTarget } f
 import { pollUserGetGridSpace, pollUserRequestTargeting, requestForcedMovement } from "../combat/movement.mjs";
 import { addHazard, HazardNames, HazardStatusEffects, HazardType } from "../combat/hazards.mjs";
 import { TargetType } from "../combat/targeting.mjs";
+import { getMovementName } from "../status/statusEffects.mjs";
 
 export let weaponEffects = [
     // Dice Manipulation
@@ -825,10 +826,48 @@ export let weaponEffects = [
         },
         ["On Use"], false, 1
     ),
+    new Effect(
+        "Power Chord",
+        (context, count, trigger) => {
+            if (context.target == null) {
+                return;
+            }
+
+            if (context.checkResonance()) {
+                context.dicePower = Number(context.dicePower + count);
+            }
+        },
+        (count) => {
+            return `Gain ${count} Dice Power during [/status/Rhythm] Rhythm Resonance`
+        },
+        ["On Use"], false, 2
+    ),
+    risingSymphony("Bleed"),
+    risingSymphony("Frostbite"),
+    risingSymphony("Rupture"),
+    risingSymphony("Tremor"),
 ]
 
 export function setWeaponEffects(array) {
     weaponEffects = array;
+}
+
+function risingSymphony(status) {
+    return new Effect(
+        `Rising Symphony - ${status}`,
+        (context, count, trigger) => {
+            context.triggers[trigger].modify.push(async (ctx, data) => {
+                if (context.actor.getStatusCount("Rhythm") == count) {
+                    data.applyInfliction(status, count, false);
+                }
+            });
+        },
+        (count) => {
+            return `During the [/status/Rhythm] ${getMovementName(count)} movement, inflict ${count} [/status/${status}] ${status}`;
+        },
+        ["Clash Win", "Clash Lose"],
+        false, 5, false, true
+    )
 }
 
 function hazardousCreation(hazard) {

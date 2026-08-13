@@ -47,7 +47,7 @@ export const statusList = [
 
         let res = actor.augmentEffectCount("Bleed Resistance") + actor.outfitEffectCount("Bleed Resistance");
         let bleed = actor.getStatusCount("Bleed") - res;
-        if (res > 0 && actor.augmentEffectCount("Blood is Fuel") > 0) {
+        if (bleed > 0 && actor.augmentEffectCount("Blood is Fuel") > 0) {
             await actor.applyStatus("Charge", Math.max(Math.floor(bleed / 2), 1));
             createEffectsMessage(actor.name, `Gains ${Math.max(Math.floor(bleed / 2), 1)} [/status/Charge] Charge from Blood is Fuel!`);
         }
@@ -173,8 +173,33 @@ export const statusList = [
     new StatusEffect("Unlock", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, true),
     new StatusEffect("UnlockCount", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, true),
     new StatusEffect("Tremor_Fracture", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, true),
+    new StatusEffect("Rhythm", Triggers.END, async (actor) => {}, (count) => {
+        let next = count + 1;
+        if (next > 5) {
+            next = 0;
+        }
+
+        return next;
+    }),
 ];
 
 export function findStatusDef(name) {
     return statusList.find(x => x.name == name);
+}
+
+export function getMovementName(count) {
+    switch (Number(count)) {
+        case 1:
+            return "first";
+        case 2:
+            return "second";
+        case 3:
+            return "third";
+        case 4:
+            return "fourth";
+        case 5:
+            return "final";
+        default:
+            return null;
+    }
 }

@@ -20,7 +20,8 @@ export const MARKS = {
     Commander: 10,
     Crippling: 11,
     Puppeteer: 12,
-    Companion: 13
+    Companion: 13,
+    Duet: 14
 };
 
 export const MarkNames = {};
@@ -37,3 +38,4 @@ MarkNames[MARKS.Commander] = "Commander's Mark";
 MarkNames[MARKS.Crippling] = "Crippling Mark";
 MarkNames[MARKS.Puppeteer] = "Puppeteer's Mark";
 MarkNames[MARKS.Companion] = "Companion Mark";
+MarkNames[MARKS.Duet] = "Duet Mark";

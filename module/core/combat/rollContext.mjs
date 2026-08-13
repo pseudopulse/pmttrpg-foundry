@@ -7,6 +7,7 @@ import { MARKS } from "../status/mark.mjs";
 import { bulletList } from "../effects/bullets.mjs";
 import { pollUserInputConfirm, pollUserInputOptions } from "../helpers/dialog.mjs";
 import { calculateTechniqueCost } from "../../sheets/item.mjs";
+import { createEffectsMessage } from "../helpers/clash.mjs";
 
 const triggerTypes = ["Round End", "Clash Win", "Clash Lose", "On Use", "Always Active", "On Crit", "Devastating Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Augment Passive", "Combat Start", "Round Start", "Effective Heal"];
 const eventTypes = ["Before Attack", "Round End", "Kill", "Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Clash Win", "Clash Lose", "On Use", "Clash Win Instant", "Clash Lose Instant"];
@@ -243,18 +244,6 @@ export class RollContext {
             Object.assign(data, JSON.parse(JSON.stringify(this.triggers[trigger])));
             data.modify = this.triggers[trigger].modify;
 
-            for (const func of data.modify) {
-                if (func != null) {
-                    try {
-                        // await func(this, data);
-                    }
-                    catch (exception) {
-                        console.log('roll context resolvetrigger error!');
-                        console.log(exception);
-                    }
-                }
-            }
-
             for (const infliction of data.inflictions) {
                 let status = infliction.key;
                 if (this.negatePoise && status == "Poise") continue;
@@ -402,6 +391,8 @@ export class RollContext {
                     }
                 }
             }
+
+            data.modify = [];
 
             data.mergeInflictions();
 
@@ -874,6 +865,10 @@ export class RollContext {
             this.events[event] = [];
         }
 
+        for (const trigger of triggerTypes) {
+            this.triggers[trigger].modify = [];
+        }
+
         this.conditionals = [];
 
         for (const effect of this.effects) {
@@ -1013,6 +1008,23 @@ export class RollContext {
         });
 
         return type;
+    }
+
+    async handleExpressive() {
+        if (this.hand == "Expressive 1H" || this.hand == "Expressive 2H") {
+            if (this.actor.getStatusCount("Rhythm") <= 0) {
+                await this.actor.applyStatus("Rhythm", 1);
+                createEffectsMessage(this.actor.name, `Enters the first [/status/Rhythm] Rhythm Movement from ${this.hand}!`);
+            }
+        }
+    }
+
+    checkResonance() {
+        if (this.target != null && this.target.hasMarkApplied(this.actor, MARKS.Duet)) {
+            return true;
+        }
+
+        return this.actor.getStatusCount("Rhythm") > 0 && (this.actor.getStatusCount("Rhythm") == this.target.getStatusCount("Rhythm"));
     }
 
     addEffectsList(effects, category) {

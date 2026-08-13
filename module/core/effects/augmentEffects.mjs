@@ -723,6 +723,7 @@ export const augmentEffects = [
     markerEffect(MarkNames[MARKS.Commander], false, 1),
     markerEffect(MarkNames[MARKS.Crippling], false, 1),
     markerEffect(MarkNames[MARKS.Puppeteer], false, 1),
+    markerEffect(MarkNames[MARKS.Duet], false, 1),
     markerEffect("Feedback Loop", false, 1), 
     markerEffect("Ammo Infusion", false, 1), // X
     markerEffect("Ammo Infusion Alt", false, 1), // X

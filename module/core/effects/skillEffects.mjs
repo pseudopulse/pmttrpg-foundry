@@ -10,6 +10,7 @@ import { getCombatantTokens } from "../combat/combatState.mjs";
 import { pollUserRequestTargeting, requestForcedMovement, teleportToken } from "../combat/movement.mjs";
 import { TargetType } from "../combat/targeting.mjs";
 import { HazardStatusEffects, HazardNames, addHazard, HazardType } from "../combat/hazards.mjs";
+import { getMovementName } from "../status/statusEffects.mjs";
 
 export let skillEffects = [
     new Effect(
@@ -2286,6 +2287,45 @@ export let skillEffects = [
     markerEffect("Last Breath", false, 1, "Clash Win", (count) => {
         return `Consume all [/status/Smoke] Smoke on target and deal HP damage equal to the amount consumed.`
     }),
+    new Effect(
+        "Tuning",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                if (context.actor.getStatusCount("Rhythm") > 0) {
+                    await context.target.setStatus("Rhythm", context.actor.getStatusCount("Rhythm"));
+                    createEffectsMessage(context.target.name, `Enters the [/status/Rhythm] ${getMovementName(context.actor.getStatusCount("Rhythm"))} movement from Tuning!`);
+                }
+                else {
+                    await context.target.applyStatus("Rhythm", 1);
+                    createEffectsMessage(context.target.name, `Enters the [/status/Rhythm] first movement from Tuning!`);
+                }
+            });
+        },
+        (count) => {
+            return `Apply [/status/Rhythm] Rhythm to the target. If the user has [/status/Rhythm] Rhythm, the target's movement is set to match`;
+        },
+        ["Clash Win", "Clash Lose"], false, 1, false, true
+    ),
+    new Effect(
+        "The Strongest Sound",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                if (context.checkResonance()) {
+                    let tremor = Math.max(context.target.getStatusCount("Tremor"), 6);
+                    await context.target.setStatus("Tremor", 0);
+                
+                    if (tremor > 0) {
+                        await createEffectsMessage(context.target.name, `Is pushed ${tremor} SQR away by The Strongest Sound!`);
+                        await requestForcedMovement(context.actor, context.target, context.target, tremor, true, true, false);
+                    }
+                }
+            });
+        },
+        (count) => {
+            return `If this clash triggered [/status/Rhythm] Rhythm Resonance, consume all [/status/Tremor] Tremor on target to push them 1 SQR per [/status/Tremor] Tremor consumed, max 6`;
+        },
+        ["Clash Win"], false, 1, false, true
+    )
 ]
 
 function amplitudeConversion(name) {

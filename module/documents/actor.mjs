@@ -650,6 +650,9 @@ export class PTActor extends Actor {
             }
         }
 
+        await ctx1.handleExpressive();
+        await ctx2.handleExpressive();
+
         if (ctx1.actor.hasAbnoPage("Cocoon")) {
             ctx1.triggers["Clash Win"].applyInfliction("Paralysis", 1, false);
         }

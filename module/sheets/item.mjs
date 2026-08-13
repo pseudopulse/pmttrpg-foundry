@@ -186,8 +186,8 @@ export class PTItemSheet extends ItemSheet {
 
         html.on('click', '.wb-hand-type-button', (event) => {
             const system = this.document.toObject(false).system;
-            let optionsM = ["Offensive 1H", "Offensive 2H", "Defensive 1H", "Defensive 2H"];
-            let optionsR = ["Offensive 1H", "Offensive 2H"];
+            let optionsM = ["Offensive 1H", "Offensive 2H", "Defensive 1H", "Defensive 2H", "Expressive 1H", "Expressive 2H"]
+            let optionsR = ["Offensive 1H", "Offensive 2H", "Expressive 1H", "Expressive 2H"];
 
             let array = system.attackType == "Ranged" ? optionsR : optionsM;
             let index = array.findIndex(x => x == system.hand);
