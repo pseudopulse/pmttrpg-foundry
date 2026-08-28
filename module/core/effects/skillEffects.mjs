@@ -2325,7 +2325,31 @@ export let skillEffects = [
             return `If this clash triggered [/status/Rhythm] Rhythm Resonance, consume all [/status/Tremor] Tremor on target to push them 1 SQR per [/status/Tremor] Tremor consumed, max 6`;
         },
         ["Clash Win"], false, 1, false, true
-    )
+    ),
+    new Effect(
+        "Inner Turmoil",
+        (context, count, trigger) => {
+            if (context.actor != null && !context.flags.includes("Inner Turmoil")) {
+                context.flags.push("Inner Turmoil");
+
+                let sinking = context.actor.getStatusCount("Sinking");
+                let stacks = Math.floor(sinking / 3);
+
+                context.dicePower = Number(context.dicePower) + stacks;
+                context.skillDicePower = Number(context.skillDicePower) + stacks;
+            }
+            
+            context.events["On Use"].push(async (ctx) => {
+                if (ctx.flags.includes("Inner Turmoil")) {
+                    await ctx.actor.fireStatusEffect("Sinking");
+                }
+            })
+        },
+        (count) => {
+            return `Burst [/status/Sinking] Sinking on self. Gain 1 Dice Power for every 3 [/status/Sinking] Sinking burst.`;
+        },
+        ["On Use"], false, 1, false, true
+    ),
 ]
 
 function amplitudeConversion(name) {

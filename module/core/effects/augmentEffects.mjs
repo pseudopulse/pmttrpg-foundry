@@ -713,7 +713,7 @@ export const augmentEffects = [
     // markerEffect("Gauged Release", false, 1), // X
     markerEffect("Sublimation", false, 1), 
     markerEffect("Soothing Mist", false, 1), 
-    // markerEffect("Reaper of Chance", false, 1), // X
+    markerEffect("Reaper of Chance", false, 1), // X
     // markerEffect("Mutually Assured Destruction", false, 1), // X
     // critical attention
     markerEffect("Rupture Overdose", false, 999), // X
@@ -878,6 +878,19 @@ export const augmentEffects = [
     new markerEffect("Bottom Deal", false, 1),
     new markerEffect("Stacking the Deck", false, 1),
     new markerEffect("Black Lung", false, 5),
+    new Effect(
+        "Wonders of Reality",
+        (context, count, trigger) => {
+            if (context.target != null && context.target.getStatusCount("Delusional_Wonderland") > 0) {
+                context.dicePower = Number(context.dicePower) + 5;
+                context.nonSkillDicePower = Number(context.nonSkillDicePower) + 5;
+            }
+        },
+        (count) => {
+            return `Gain 5 Dice Power against targets with [/status/PanicBlue] Delusional Wonderland. Reduce the target's [/status/PanicBlue] Delusional Wonderland stack by 1 on hit.`
+        },
+        ["On Use"], false, 1
+    ),
 ];
 
 function augmentThresholdEffect(name, bar, mult, status, negativeStatus = []) {

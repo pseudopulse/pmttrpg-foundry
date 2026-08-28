@@ -181,6 +181,16 @@ export const statusList = [
 
         return next;
     }),
+    new StatusEffect("Delusional_Wonderland", Triggers.NONE, async (actor) => {
+        let newCount = actor.getStatusCount("Delusional_Wonderland");
+        newCount = Number(newCount - 1);
+
+        if (newCount <= 0) {
+            await actor.stagger();
+        }
+
+        await actor.setStatus("Delusional_Wonderland", newCount);
+    }, (count) => { return count; },)
 ];
 
 export function findStatusDef(name) {

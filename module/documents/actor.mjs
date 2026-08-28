@@ -793,50 +793,106 @@ export class PTActor extends Actor {
         let devastation = ctx2.actor.getStatusCount("Devastation");
         ctx1.devastation = devastation;
 
+        let poise = ctx1.actor.getStatusCount("Poise");
+        let critical = ctx1.actor.getStatusCount("Critical");
+        ctx1.critical = critical;
+        ctx1.poise = poise;
+
+        let devastatingHit = async (ruin, devastation) => {
+            let tmp = new Roll(`${devastation}d8`);
+            await tmp.evaluate();
+            let damage = tmp.total;
+            await ctx2.actor.setStatus("Ruin", 0);
+            await ctx2.actor.setStatus("Devastation", 0);
+            await ctx2.actor.takeDamageStatus(damage, "Ruin", "HP", `Received a [/status/Devastation] Devastating hit for %DMG% HP damage! (%PHP% -> %HP%)`);
+            await ctx2.actor.loadPrimerEffects(ctx1);
+            await ctx1.fireEvent("Devastating Hit");
+            if (ctx1.actor.augmentEffectCount("Open Arteries") > 0) {
+                await ctx2.actor.applyStatus("Bleed", Math.min(damage, 8));
+                createEffectsMessage(ctx1.actor.name, `Inflicts ${Math.min(damage, 8)} [/status/Bleed] Bleed from Open Arteries!`);
+            }
+
+            landedDevastating = true;
+            totalAssassinationDamage += 3;
+
+            if (ctx1.actor.hasAbnoPage("The Finale") && devastation >= 10) {
+                let allies = findActorsOfTeam(ctx2.actor);
+                allies.push(ctx2.actor);
+
+                for (let ally of allies) {
+                    await ally.loseLight(1);
+                }
+
+                createEffectsMessage(ctx1.actor.name, `All enemies lose 1 light from The Finale!`);
+            }
+
+            if (ctx2.actor.hasMarkApplied(ctx1.actor, MARKS.Companion)) {
+                let allies = findActorsOfTeam(ctx1.actor);
+                allies.push(ctx1.actor);
+
+                for (let ally of allies) {
+                    await ally.heal(10, 10, 0, null);
+                    await ally.gainLight(1);
+                }
+
+                createEffectsMessage(ctx1.actor.name, `Restores 10 HP, 10 ST, and 1 Light to self and all allies!`);
+            }
+        };
+
+        let criticalHit = async (poise, critical) => {
+            let allies = getAlliesWithinRadius(ctx1.actor, 3);
+            let bonusCritical = 0;
+            for (let ally of allies) {
+                if (ally.augmentEffectCount("Mentor") > 0 && await pollUserInputConfirm(ally, `Spend your [/status/Critical] Critical to strengthen ${ctx1.actor.name}'s hit?`)) {
+                    bonusCritical += ally.getStatusCount("Critical");
+                    await ally.setStatus("Critical", 0);
+                    await ally.setStatus("Poise", 0);
+                    createEffectsMessage(ally.name, `Contributes their [/status/Critical] Critical to strengthen ${ctx1.actor.name}'s attack!`);
+                }
+            }
+            if (ctx2.actor.hasMarkApplied(ctx1.actor, MARKS.Commander)) {
+                bonusCritical += 1;
+            }
+
+            if (ctx1.hasEffect("Absolve Sorrow")) {
+                if (ctx2.actor.getStatusCount("Sinking") > 0) {
+                    for (let i = 0; i < critical + bonusCritical; i++) {
+                        await ctx2.actor.fireStatusEffect("Sinking", i < critical + bonusCritical);
+                        await ctx1.fireEvent("Sinking Burst");
+                    }
+                }
+            }
+            else {
+                let modifier = "";
+                if (ctx1.actor.system.activeStance == "Slayer") {
+                    modifier = "kh";
+                }
+
+                let tmp = new Roll(`${critical + bonusCritical}d10${modifier}`);
+                await tmp.evaluate();
+                let damage = tmp.total + (3 * ctx1.effectCount("Critical DMG+"));
+                await ctx2.actor.takeDamageStatus(damage, "Poise", "HP", `Received a [/status/Critical] Critical hit for %DMG% HP damage! (%PHP% -> %HP%)`);
+            }
+
+            await ctx1.actor.setStatus("Poise", 0);
+            await ctx1.actor.setStatus("Critical", 0);
+            await ctx1.fireEvent("Critical Hit");
+            landedCrit = true;
+            totalAssassinationDamage += 3;
+        }
+
         let landedDevastating = false;
 
-        if (ruin > 0 && !ctx2.actor.system.ruinPaused && ctx1.damageType != "Block" && ctx1.damageType != "Evade" && ctx1.type != "Block" && ctx1.type != "Evade" && doDamageEffects) {
+        if (!landedDevastating && ruin > 0 && !ctx2.actor.system.ruinPaused && ctx1.damageType != "Block" && ctx1.damageType != "Evade" && ctx1.type != "Block" && ctx1.type != "Evade" && doDamageEffects) {
             let tmp = new Roll(this.getDevastationRoll(ctx1));
             await tmp.evaluate();
             let roll = tmp.total;
 
             if (roll <= ruin) {
-                tmp = new Roll(`${devastation}d8`);
-                await tmp.evaluate();
-                let damage = tmp.total;
-                await ctx2.actor.setStatus("Ruin", 0);
-                await ctx2.actor.setStatus("Devastation", 0);
-                await ctx2.actor.takeDamageStatus(damage, "Ruin", "HP", `Received a [/status/Devastation] Devastating hit for %DMG% HP damage! (%PHP% -> %HP%)`);
-                await ctx2.actor.loadPrimerEffects(ctx1);
-                await ctx1.fireEvent("Devastating Hit");
-                if (ctx1.actor.augmentEffectCount("Open Arteries") > 0) {
-                    await ctx2.actor.applyStatus("Bleed", Math.min(damage, 8));
-                    createEffectsMessage(ctx1.actor.name, `Inflicts ${Math.min(damage, 8)} [/status/Bleed] Bleed from Open Arteries!`);
-                }
-                landedDevastating = true;
-                totalAssassinationDamage += 3;
+                await devastatingHit(ruin, devastation);
 
-                if (ctx1.actor.hasAbnoPage("The Finale") && devastation >= 10) {
-                    let allies = findActorsOfTeam(ctx2.actor);
-                    allies.push(ctx2.actor);
-
-                    for (let ally of allies) {
-                        await ally.loseLight(1);
-                    }
-
-                    createEffectsMessage(ctx1.actor.name, `All enemies lose 1 light from The Finale!`);
-                }
-
-                if (ctx2.actor.hasMarkApplied(ctx1.actor, MARKS.Companion)) {
-                    let allies = findActorsOfTeam(ctx1.actor);
-                    allies.push(ctx1.actor);
-
-                    for (let ally of allies) {
-                        await ally.heal(10, 10, 0, null);
-                        await ally.gainLight(1);
-                    }
-
-                    createEffectsMessage(ctx1.actor.name, `Restores 10 HP, 10 ST, and 1 Light to self and all allies!`);
+                if (ctx1.hasEffect("Reaper of Chance") && ctx1.actor.getStatusCount("Poise") > 0) {
+                    await criticalHit(poise, critical);
                 }
             }
             else {
@@ -844,73 +900,34 @@ export class PTActor extends Actor {
             }
         }
 
+        let landedCrit = false;
+
         if (!landedDevastating && ctx1.hasEffect("Primer")) {
             await ctx2.actor.cachePrimerEffects(ctx1);
         }
 
-        if (ctx1.shouldApplyCriticalConversion(["Clash Win", "On Use"])) {
+        if (!landedCrit && ctx1.shouldApplyCriticalConversion(["Clash Win", "On Use"])) {
             await ctx1.actor.applyStatus("Critical", 1);
             await ctx1.actor.setStatus("Poise", 1);
         }
 
-        let poise = ctx1.actor.getStatusCount("Poise");
-        let critical = ctx1.actor.getStatusCount("Critical");
-        ctx1.critical = critical;
-        ctx1.poise = poise;
-
-        let landedCrit = false;
-
-        if (poise > 0 && !ctx1.actor.system.poisePaused && ctx1.damageType != "Block" && ctx1.damageType != "Evade" && ctx1.type != "Block" && ctx1.type != "Evade" && doDamageEffects) {
+        if (!landedCrit && poise > 0 && !ctx1.actor.system.poisePaused && ctx1.damageType != "Block" && ctx1.damageType != "Evade" && ctx1.type != "Block" && ctx1.type != "Evade" && doDamageEffects) {
             let tmp = new Roll(this.getCritRoll(ctx1));
             await tmp.evaluate();
             let roll = tmp.total;
 
             if (roll <= poise) {
-                let allies = getAlliesWithinRadius(ctx1.actor, 3);
-                let bonusCritical = 0;
-                for (let ally of allies) {
-                    if (ally.augmentEffectCount("Mentor") > 0 && await pollUserInputConfirm(ally, `Spend your [/status/Critical] Critical to strengthen ${ctx1.actor.name}'s hit?`)) {
-                        bonusCritical += ally.getStatusCount("Critical");
-                        await ally.setStatus("Critical", 0);
-                        await ally.setStatus("Poise", 0);
-                        createEffectsMessage(ally.name, `Contributes their [/status/Critical] Critical to strengthen ${ctx1.actor.name}'s attack!`);
-                    }
-                }
-                if (ctx2.actor.hasMarkApplied(ctx1.actor, MARKS.Commander)) {
-                    bonusCritical += 1;
-                }
-                
-                if (ctx1.hasEffect("Absolve Sorrow")) {
-                    if (ctx2.actor.getStatusCount("Sinking") > 0) {
-                        for (let i = 0; i < critical + bonusCritical; i++) {
-                            await ctx2.actor.fireStatusEffect("Sinking", i < critical + bonusCritical);
-                            await ctx1.fireEvent("Sinking Burst");
-                        }
-                    }
-                }
-                else {
-                    let modifier = "";
-                    if (ctx1.actor.system.activeStance == "Slayer") {
-                        modifier = "kh";
-                    }
+                await criticalHit(poise, critical);
 
-                    tmp = new Roll(`${critical + bonusCritical}d10${modifier}`);
-                    await tmp.evaluate();
-                    let damage = tmp.total + (3 * ctx1.effectCount("Critical DMG+"));
-                    await ctx2.actor.takeDamageStatus(damage, "Poise", "HP", `Received a [/status/Critical] Critical hit for %DMG% HP damage! (%PHP% -> %HP%)`);
+                if (ctx1.hasEffect("Reaper of Chance") && ctx2.actor.getStatusCount("Ruin") > 0) {
+                    await devastatingHit(ruin, devastation);
                 }
-
-                await ctx1.actor.setStatus("Poise", 0);
-                await ctx1.actor.setStatus("Critical", 0);
-                await ctx1.fireEvent("Critical Hit");
-                landedCrit = true;
-                totalAssassinationDamage += 3;
             }
             else {
                 createEffectsMessage(ctx1.actor.name, `Rolled ${roll}, failed [/status/Poise] Poise check!`);
             }
         }
-
+        
         let smoke = ctx2.actor.getStatusCount("Smoke");
         let smokeReduction = 2 * ctx2.actor.augmentEffectCount("Unclean Living");
 
@@ -1030,6 +1047,10 @@ export class PTActor extends Actor {
             }
 
             ctx1.triggers["Clash Win"].applyInfliction("Charge", charge, false);
+        }
+
+        if (ctx1.actor.getStatusCount("Delusional_Wonderland") > 0) {
+            ctx1.triggers["Clash Win"].applyInfliction("Sinking", 3, true);
         }
 
         let exsang = ctx1.actor.getExsanguinateBonus(ctx1.damageType);
@@ -1206,6 +1227,10 @@ export class PTActor extends Actor {
         if (ctx1.hasEffect("Spider Cocoon")) {
             await ctx2.actor.stagger(true, false);
             createEffectsMessage(ctx2.actor.name, `${ctx2.actor.name} becomes a cocoon!`);
+        }
+
+        if (ctx1.hasEffect("Wonders of Reality") && ctx2.actor.getStatusCount("Delusional_Wonderland") > 0) {
+            await ctx2.actor.fireStatusEffect("Delusional_Wonderland", true);
         }
 
         if (!ctx1.ignoreClashEffects && !ctx2.ignoreClashEffects) {

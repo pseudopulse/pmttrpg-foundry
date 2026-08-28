@@ -364,6 +364,21 @@ export const outfitEffects = [
     ),
     markerEffect("Charged Hull", false, 1),
     markerEffect("Smokescreen", false, 1),
+    new Effect(
+        'Defensive',
+        (context, count, trigger) => {
+            if (context.target != null && context.actor != null) {
+                if (context.actor.isMarkedTarget(context.target)) {
+                    context.dicePower = Number(context.dicePower) + (count * 2);
+                    context.nonSkillDicePower = Number(context.nonSkillDicePower) + (count * 2);
+                }
+            }
+        },
+        (count) => {
+            return `Gain ${count * 2} Dice Power when clashing against your marked target.`;
+        },
+        ["On Use"], false, 1
+    ),
 ]
 
 function simpleStatusEffect(status, nextRound) {
