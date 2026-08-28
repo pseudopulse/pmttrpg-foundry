@@ -3,7 +3,7 @@
 import { getActorToken, searchByObject } from "../../pmttrpg.mjs";
 import { RollContext } from "../combat/rollContext.mjs";
 import { createEffectsMessage } from "./clash.mjs";
-import { pollUserInputConfirm, pollUserInputOptions, pollUserInputText, pollReduceStatus, pollDistributeStatus, pollUserInputBurst } from "./dialog.mjs";
+import { pollUserInputConfirm, pollUserInputOptions, pollUserInputText, pollReduceStatus, pollDistributeStatus, pollUserInputBurst, getAttackOptions } from "./dialog.mjs";
 import { addHazardInternal, roundEndInternal } from "../combat/hazards.mjs";
 import { pollUserGetGridSpace, pollUserRequestTargeting } from "../combat/movement.mjs";
 
@@ -146,6 +146,16 @@ export function registerMessages() {
             createEffectsMessage(source.name, text, true);
         }
     };
+
+    handler["DUAL_WIELD"] = async (data) => {
+        const actor = findByID(data.actor);
+        console.log(data.actor);
+        console.log(actor);
+
+        if (testUserPermission(actor, game.user)) {
+            await getAttackOptions(actor, true);
+        }
+    }
     
 
     CONFIG.queries["pmttrpg.pollUserInputOptions"] = wrapperPollUserInputOptions;

@@ -432,11 +432,7 @@ export class PTActor extends Actor {
         return await roll.evaluate();
     }
 
-    findResistance(type, cat) {
-        if (this.outfit == null || this.system.staggered) {
-            return 2;
-        }
-
+    preFindResistance(type, cat) {
         if (this.system.settings.usePvpResistance) {
             if (cat == "ST") {
                 return 0.5;
@@ -455,6 +451,28 @@ export class PTActor extends Actor {
             default:
                 return 1;
         }
+    }
+
+    findResistance(type, cat) {
+        if (this.outfit == null) {
+            return 2;
+        }
+
+        let res = this.preFindResistance(type, cat);
+
+        if (this.system.staggered) {
+            if (res <= 0.25) {
+                res += 0.25;
+            }
+            else if (res <= 0.5) {
+                res += 0.5;
+            }
+            else {
+                res += 1;
+            }
+        }
+
+        return res;
     }
 
     /**
@@ -491,7 +509,9 @@ export class PTActor extends Actor {
                 let confirm = await pollUserInputConfirm(ctx1.actor, 'Dual wield following this attack?');
 
                 if (confirm) {
-                    await getAttackOptions(this, true);
+                    sendNetworkMessage("DUAL_WIELD", {
+                        actor: ctx1.actor.system.id
+                    });
                 }
             }
         }
@@ -889,7 +909,14 @@ export class PTActor extends Actor {
             let roll = tmp.total;
 
             if (roll <= ruin) {
-                await devastatingHit(ruin, devastation);
+                if (await pollUserInputConfirm(ctx1.actor, "Forego Devastating Hit to convert target's Ruin into 1 Devastation?")) {
+                    await ctx2.actor.setStatus("Ruin", 1);
+                    await ctx2.actor.applyStatus("Devastation", 1);
+                    createEffectsMessage(ctx1.actor.name, `Converts target's [/status/Ruin] Ruin into 1 [/status/Devastation] Devastation!`);
+                }
+                else {
+                    await devastatingHit(ruin, devastation);
+                }
 
                 if (ctx1.hasEffect("Reaper of Chance") && ctx1.actor.getStatusCount("Poise") > 0) {
                     await criticalHit(poise, critical);
@@ -917,7 +944,14 @@ export class PTActor extends Actor {
             let roll = tmp.total;
 
             if (roll <= poise) {
-                await criticalHit(poise, critical);
+                if (await pollUserInputConfirm(ctx1.actor, "Forego Critical Hit to convert your Poise into 1 Critical?")) {
+                    await ctx1.actor.setStatus("Poise", 1);
+                    await ctx1.actor.applyStatus("Critical", 1);
+                    createEffectsMessage(ctx1.actor.name, `Converts their [/status/Poise] Poise into 1 [/status/Critical] Critical!`);
+                }
+                else {
+                    await criticalHit(poise, critical);
+                }
 
                 if (ctx1.hasEffect("Reaper of Chance") && ctx2.actor.getStatusCount("Ruin") > 0) {
                     await devastatingHit(ruin, devastation);
