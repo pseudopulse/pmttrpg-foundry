@@ -61,7 +61,6 @@ Hooks.once("init", async () => {
     requiresReload: false
   });
 
-
   // actor stuff
   CONFIG.Actor.documentClass = PTActor;
   CONFIG.Actor.types = ["character"];

@@ -846,6 +846,15 @@ export let weaponEffects = [
     risingSymphony("Frostbite"),
     risingSymphony("Rupture"),
     risingSymphony("Tremor"),
+    new Effect("Sanity Only",
+        (context, count, trigger) => {
+
+        },
+        (count) => {
+            return `Do not deal damage. Target loses 5 SP.`;
+        },
+        ["Clash Win"], false, 1
+    ),
 ]
 
 export function setWeaponEffects(array) {

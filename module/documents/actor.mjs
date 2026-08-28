@@ -1902,6 +1902,11 @@ export class PTActor extends Actor {
             return;
         }
 
+        if (context != null && context.hasEffect("Sanity Only")) {
+            damage = 0;
+            flatSP = 5;
+        }
+
         if (selfCtx != null && selfCtx.hasEffect("Lowered Guard")) {
             let guard = selfCtx.effectCount("Lowered Guard");
 
