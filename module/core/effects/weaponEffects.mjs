@@ -680,21 +680,10 @@ export let weaponEffects = [
     new Effect(
         `Singular Strike`,
         (context, count, trigger) => {
-            context.events["Critical Hit"].push(async (context) => {
-                let poise = context.poise - 10;
-                if (poise > 0) {
-                    let damage = poise;
-                    let dummyCtx = new RollContext();
-                    dummyCtx.damageType = "Slash";
-                    dummyCtx.actor = context.actor;
-                    dummyCtx.target = context.target;
-                    let text = await context.target.takeDamage(damage, dummyCtx, 0, 0, 0, true, null, "[Singular Strike of the Blade]", false, false, true);
-                    createEffectsMessage(context.target.name, text);
-                }
-            })
+            
         },
         (count) => {
-            return `Deal additional [/damageTypes/Slash] Slash damage equal to ([/status/Poise] Poise - 10).`;
+            return `Treat resistance tier as 1 higher.`;
         },
         ["On Crit"],
         false, 1, false, true

@@ -77,6 +77,7 @@ export class RollContext {
         //
         this.bonusAttackDamage = 0;
         this.isDualWield = false;
+        this.criticalHit = false;
 
         for (const trigger of triggerTypes) {
             this.triggers[trigger] = new TriggerEvents();

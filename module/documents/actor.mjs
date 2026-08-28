@@ -283,6 +283,15 @@ export class PTActor extends Actor {
             res = 1.5;
         }
 
+        if (context.hasEffect("Singular Strike") && context.criticalHit) {
+            if (res <= 0.25) {
+                res = 0.5;
+            }
+            else {
+                res += 0.5;
+            }
+        }
+
         res += this.tremorFractureModifier(cat);
 
         const result = damage * res;
@@ -464,11 +473,8 @@ export class PTActor extends Actor {
             if (res <= 0.25) {
                 res += 0.25;
             }
-            else if (res <= 0.5) {
-                res += 0.5;
-            }
             else {
-                res += 1;
+                res += 0.5;
             }
         }
 
@@ -860,6 +866,7 @@ export class PTActor extends Actor {
         };
 
         let criticalHit = async (poise, critical) => {
+            ctx1.criticalHit = true;
             let allies = getAlliesWithinRadius(ctx1.actor, 3);
             let bonusCritical = 0;
             for (let ally of allies) {
