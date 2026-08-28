@@ -298,16 +298,11 @@ export let skillEffects = [
         "Cold Snap",
         (context, count, trigger) => {
             context.events[trigger].push(async (context) => {
-                let paused = context.target.getStatusCount("Deep_Chill") > 0;
                 await context.target.fireStatusEffect("Frostbite");
-
-                if (!paused) {
-                    await context.target.setStatus("Frostbite", 0);
-                }
             });
         },
         (count) => {
-            return `Trigger [/status/Frostbite] Frostbite on target, then clear all [/status/Frostbite] Frostbite.`;
+            return `Trigger [/status/Frostbite] Frostbite on target.`;
         },
         ["Clash Win"],
         false,
@@ -318,7 +313,7 @@ export let skillEffects = [
         "Shatter",
         (context, count, trigger) => {
             context.triggers[trigger].modify.push(async (ctx, data) => {
-                let frostbite = Math.min(ctx.target.getStatusCount("Frostbite"), count * 2);
+                let frostbite = ctx.target.getStatusCount("Frostbite");
                 
                 if (frostbite > 2) {
                     await ctx.target.takeForceDamage(Math.floor(frostbite / 2));
@@ -327,7 +322,7 @@ export let skillEffects = [
             });
         },
         (count) => {
-            return `Clear up to ${Number(count) * 2} [/status/Frostbite] Frostbite from the target, and deal 1d8 Force Damage for every 2 cleared.`
+            return `Clear all [/status/Frostbite] Frostbite from the target, and deal 1d8 Force Damage for every 2 cleared.`
         },
         ["Clash Win"],
         false, 5, false, true
