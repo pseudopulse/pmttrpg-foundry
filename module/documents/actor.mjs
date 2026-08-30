@@ -452,11 +452,11 @@ export class PTActor extends Actor {
 
         switch (type) {
             case "Slash":
-                return cat == "ST" ? this.outfit.system.slashResST : this.outfit.system.slashRes;
+                return Number(cat == "ST" ? this.outfit.system.slashResST : this.outfit.system.slashRes);
             case "Pierce":
-                return cat == "ST" ? this.outfit.system.pierceResST : this.outfit.system.pierceRes;
+                return Number(cat == "ST" ? this.outfit.system.pierceResST : this.outfit.system.pierceRes);
             case "Blunt":
-                return cat == "ST" ? this.outfit.system.bluntResST : this.outfit.system.bluntRes;
+                return Number(cat == "ST" ? this.outfit.system.bluntResST : this.outfit.system.bluntRes);
             default:
                 return 1;
         }
@@ -467,18 +467,18 @@ export class PTActor extends Actor {
             return 2;
         }
 
-        let res = this.preFindResistance(type, cat);
+        let res = Number(this.preFindResistance(type, cat));
 
         if (this.system.staggered) {
             if (res <= 0.25) {
-                res += 0.25;
+                res = Number(res) + 0.25;
             }
             else {
-                res += 0.5;
+                res = Number(res) + 0.5;
             }
         }
 
-        return res;
+        return Number(res);
     }
 
     /**
@@ -2770,7 +2770,7 @@ export class PTActor extends Actor {
         const system = this.toObject(false).system;
         system.attributes.stagger.value = 0;
         system.attributes.stagger.temp = 0;
-        system.staggerRounds = 2;
+        system.staggerRounds = 1;
         system.staggered = true;
         system.attributes.light = Math.min(Number(system.attributes.light.max), Number(system.attributes.light.value) + 1);
 
