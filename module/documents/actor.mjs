@@ -23,6 +23,7 @@ let targetST = {};
 let pendingEffectiveHealEffects = {};
 let pendingTakeDamageCalls = [];
 let pendingTremorFracture = [];
+let pendingSeveringStrike = [];
 
 //
 export class PTActor extends Actor {
@@ -271,28 +272,7 @@ export class PTActor extends Actor {
     }
 
     getModifiedDamage(context, damage, cat) {
-        let res = this.findResistance(context.damageType, cat);
-        
-        res -= this.smokescreenModifier(context.damageType, cat);
-
-        if (res < 0.25) {
-            res = 0.25;
-        }
-
-        if (context.flags.includes("Rip Space") && res < 1.5) {
-            res = 1.5;
-        }
-
-        if (context.hasEffect("Singular Strike") && context.criticalHit) {
-            if (res <= 0.25) {
-                res = 0.5;
-            }
-            else {
-                res += 0.5;
-            }
-        }
-
-        res += this.tremorFractureModifier(cat);
+        let res = this.findResistance(context, context.damageType, cat);
 
         const result = damage * res;
 
@@ -462,7 +442,7 @@ export class PTActor extends Actor {
         }
     }
 
-    findResistance(type, cat) {
+    findResistance(context, type, cat) {
         if (this.outfit == null) {
             return 2;
         }
@@ -476,6 +456,27 @@ export class PTActor extends Actor {
             else {
                 res = Number(res) + 0.5;
             }
+        }
+
+        res -= this.smokescreenModifier(context.damageType, cat);
+
+        if (res < 0.25) {
+            res = 0.25;
+        }
+
+        if (pendingSeveringStrike.includes(this)) {
+            if (res <= 0.25) {
+                res += 0.25;
+            }
+            else {
+                res += 0.5;
+            }
+        }
+
+        res += this.tremorFractureModifier(cat);
+
+        if (context && context.flags.includes("Rip Space") && res < 1.5) {
+            res = 1.5;
         }
 
         return Number(res);
@@ -688,7 +689,7 @@ export class PTActor extends Actor {
         }
 
         if (ctx1.target.hasMarkApplied(ctx1.actor, MARKS.Analysis)
-            && (ctx1.target.findResistance(ctx1.damageType, "HP") >= 1.5 || ctx1.target.findResistance(ctx1.damageType, "ST") >= 1.5)) {
+            && (ctx1.target.findResistance(ctx1, ctx1.damageType, "HP") >= 1.5 || ctx1.target.findResistance(ctx1, ctx1.damageType, "ST") >= 1.5)) {
             let type = await pollUserInputOptions(ctx1.actor, "Choose Marked for Analysis [Type] Fragility.", [
                 {
                     name: "Slash Fragility",
@@ -906,6 +907,10 @@ export class PTActor extends Actor {
             await ctx1.fireEvent("Critical Hit");
             landedCrit = true;
             totalAssassinationDamage += 3;
+
+            if (ctx1.hasEffect("Severing Blade")) {
+                pendingSeveringStrike.push(ctx2.actor);
+            }
         }
 
         let landedDevastating = false;
@@ -1176,6 +1181,9 @@ export class PTActor extends Actor {
         }
 
         for (let call of pendingTakeDamageCalls) {
+            if (call[3].actor == ctx1.actor) {
+                call[3] = ctx1;
+            }
             await call[0].takeDamage(call[1], call[2], call[3], call[4], call[5], call[6], call[7], call[8], false, true);
         }
 
@@ -1214,6 +1222,7 @@ export class PTActor extends Actor {
 
         pendingTakeDamageCalls = [];
         pendingTremorFracture = [];
+        pendingSeveringStrike = [];
 
         if (ctx1.actor.hasAbnoPage("Tilted Scale") && isHighestHP) {
             let heal = 2 * hits;
@@ -2101,23 +2110,8 @@ export class PTActor extends Actor {
             await context.actor.update({ "system.damageDealt": Number(context.actor.system.damageDealt) + (prevHP - hp) }, { diff: false });
         }
 
-        let hpR = this.findResistance(context.damageType, null);
-        let stR = this.findResistance(context.damageType, "ST");
-
-        hpR -= this.smokescreenModifier(context.damageType, null);
-        if (hpR < 0.25) hpR = 0.25;
-
-        stR -= this.smokescreenModifier(context.damageType, "ST");
-        if (stR < 0.25) stR = 0.25;
-        stR += this.tremorFractureModifier("ST");
-
-        if (hpR < 1.5 && context != null && context.flags.includes("Rip Space")) {
-            hpR = 1.5;
-        }
-
-        if (stR < 1.5 && context != null && context.flags.includes("Rip Space")) {
-            stR = 1.5;
-        }
+        let hpR = this.findResistance(context, context.damageType, null);
+        let stR = this.findResistance(context, context.damageType, "ST");
 
         let text = this.removeLinesWithString(`
             ${header}

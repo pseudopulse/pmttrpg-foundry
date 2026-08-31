@@ -678,12 +678,12 @@ export let weaponEffects = [
         false, 1, false, false
     ),
     new Effect(
-        `Singular Strike`,
+        `Severing Blade`,
         (context, count, trigger) => {
             
         },
         (count) => {
-            return `Treat resistance tier as 1 higher.`;
+            return `Treat the target's resistance as 1 tier higher.`;
         },
         ["On Crit"],
         false, 1, false, true

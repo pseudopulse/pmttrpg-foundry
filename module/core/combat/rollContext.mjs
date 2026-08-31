@@ -268,16 +268,31 @@ export class RollContext {
                 }
 
                 if (this.flags.includes("Refractor-C") && statusPlusValid.includes(status)) {
-                    cur += 1;
+                    if (cur < 0) {
+                        cur -= 1;
+                    }
+                    else {
+                        cur += 1;
+                    }
                 }
 
                 if (this.flags.includes("Refractor-O") && statusPlusValid.includes(status)) {
-                    cur += 3;
+                    if (cur < 0) {
+                        cur -= 3;
+                    }
+                    else {
+                        cur += 3;
+                    }
                 }
 
                 let plusEffect = this.effects.find(x => x.name == `${infliction.key}+`);
                 if (plusEffect != null) {
-                    cur += Number(plusEffect.count);
+                    if (cur < 0) {
+                        cur -= Number(plusEffect.count);;
+                    }
+                    else {
+                        cur += Number(plusEffect.count);;
+                    }
                 }
 
                 if (this.actor.augmentEffectCount("Rekindled Embers") > 0 && infliction.key == "Burn") {
@@ -466,16 +481,31 @@ export class RollContext {
                 }
 
                 if (this.flags.includes("Refractor-C") && statusPlusValid.includes(status)) {
-                    cur += 1;
+                    if (cur < 0) {
+                        cur -= 1;
+                    }
+                    else {
+                        cur += 1;
+                    }
                 }
 
                 if (this.flags.includes("Refractor-O") && statusPlusValid.includes(status)) {
-                    cur += 3;
+                    if (cur < 0) {
+                        cur -= 3;
+                    }
+                    else {
+                        cur += 3;
+                    }
                 }
 
                 let plusEffect = this.effects.find(x => x.name == `${infliction.key}+`);
                 if (plusEffect != null) {
-                    cur += Number(plusEffect.count);
+                    if (cur < 0) {
+                        cur -= Number(plusEffect.count);;
+                    }
+                    else {
+                        cur += Number(plusEffect.count);;
+                    }
                 }
 
                 if (this.actor.augmentEffectCount("Rekindled Embers") > 0 && infliction.key == "Burn") {
