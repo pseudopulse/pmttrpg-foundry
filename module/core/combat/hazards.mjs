@@ -128,7 +128,7 @@ export async function handleHazardMovement(token, from, to) {
 
     createEffectsMessage(token.actor.name, format(lines));
 
-    await token.actor.update({ "system.alreadyTriggeredHazards": alreadyTriggered }, { diff: false, render: true });
+    await token.actor.update({ "system.alreadyTriggeredHazards": alreadyTriggered }, { diff: true, render: true });
 }
 
 async function doRoll(formula) {

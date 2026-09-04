@@ -172,7 +172,6 @@ export const statusList = [
     }, (count) => { return count; }),
     new StatusEffect("Unlock", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, true),
     new StatusEffect("UnlockCount", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, true),
-    new StatusEffect("Tremor_Fracture", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, true),
     new StatusEffect("Rhythm", Triggers.END, async (actor) => {}, (count) => {
         let next = count + 1;
         if (next > 5) {
@@ -190,7 +189,11 @@ export const statusList = [
         }
 
         await actor.setStatus("Delusional_Wonderland", newCount);
-    }, (count) => { return count; },)
+    }, (count) => { return count; }),
+
+    //
+    new StatusEffect("Tremor_Fracture", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, true),
+    new StatusEffect("Tremor_Distribution", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, true),
 ];
 
 export function findStatusDef(name) {

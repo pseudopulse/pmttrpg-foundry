@@ -76,7 +76,7 @@ export let skillEffects = [
             }
 
             context.events["On Use"].push(async (context) => {
-                await context.actor.update({ "system.reactions": 0 }, { diff: false });
+                await context.actor.update({ "system.reactions": 0 }, { diff: true });
                 createEffectsMessage(context.actor.name, `${context.actor.name} burns all of their reactions to empower the attack!`);
             });
         },
@@ -488,7 +488,7 @@ export let skillEffects = [
         `Poise Pause`,
         (context, count, trigger) => {
             context.events["On Use"].push(async (context) => {
-                await context.actor.update({ "system.poisePaused": true }, { diff: false });
+                await context.actor.update({ "system.poisePaused": true }, { diff: true });
             })
         },
         (count) => {
@@ -614,7 +614,7 @@ export let skillEffects = [
         `Ruin Pause`,
         (context, count, trigger) => {
             context.events["Clash Win"].push(async (context) => {
-                await context.target.update({ "system.ruinPaused": true }, { diff: false });
+                await context.target.update({ "system.ruinPaused": true }, { diff: true });
             })
         },
         (count) => {
@@ -718,7 +718,6 @@ export let skillEffects = [
             context.events["Rupture Burst"].push(async (context) => {
                 let rupture = await context.target.getStatusCount("Rupture");
                 if (rupture <= 0) return;
-                rupture = Math.max(rupture, 16);
                 
                 let php = context.actor.system.attributes.health.value;
                 await context.actor.heal(rupture, 0, 0);
@@ -822,7 +821,6 @@ export let skillEffects = [
             context.events["Tremor Burst"].push(async (context) => {
                 let tremor = await context.target.getStatusCount("Tremor");
                 if (tremor <= 0) return;
-                tremor = Math.max(tremor, 10);
                 
                 let pst = context.actor.system.attributes.stagger.value;
                 await context.actor.heal(0, tremor, 0);
@@ -1438,11 +1436,14 @@ export let skillEffects = [
     new Effect(
         `Shooting Star`,
         (context, count, trigger) => {
-            context.dicePower = Number(context.dicePower) - 1;
-            context.skillDicePower = Number(context.skillDicePower) - 1;
+            context.dicePower = Number(context.dicePower) - 2;
+            context.skillDicePower = Number(context.skillDicePower) - 2;
+            context.targetCount = 9999;
+            context.targetingRange = context.getRange();
+            context.targetingOrigin = context.actor;
         },
         (count) => {
-            return `Replace attack with a piercing line attack with -1 Dice Power.`
+            return `Lose 2 Dice Power. Replace attack with an area of effect that pierces in a line equal to weapon range.`
         },
         ["On Use"], false, 1, false, false
     ),
@@ -1454,7 +1455,35 @@ export let skillEffects = [
             context.diceCount = Math.min(Number(context.diceCount) + count, 3);
         },
         (count) => {
-            return `Replace attack with ${1 + Number(count)} attacks with -2 Dice Power each.`
+            return `Lose 2 Dice Power. Replace attack with ${1 + Number(count)} attacks.`
+        },
+        ["On Use"], false, 2, false, false
+    ),
+    new Effect(
+        `Bombardment`,
+        (context, count, trigger) => {
+            context.dicePower = Number(context.dicePower) - 2;
+            context.skillDicePower = Number(context.skillDicePower) - 2;
+            context.targetCount = 9999;
+            context.targetingRange = 1;
+            context.targetingOrigin = context.target;
+        },
+        (count) => {
+            return `Lose 2 Dice Power. Replaces attack with an area of effect centered on the target that hits within a 3x3 area.`
+        },
+        ["On Use"], false, 2, false, false
+    ),
+    new Effect(
+        `Crowd-Fighter`,
+        (context, count, trigger) => {
+            context.dicePower = Number(context.dicePower) - 2;
+            context.skillDicePower = Number(context.skillDicePower) - 2;
+            context.targetCount = 1 + Number(count);
+            context.targetingRange = context.getRange();
+            context.targetingOrigin = context.actor;
+        },
+        (count) => {
+            return `Lose 2 Dice Power. Replaces attack with an area of effect that targets up to ${count + 1} characters within weapon range.`
         },
         ["On Use"], false, 2, false, false
     ),
@@ -1621,7 +1650,7 @@ export let skillEffects = [
             }
 
             context.events["On Use"].push(async (context) => {
-                await context.actor.update({ "system.reactions": 0 }, { diff: false });
+                await context.actor.update({ "system.reactions": 0 }, { diff: true });
                 createEffectsMessage(context.actor.name, `${context.actor.name} burns all of their reactions to empower the attack!`);
             });
         },
@@ -2258,6 +2287,7 @@ export let skillEffects = [
         ["On Use"], false, 1
     ),
     amplitudeConversion("Tremor_Fracture"),
+    amplitudeConversion("Tremor_Distribution"),
     hazardousCreation(HazardType.BROKEN_GLASS),
     hazardousCreation(HazardType.EXHAUST_FUMES),
     hazardousCreation(HazardType.CHILLING_FROST),
@@ -2352,15 +2382,23 @@ function amplitudeConversion(name) {
         `Amplitude Conversion - ${name.replace("Tremor_", "")}`,
         (context, count, trigger) => {
             context.events["Clash Win Instant"].push(async (context) => {
-                if (context.target.getStatusCount("Tremor") > 0) {
-                    await context.target.handleAmplitudeConversion(name);
+                if (count > 0) {
+                    if (context.target.getStatusCount("Tremor") > 0) {
+                        await context.target.handleAmplitudeConversion(name);
+                    }
+                }
+                
+                if (count < 0) {
+                    if (context.actor.getStatusCount("Tremor") > 0) {
+                        await context.actor.handleAmplitudeConversion(name);
+                    }
                 }
             })
         },
         (count) => {
-            return `Convert all [/status/Tremor] Tremor on target into [/status/${name}] ${name.replace("_", " ")}`;
+            return `Convert all [/status/Tremor] Tremor on ${count < 0 ? "self": "target"} into [/status/${name}] ${name.replace("_", " ")}`;
         },
-        ["Clash Win"], false, 1, false, true
+        ["Clash Win"], true, 1, false, true
     );
 }
 

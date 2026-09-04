@@ -52,7 +52,7 @@ export class PTItemSheet extends ItemSheet {
         // Add the item's data to context.data for easier access, as well as flags.
 
         itemData.system.effects = validate(itemData.system.effects, this.item.type);
-        await this.item.update({ "system.effects": itemData.system.effects }, { diff: false, render: true });
+        await this.item.update({ "system.effects": itemData.system.effects }, { diff: true, render: true });
 
         context.system = itemData.system;
         context.flags = itemData.flags;
@@ -100,49 +100,49 @@ export class PTItemSheet extends ItemSheet {
         html.on('click', '.effect-remove-button', (event) => {
             const system = this.document.toObject(false).system;
             handleEffectRemoveButton(event, system.effects);
-            this.item.update({ system }, { render: true, diff: false });
+            this.item.update({ system }, { render: true, diff: true });
         });
 
         html.on('click', '.effect-add-button', (event) => {
             const system = this.document.toObject(false).system;
             handleEffectAddButton(event, system.effects, this.item.type);
-            this.item.update({ system }, { render: true, diff: false });
+            this.item.update({ system }, { render: true, diff: true });
         });
 
         html.on('change', '.effect-counter', (event) => {
             const system = this.document.toObject(false).system;
             handleEffectCounterChange(event, system.effects, this.item.type);
-            this.item.update({ system }, { render: true, diff: false });
+            this.item.update({ system }, { render: true, diff: true });
         });
 
         html.on('click', '.effect-type', (event) => {
             const system = this.document.toObject(false).system;
             handleEffectTypeChange(event, system.effects, this.item.type);
-            this.item.update({ system }, { render: true, diff: false });
+            this.item.update({ system }, { render: true, diff: true });
         });
 
         html.on('click', '.effect-trigger', (event) => {
             const system = this.document.toObject(false).system;
             handleEffectTriggerChange(event, system.effects, this.item.type);
-            this.item.update({ system }, { render: true, diff: false });
+            this.item.update({ system }, { render: true, diff: true });
         });
 
         html.on('click', '.wb-typeBtn', (event) => {
             const system = this.document.toObject(false).system;
             system.damageType = event.currentTarget.id;
-            this.item.update({ system }, { render: true, diff: false });
+            this.item.update({ system }, { render: true, diff: true });
         });
 
         html.on('click', '.sb-typeBtn', (event) => {
             const system = this.document.toObject(false).system;
             system.type = event.currentTarget.id;
-            this.item.update({ system }, { render: true, diff: false });
+            this.item.update({ system }, { render: true, diff: true });
         });
 
         html.on('click', '.tlb-typeBtn', (event) => {
             const system = this.document.toObject(false).system;
             system.type = event.currentTarget.id;
-            this.item.update({ system }, { render: true, diff: false });
+            this.item.update({ system }, { render: true, diff: true });
         });
 
 
@@ -155,7 +155,7 @@ export class PTItemSheet extends ItemSheet {
                 system.attackType = "Melee";
             }
 
-            this.item.update({ system }, { render: true, diff: false });
+            this.item.update({ system }, { render: true, diff: true });
         });
 
         html.on('click', '.wb-weapon-form', (event) => {
@@ -163,7 +163,7 @@ export class PTItemSheet extends ItemSheet {
             
             system.form = event.currentTarget.textContent;
 
-            this.item.update({ system }, { render: true, diff: false });
+            this.item.update({ system }, { render: true, diff: true });
         });
 
         html.on('click', '.ob-hand-type-button', (event) => {
@@ -181,7 +181,7 @@ export class PTItemSheet extends ItemSheet {
 
             system.form = array[index];
 
-            this.item.update({ system }, { render: true, diff: false });
+            this.item.update({ system }, { render: true, diff: true });
         });
 
         html.on('click', '.wb-hand-type-button', (event) => {
@@ -200,13 +200,13 @@ export class PTItemSheet extends ItemSheet {
 
             system.hand = array[index];
 
-            this.item.update({ system }, { render: true, diff: false });
+            this.item.update({ system }, { render: true, diff: true });
         });
 
         html.on('change', '.sb-light-cost', (event) => {
             const system = this.document.toObject(false).system;
             system.light = Math.max(Number(event.currentTarget.value), 0);
-            this.item.update({ system }, { render: true, diff: false });
+            this.item.update({ system }, { render: true, diff: true });
         });
 
         html.on('click', '.rt-drpbtn', (event) => {
@@ -244,7 +244,7 @@ export class PTItemSheet extends ItemSheet {
                     break;
             }
 
-            this.item.update({ system }, { render: true, diff: false });
+            this.item.update({ system }, { render: true, diff: true });
         });
     }
 }

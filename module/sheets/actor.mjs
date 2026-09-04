@@ -152,29 +152,33 @@ export class PTActorSheet extends ActorSheet {
         html.on('click', '.dispo-entry', (ev) => {
             const system = this.actor.toObject(false).system;
             system.disposition = ev.currentTarget.textContent;
-            this.actor.update({ system }, { diff: false, render: true });
+            this.actor.update({ system }, { diff: true, render: true });
         });
 
         html.on('click', '.ac-ocDeclare', (ev) => {
             const system = this.actor.toObject(false).system;
             system.overchargeDeclared = true;
-            this.actor.update({ system }, { diff: false, render: true });
+            this.actor.update({ system }, { diff: true, render: true });
         });
 
         html.on('click', '.as-reset-button', async (ev) => {
             await this.actor.resetStats();
         });
 
+        html.on('click', '.as-status-reset-button', async (ev) => {
+            await this.actor.resetStatus();
+        });
+
         html.on('click', '.dispo-entry-2', (ev) => {
             const system = this.actor.toObject(false).system;
             system.secondaryDisposition = ev.currentTarget.textContent;
-            this.actor.update({ system }, { diff: false, render: true });
+            this.actor.update({ system }, { diff: true, render: true });
         });
 
         html.on('click', '.ase-link-option', (ev) => {
             const system = this.actor.toObject(false).system;
             system.settings.linkedActor = ev.currentTarget.dataset.id;
-            this.actor.update({ system }, { diff: false, render: true });
+            this.actor.update({ system }, { diff: true, render: true });
         });
 
         html.on('click', '.ac-mark-remove', (ev) => {
@@ -192,13 +196,13 @@ export class PTActorSheet extends ActorSheet {
         html.on('click', '.aw-active-toggle', (ev) => {
             const target = ev.currentTarget.closest('.item');
             const item = this.actor.items.get(target.dataset.itemId);
-            item.update({ "system.active": ev.currentTarget.checked }, { diff: false, render: false });
+            item.update({ "system.active": ev.currentTarget.checked }, { diff: true, render: false });
         });
 
         html.on('click', '.ao-active-toggle', (ev) => {
             const target = ev.currentTarget.closest('.item');
             const item = this.actor.items.get(target.dataset.itemId);
-            this.actor.update({ "system.currentOutfitId": item.id }, { diff: false, render: false });
+            this.actor.update({ "system.currentOutfitId": item.id }, { diff: true, render: false });
             this.actor.outfit = item;
 
             html.find('.ao-active-toggle').each((x, element) => {
@@ -211,7 +215,7 @@ export class PTActorSheet extends ActorSheet {
         html.on('click', '.aa-active-toggle', (ev) => {
             const target = ev.currentTarget.closest('.item');
             const item = this.actor.items.get(target.dataset.itemId);
-            this.actor.update({ "system.currentAugmentId": item.id }, { diff: false, render: false });
+            this.actor.update({ "system.currentAugmentId": item.id }, { diff: true, render: false });
             this.actor.augment = item;
 
             html.find('.aa-active-toggle').each((x, element) => {
@@ -253,7 +257,7 @@ export class PTActorSheet extends ActorSheet {
         html.on('click', '.ase-setting-toggle', (ev) => {
             const system = this.actor.toObject(false).system;
             system.settings[ev.currentTarget.id] = ev.currentTarget.checked;
-            this.actor.update({ system }, { diff: false, render: false });
+            this.actor.update({ system }, { diff: true, render: false });
         });
 
         if (this.actor.isOwner) {
@@ -301,7 +305,7 @@ export class PTActorSheet extends ActorSheet {
                 return;
             }
 
-            await this.actor.update({ system: data.system }, { diff: false, render: false });
+            await this.actor.update({ system: data.system }, { diff: true, render: false });
 
             for (let item of this.actor.items) {
                 await item.delete();

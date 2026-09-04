@@ -95,7 +95,7 @@ export function registerMessages() {
         const char = findByID(data.char);
 
         if (game.user.isActiveGM) {
-            await target.update({ "system.mountedCharacter": char.system.id }, { diff: false, render: true });
+            await target.update({ "system.mountedCharacter": char.system.id }, { diff: true, render: true });
         }
     };
 
@@ -103,7 +103,7 @@ export function registerMessages() {
         const target = findByID(data.target);
 
         if (game.user.isActiveGM) {
-            await target.update({ "system.mountedCharacter": null }, { diff: false, render: true });
+            await target.update({ "system.mountedCharacter": null }, { diff: true, render: true });
         }
     };
 

@@ -2,11 +2,12 @@
 // import { Token } from "@client/config.mjs";
 // import { ChatMessage } from "@client/config.mjs";
 import { RollContext } from "../core/combat/rollContext.mjs";
+import { requestTargeting, TargetType } from "../core/combat/targeting.mjs";
 import { createClashMessage, createEffectsMessage } from "../core/helpers/clash.mjs";
 import { createAlertBox, getActionModifiers, pollUserInputConfirm, pollUserInputOptions } from "../core/helpers/dialog.mjs";
 import { sendNetworkMessage } from "../core/helpers/netmsg.mjs";
 import { Triggers } from "../core/status/statusEffect.mjs";
-import { findItemOwner } from "../pmttrpg.mjs";
+import { findItemOwner, getActorToken } from "../pmttrpg.mjs";
 
 //
 export class PTItem extends Item {
@@ -298,6 +299,23 @@ export class PTItem extends Item {
         else if (rollContext.form == "Psionic") {
             await this.actor.takeDamage(0, null, 0, 0, 4);
         }
+
+        /*if (rollContext.targetCount > 1) {
+            let targets = await requestTargeting(TargetType.MULTI_TOKEN, {
+                maxRange: rollContext.targetingRange,
+                maxSelections: rollContext.targetCount,
+                requireLOS: true,
+                extraNotification: "Select sub-targets for attack.",
+                originToken: getActorToken(rollContext.targetingOrigin),
+            });
+
+            for (let target of targets) {
+                rollContext.targets.push(target.actor);
+                rollContext.targetIDs = targets.map(x => x.actor.system.id);
+            }
+
+            canvas.tokens.placeables.find(x => x.actor && x.actor.system.id == rollContext.target.system.id).setTarget(true, { releaseOthers: true });
+        }*/
 
         return rollContext;
     }

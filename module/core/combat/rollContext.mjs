@@ -1,4 +1,4 @@
-import { getBloodfeast, searchByObject, searchForActor } from "../../pmttrpg.mjs";
+import { findActorsOfTeam, getBloodfeast, searchByObject, searchForActor } from "../../pmttrpg.mjs";
 import { weaponEffects } from "../effects/weaponEffects.mjs";
 import { outfitEffects } from "../effects/outfitEffects.mjs";
 import { getEffectsArray } from "../effects/effectHelpers.mjs";
@@ -8,6 +8,7 @@ import { bulletList } from "../effects/bullets.mjs";
 import { pollUserInputConfirm, pollUserInputOptions } from "../helpers/dialog.mjs";
 import { calculateTechniqueCost } from "../../sheets/item.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
+import { findByID } from "../helpers/netmsg.mjs";
 
 const triggerTypes = ["Round End", "Clash Win", "Clash Lose", "On Use", "Always Active", "On Crit", "Devastating Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Augment Passive", "Combat Start", "Round Start", "Effective Heal"];
 const eventTypes = ["Before Attack", "Round End", "Kill", "Combat Start", "Round Start", "Devastating Hit", "Critical Hit", "Tremor Burst", "Sinking Burst", "Rupture Burst", "Clash Win", "Clash Lose", "On Use", "Clash Win Instant", "Clash Lose Instant"];
@@ -78,6 +79,12 @@ export class RollContext {
         this.bonusAttackDamage = 0;
         this.isDualWield = false;
         this.criticalHit = false;
+        this.targetCount = 1;
+        this.targets = [];
+        this.targetIDs = [];
+        this.targetingRange = -1;
+        this.targetingOrigin = null;
+        this.isSubtarget = false;
 
         for (const trigger of triggerTypes) {
             this.triggers[trigger] = new TriggerEvents();
@@ -677,6 +684,21 @@ export class RollContext {
                 default:
                     break;
             }
+
+            if (this.actor.getStatusCount("Tremor_Distribution") > 0) {
+                let totalTremor = 0;
+
+                for (let ally of findActorsOfTeam(this.actor)) {
+                    totalTremor += ally.getStatusCount("Tremor");
+                }
+
+                totalTremor += this.actor.getStatusCount("Tremor");
+
+                let power = Math.min(Math.floor(totalTremor / 5), 3);
+
+                this.dicePower = Number(this.dicePower) + power;
+                this.nonSkillDicePower = Number(this.nonSkillDicePower) + power;
+            }
             
             for (const effect of this.effects) {
                 if (!effect.effect) {
@@ -901,6 +923,14 @@ export class RollContext {
         }
 
         this.conditionals = [];
+
+        this.targets = [];
+        for (let id of this.targetIDs) {
+            let target = findByID(id);
+            if (target != null) {
+                this.targets.push(target);
+            }
+        }
 
         for (const effect of this.effects) {
             effect.effect = getEffectsArray(effect.source).find(x => x.name == effect.name);

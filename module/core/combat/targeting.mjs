@@ -36,6 +36,10 @@ export async function requestTargeting(type, options = {}) {
             resolved = true;
             ui.notifications.remove(notif);
 
+            if (extraNotif != null) {
+                ui.notifications.remove(extraNotif);
+            }
+
             if (type == TargetType.MULTI_TOKEN) {
                 game.user._onUpdateTokenTargets([]);
             }
@@ -44,6 +48,12 @@ export async function requestTargeting(type, options = {}) {
                 element.destroy();
             }
         };
+
+        let extraNotif = null;
+
+        if (options.extraNotification != null) {
+            extraNotif = ui.notifications.info(options.extraNotification, { permanent: true });
+        }
 
         let notification = null;
         switch (type) {
@@ -121,15 +131,17 @@ export async function requestTargeting(type, options = {}) {
                             // create the targeting indicator and store it
                             uiObjects.push(await spawnDynamicUI(
                                 async (data) => {
-                                    data.sprite = await getSprite(options.targetIcon, 128, 128, { x: selected.document.x, y: selected.document.y });
+                                    data.sprite = await getSprite(options.targetIcon, 32, 32, { x: selected.document.x, y: selected.document.y });
                                     data.root.addChild(data.sprite);
-                                    data.scale = 1 * (canvas.grid.size / 256);
                                     data.scaleDirection = 1;
                                     data.target = selected;
+                                    data.scale = 1 * (canvas.grid.sizeX / 100) * 0.3;
+                                    data.maxScale = 1.1 * (canvas.grid.sizeX / 100) * 0.3;
+                                    data.minScale = 0.9 * (canvas.grid.sizeX / 100) * 0.3;
                                 },
                                 async (data) => {
-                                    if (data.scale > 1.1) { data.scaleDirection = -0.2; }
-                                    else if (data.scale < 0.9) { data.scaleDirection = 0.2; };
+                                    if (data.scale > data.maxScale) { data.scaleDirection = -0.2; }
+                                    else if (data.scale < data.minScale) { data.scaleDirection = 0.2; };
 
                                     data.scale += data.delta * data.scaleDirection;
                                     data.sprite.scale.x = data.scale;
@@ -482,5 +494,6 @@ export class TargetingOptions {
         this.rangeLabels = {};
         this.enforceRange = false;
         this.requireLOS = false;
+        this.extraNotification = null;
     }
 }

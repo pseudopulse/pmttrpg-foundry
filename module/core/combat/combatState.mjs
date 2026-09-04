@@ -88,7 +88,7 @@ export async function turnChange(combat, round, turn) {
                     round: combat.round
                 },
                 round: combat.round
-            }, { diff: false, render: true });
+            }, { diff: true, render: true });
 
             await roundEnd();
         }

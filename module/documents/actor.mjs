@@ -122,12 +122,12 @@ export class PTActor extends Actor {
 
         if (systemData.staggered && attr.stagger.value > 0) {
             systemData.staggered = false;
-            await this.update({"system.staggered": false }, { diff: false });
+            await this.update({"system.staggered": false }, { diff: true });
         }
 
         if (systemData.panic && attr.sanity.value > 0) {
             systemData.panic = false;
-            await this.update({"system.panic": false }, { diff: false });
+            await this.update({"system.panic": false }, { diff: true });
         }
     }
 
@@ -144,7 +144,14 @@ export class PTActor extends Actor {
         system.attributes.health.temp = 0;
         system.attributes.stagger.temp = 0;
         system.attributes.sanity.temp = 0;
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
+    }
+
+    async resetStatus() {
+        const actorData = this;
+        const system = actorData.toObject(false).system;
+        system.statusEffects = [];
+        await this.update({ system }, { diff: true, render: true });
     }
 
     async resetStagger() {
@@ -153,7 +160,7 @@ export class PTActor extends Actor {
         system.staggerRounds = 0;
         system.staggered = false;
         system.attributes.stagger.value = system.attributes.stagger.max;
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
 
         createEffectsMessage(this.name, `${this.name} has recovered from stagger!`);
     }
@@ -244,7 +251,7 @@ export class PTActor extends Actor {
         system.fallbackIdentitySpent = false;
         system.flags = {};
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
         await this.verifyBlackLung();
     }
 
@@ -314,7 +321,7 @@ export class PTActor extends Actor {
 
         system.pendingEffectTriggers = array;
 
-        await this.update({ system }, { diff: false });
+        await this.update({ system }, { diff: true });
     }
 
     async useSkill(skill) {
@@ -338,7 +345,7 @@ export class PTActor extends Actor {
         }
 
         system.unlockSkillsUsed = array;
-        await this.update({ system }, { diff: false });
+        await this.update({ system }, { diff: true });
 
         if (unlockProgress) {
             await this.applyStatus("UnlockCount", 1);
@@ -347,7 +354,7 @@ export class PTActor extends Actor {
         if (array.length >= this.items.filter(x => x.type == "skill").length && !system.hasUnlocked) {
             await this.applyStatus("Strength", 1);
             await this.applyStatus("Endurance", 1);
-            await this.update({ "system.hasUnlocked": true }, { diff: false });
+            await this.update({ "system.hasUnlocked": true }, { diff: true });
             let light = Number(system.attributes.rank.value) + Number(system.abilities.Prudence.value);
             system.attributes.light.value = Math.min(system.attributes.light.max, Number(system.attributes.light.value) + light);
             createEffectsMessage(this.name, `Restores ${light} Light and gains 1 [/status/Strength] Strength and [/status/Endurance] Endurance from Unlock!`);
@@ -374,7 +381,7 @@ export class PTActor extends Actor {
 
         system.pendingEffectTriggers = array;
 
-        await this.update({ system }, { diff: false });
+        await this.update({ system }, { diff: true });
 
         return val;
     }
@@ -1311,13 +1318,13 @@ export class PTActor extends Actor {
         await ctx1.actor.queueRoll(null, true);
         await ctx2.actor.queueRoll(null, true);
 
-        await ctx1.actor.update({ "system.clashesWon": Number(ctx1.actor.system.clashesWon) + 1 }, { diff: false });
+        await ctx1.actor.update({ "system.clashesWon": Number(ctx1.actor.system.clashesWon) + 1 }, { diff: true });
         if (ctx2.result != "X") {
-            await ctx2.actor.update({ "system.clashesLost": Number(ctx2.actor.system.clashesLost) + 1 }, { diff: false });
+            await ctx2.actor.update({ "system.clashesLost": Number(ctx2.actor.system.clashesLost) + 1 }, { diff: true });
         }
 
         if (ctx1.hasEffect("Persistent Venom")) {
-            await ctx2.actor.update({ "system.persistentVenom": true }, { diff: false, render: true});
+            await ctx2.actor.update({ "system.persistentVenom": true }, { diff: true, render: true});
         }
 
         pendingEffectiveHealEffects[ctx1.actor] = null;
@@ -1579,7 +1586,7 @@ export class PTActor extends Actor {
                             await selfCtx.actor.setStatus("Critical", 0);
                             await selfCtx.fireEvent("Critical Hit");
                             createEffectsMessage(respCtx.actor.name, `[/status/Critical] Elusive grants ${Math.floor(tmp.total) / 2} SQR of movement!`);
-                            await this.update({ "system.movement": Number(this.system.movement) + Math.floor(tmp.total / 2) }, { diff: false });
+                            await this.update({ "system.movement": Number(this.system.movement) + Math.floor(tmp.total / 2) }, { diff: true });
                         }
                         else {
                             createEffectsMessage(respCtx.actor.name, `Rolled ${roll}, failed [/status/Poise] Poise check!`);
@@ -1673,59 +1680,59 @@ export class PTActor extends Actor {
                     hp -= damage;
                     if (hp >= this.system.attributes.health.value) {
                         let lost = prevHP - hp;
-                        await this.update({ "system.attributes.health.temp": this.system.attributes.health.temp - lost }, { diff: false });
+                        await this.update({ "system.attributes.health.temp": this.system.attributes.health.temp - lost }, { diff: true });
 
                         let barrier = Number(this.system.chargeBarrierHP);
                         if (barrier > 0) {
                             barrier = Math.clamp(barrier - lost, 0, barrier);
                             let count = Math.floor(lost / 3);
                             await this.reduceStatus("Charge_Barrier", Math.clamp(this.getStatusCount("Charge_Barrier"), 0, count));
-                            await this.update({ "system.chargeBarrierHP": barrier }, { diff: false });
+                            await this.update({ "system.chargeBarrierHP": barrier }, { diff: true });
                         }
 
                         if (this.system.attributes.health.temp < 0) {
-                            await this.update({ "system.attributes.health.temp": 0 }, { diff: false });
-                            await this.update({ "system.attributes.health.value": this.system.attributes.health.value - Math.abs(lost) }, { diff: false });
+                            await this.update({ "system.attributes.health.temp": 0 }, { diff: true });
+                            await this.update({ "system.attributes.health.value": this.system.attributes.health.value - Math.abs(lost) }, { diff: true });
                         }
                     }
                     else {
                         hp = Math.clamp(hp, 0, this.system.attributes.health.value);
-                        await this.update({ "system.attributes.health.temp": 0 }, { diff: false });
-                        await this.update({ "system.attributes.health.value": hp }, { diff: false });
+                        await this.update({ "system.attributes.health.temp": 0 }, { diff: true });
+                        await this.update({ "system.attributes.health.value": hp }, { diff: true });
                     }
                     break;
                 case "ST":
                     st -= damage;
                     if (st >= this.system.attributes.stagger.value) {
                         let lost = prevST - st;
-                        await this.update({ "system.attributes.stagger.temp": this.system.attributes.stagger.temp - lost }, { diff: false });
+                        await this.update({ "system.attributes.stagger.temp": this.system.attributes.stagger.temp - lost }, { diff: true });
 
                         if (this.system.attributes.stagger.temp < 0) {
-                            await this.update({ "system.attributes.stagger.temp": 0 }, { diff: false });
-                            await this.update({ "system.attributes.stagger.value": this.system.attributes.stagger.value - Math.abs(lost) }, { diff: false });
+                            await this.update({ "system.attributes.stagger.temp": 0 }, { diff: true });
+                            await this.update({ "system.attributes.stagger.value": this.system.attributes.stagger.value - Math.abs(lost) }, { diff: true });
                         }
                     }
                     else {
                         st = Math.clamp(st, 0, this.system.attributes.stagger.max);
-                        await this.update({ "system.attributes.stagger.temp": 0 }, { diff: false });
-                        await this.update({ "system.attributes.stagger.value": st }, { diff: false });
+                        await this.update({ "system.attributes.stagger.temp": 0 }, { diff: true });
+                        await this.update({ "system.attributes.stagger.value": st }, { diff: true });
                     }
                     break;
                 case "SP":
                     sp -= damage;
                     if (sp >= linkedSystem.attributes.sanity.value) {
                         let lost = prevSP - sp;
-                        (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": linkedSystem.attributes.sanity.temp - lost }, { diff: false });
+                        (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": linkedSystem.attributes.sanity.temp - lost }, { diff: true });
 
                         if (linkedSystem.attributes.sanity.temp < 0) {
-                            (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": 0 }, { diff: false });
-                            (await this.getActorMindLinked()).update({ "system.attributes.sanity.value": linkedSystem.attributes.sanity.value - Math.abs(lost) }, { diff: false });
+                            (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": 0 }, { diff: true });
+                            (await this.getActorMindLinked()).update({ "system.attributes.sanity.value": linkedSystem.attributes.sanity.value - Math.abs(lost) }, { diff: true });
                         }
                     }
                     else {
                         sp = Math.clamp(sp, 0, linkedSystem.attributes.sanity.max);
-                        (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": 0 }, { diff: false });
-                        (await this.getActorMindLinked()).update({ "system.attributes.sanity.value": sp }, { diff: false });
+                        (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": 0 }, { diff: true });
+                        (await this.getActorMindLinked()).update({ "system.attributes.sanity.value": sp }, { diff: true });
                     }
                     break;
             }
@@ -1756,7 +1763,7 @@ export class PTActor extends Actor {
     }
 
     async die() {
-        await this.update({ "system.defeated": false }, { diff: false, render: true });
+        await this.update({ "system.defeated": false }, { diff: true, render: true });
 
         let allies = findActorsOfTeam(this);
         let anyAllyHasDespair = allies.find(x => x.hasAbnoPage("Despair")) != null;
@@ -1799,7 +1806,7 @@ export class PTActor extends Actor {
 
             if (resp) {
                 let ctx = fixRollContext(pendingEffectiveHealEffects[source]);
-                let bonus = count * 2;
+                let bonus = count;
 
                 if (ctx != null) {
                     if (ctx.hasEffect("Operation")) {
@@ -1841,9 +1848,9 @@ export class PTActor extends Actor {
         st = Math.clamp(st, 0, this.system.attributes.stagger.max);
         sp = Math.clamp(sp, 0, this.system.attributes.sanity.max);
 
-        await this.update({ "system.attributes.health.value": hp }, { diff: false });
-        await this.update({ "system.attributes.stagger.value": st }, { diff: false });
-        await this.update({ "system.attributes.sanity.value": sp }, { diff: false });
+        await this.update({ "system.attributes.health.value": hp }, { diff: true });
+        await this.update({ "system.attributes.stagger.value": st }, { diff: true });
+        await this.update({ "system.attributes.sanity.value": sp }, { diff: true });
     }
 
     async healTemp(fhp = 0, fst = 0, fsp = 0) {
@@ -1855,9 +1862,9 @@ export class PTActor extends Actor {
         st += fst;
         sp += fsp;
 
-        await this.update({ "system.attributes.health.temp": hp }, { diff: false });
-        await this.update({ "system.attributes.stagger.temp": st }, { diff: false });
-        await this.update({ "system.attributes.sanity.temp": sp }, { diff: false });
+        await this.update({ "system.attributes.health.temp": hp }, { diff: true });
+        await this.update({ "system.attributes.stagger.temp": st }, { diff: true });
+        await this.update({ "system.attributes.sanity.temp": sp }, { diff: true });
     }
 
     async triggerEmotionLevel() {
@@ -1870,7 +1877,7 @@ export class PTActor extends Actor {
         }
         let postlight = system.attributes.light.value;
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
         createEffectsMessage(this.name, `Gains 1 Light from Emotion Level! (${prevlight} -> ${postlight})`);
     }
 
@@ -2052,62 +2059,62 @@ export class PTActor extends Actor {
 
         if (hp >= this.system.attributes.health.value) {
             let lost = prevHP - hp;
-            await this.update({ "system.attributes.health.temp": this.system.attributes.health.temp - lost }, { diff: false });
+            await this.update({ "system.attributes.health.temp": this.system.attributes.health.temp - lost }, { diff: true });
 
             let barrier = Number(this.system.chargeBarrierHP);
             if (barrier > 0) {
                 barrier = Math.clamp(barrier - lost, 0, barrier);
                 let count = Math.floor(lost / 3);
                 await this.reduceStatus("Charge_Barrier", Math.clamp(this.getStatusCount("Charge_Barrier"), 0, count));
-                await this.update({ "system.chargeBarrierHP": barrier }, { diff: false });
+                await this.update({ "system.chargeBarrierHP": barrier }, { diff: true });
             }
 
             if (this.system.attributes.health.temp < 0) {
-                await this.update({ "system.attributes.health.temp": 0 }, { diff: false });
-                await this.update({ "system.attributes.health.value": this.system.attributes.health.value - Math.abs(lost) }, { diff: false });
+                await this.update({ "system.attributes.health.temp": 0 }, { diff: true });
+                await this.update({ "system.attributes.health.value": this.system.attributes.health.value - Math.abs(lost) }, { diff: true });
             }
         }
         else {
             hp = Math.clamp(hp, 0, this.system.attributes.health.value);
-            await this.update({ "system.attributes.health.temp": 0 }, { diff: false });
-            await this.update({ "system.attributes.health.value": hp }, { diff: false });
+            await this.update({ "system.attributes.health.temp": 0 }, { diff: true });
+            await this.update({ "system.attributes.health.value": hp }, { diff: true });
         }
 
         if (!dontStagger) {
             if (st >= this.system.attributes.stagger.value) {
                 let lost = prevST - st;
-                await this.update({ "system.attributes.stagger.temp": this.system.attributes.stagger.temp - lost }, { diff: false });
+                await this.update({ "system.attributes.stagger.temp": this.system.attributes.stagger.temp - lost }, { diff: true });
 
                 if (this.system.attributes.stagger.temp < 0) {
-                    await this.update({ "system.attributes.stagger.temp": 0 }, { diff: false });
-                    await this.update({ "system.attributes.stagger.value": this.system.attributes.stagger.value - Math.abs(lost) }, { diff: false });
+                    await this.update({ "system.attributes.stagger.temp": 0 }, { diff: true });
+                    await this.update({ "system.attributes.stagger.value": this.system.attributes.stagger.value - Math.abs(lost) }, { diff: true });
                 }
             }
             else {
                 st = Math.clamp(st, 0, this.system.attributes.stagger.max);
-                await this.update({ "system.attributes.stagger.temp": 0 }, { diff: false });
-                await this.update({ "system.attributes.stagger.value": st }, { diff: false });
+                await this.update({ "system.attributes.stagger.temp": 0 }, { diff: true });
+                await this.update({ "system.attributes.stagger.value": st }, { diff: true });
             }
         }
 
         if (sp >= linkedSystem.attributes.sanity.value) {
             let lost = prevSP - sp;
-            await (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": linkedSystem.attributes.sanity.temp - lost }, { diff: false });
+            await (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": linkedSystem.attributes.sanity.temp - lost }, { diff: true });
 
             if (this.system.attributes.sanity.temp < 0) {
-                await (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": 0 }, { diff: false });
-                await (await this.getActorMindLinked()).update({ "system.attributes.sanity.value": linkedSystem.attributes.sanity.value - Math.abs(lost) }, { diff: false });
+                await (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": 0 }, { diff: true });
+                await (await this.getActorMindLinked()).update({ "system.attributes.sanity.value": linkedSystem.attributes.sanity.value - Math.abs(lost) }, { diff: true });
             }
         }
         else {
             sp = Math.clamp(sp, 0, linkedSystem.attributes.sanity.max);
-            await (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": 0 }, { diff: false });
-            await (await this.getActorMindLinked()).update({ "system.attributes.sanity.value": sp }, { diff: false });
+            await (await this.getActorMindLinked()).update({ "system.attributes.sanity.temp": 0 }, { diff: true });
+            await (await this.getActorMindLinked()).update({ "system.attributes.sanity.value": sp }, { diff: true });
         }
 
-        await this.update({ "system.damageTaken": Number(this.system.damageTaken) + (prevHP - hp) }, { diff: false });
+        await this.update({ "system.damageTaken": Number(this.system.damageTaken) + (prevHP - hp) }, { diff: true });
         if (context != null && context.actor != null) {
-            await context.actor.update({ "system.damageDealt": Number(context.actor.system.damageDealt) + (prevHP - hp) }, { diff: false });
+            await context.actor.update({ "system.damageDealt": Number(context.actor.system.damageDealt) + (prevHP - hp) }, { diff: true });
         }
 
         let hpR = this.findResistance(context, context.damageType, null);
@@ -2179,21 +2186,21 @@ export class PTActor extends Actor {
             return;
         }
 
-        await this.update({ "system.attributes.sanity.value": 0 }, { diff: false });
-        await this.update({ "system.panic": true }, { diff: false });
+        await this.update({ "system.attributes.sanity.value": 0 }, { diff: true });
+        await this.update({ "system.panic": true }, { diff: true });
         createEffectsMessage(this.name, `[/status/Panic] ${this.name} has entered a state of panic!`);
 
         if (this.augmentEffectCount("Unstoppable") > 0 && !this.system.unstoppableSpent) {
-            await this.update({ "system.attributes.sanity.value": this.system.attributes.sanity.max }, { diff: false });
-            await this.update({ "system.panic": false }, { diff: false });
-            await this.update({ "system.unstoppableSpent": true }, { diff: false });
+            await this.update({ "system.attributes.sanity.value": this.system.attributes.sanity.max }, { diff: true });
+            await this.update({ "system.panic": false }, { diff: true });
+            await this.update({ "system.unstoppableSpent": true }, { diff: true });
             createEffectsMessage(this.name, `${this.name} is Unstoppable! Recovered from panic.`);
         }
 
         if (this.augmentEffectCount("Fallback Identity") > 0 && !this.system.fallbackIdentitySpent) {
-            await this.update({ "system.attributes.sanity.value": 10 }, { diff: false });
-            await this.update({ "system.panic": false }, { diff: false });
-            await this.update({ "system.fallbackIdentitySpent": true }, { diff: false });
+            await this.update({ "system.attributes.sanity.value": 10 }, { diff: true });
+            await this.update({ "system.panic": false }, { diff: true });
+            await this.update({ "system.fallbackIdentitySpent": true }, { diff: true });
             await this.applyStatus("Strength", 1, 0);
             await this.applyStatus("Endurance", 1, 0);
             createEffectsMessage(this.name, `${this.name} recovers from panic, restores 10 SP, and gains 1 [/status/Strength] Strength and [/status/Endurance] Endurance permanently due to their Fallback Identity!.`);
@@ -2219,7 +2226,7 @@ export class PTActor extends Actor {
             };
         }
 
-        await this.update({ system }, { diff: false });
+        await this.update({ system }, { diff: true });
     }
 
     async updateQueuedRoll(target) {
@@ -2229,7 +2236,7 @@ export class PTActor extends Actor {
             system.mostRecentRoll.context.target = target.system.id;
         }
 
-        await this.update({ system }, { diff: false });
+        await this.update({ system }, { diff: true });
     }
 
     async convertQueuedRoll() {
@@ -2241,7 +2248,7 @@ export class PTActor extends Actor {
             system.mostRecentRoll.context.converted = true;
         }
 
-        await this.update({ system }, { diff: false });
+        await this.update({ system }, { diff: true });
     }
 
     fixRollType(type) {
@@ -2276,7 +2283,7 @@ export class PTActor extends Actor {
             system.attributes.sanity.value = 1;
         }
 
-        await this.update({ system }, { diff: false });
+        await this.update({ system }, { diff: true });
 
         this.getAugmentContext().fireEvent("Combat Start");
         this.getOutfitContext().fireEvent("Combat Start");
@@ -2306,7 +2313,7 @@ export class PTActor extends Actor {
         }
 
         system.primerEffects.push(data);
-        await this.update({ system }, { diff: false });
+        await this.update({ system }, { diff: true });
     }
 
     async loadPrimerEffects(context) {
@@ -2335,6 +2342,8 @@ export class PTActor extends Actor {
     }
 
     async handleNextRound() {
+        await this.write("staggeredThisRound", false);
+
         let spent = Number(this.system.rejuvenatingBloodNegative);
 
         if (spent < 10) {
@@ -2351,8 +2360,8 @@ export class PTActor extends Actor {
             }
         }
 
-        await this.update({ "system.paramedicUses": this.outfitEffectCount("Paramedic") }, { diff: false, render: true });
-        await this.update({ "system.rejuvenatingBloodNegative": 0 }, { diff: false, render: true });
+        await this.update({ "system.paramedicUses": this.outfitEffectCount("Paramedic") }, { diff: true, render: true });
+        await this.update({ "system.rejuvenatingBloodNegative": 0 }, { diff: true, render: true });
 
         if (this.augmentEffectCount("Soothing Mist") > 0) {
             let smoke = Math.floor(this.getStatusCount("Smoke") / 4);
@@ -2402,18 +2411,6 @@ export class PTActor extends Actor {
 
         const system = this.toObject(false).system;
 
-        if (system.staggered) {
-            system.staggerRounds = Number(system.staggerRounds) - 1;
-
-            if (system.staggerRounds <= 0) {
-                system.staggered = false;
-                system.attributes.stagger.value = system.attributes.stagger.max;
-                system.attributes.stagger.temp = Number(system.attributes.stagger.temp) + 10;
-
-                createEffectsMessage(this.name, `${this.name} has recovered from stagger!`);
-            }
-        }
-
         system.poisePaused = false;
         system.ruinPaused = false;
         system.primerEffectsList = [];
@@ -2425,22 +2422,22 @@ export class PTActor extends Actor {
             status.nextRoundCount = 0;
         }
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
 
         await this.getAugmentContext().fireEvent("Round Start");
         await this.getOutfitContext().fireEvent("Round Start");
 
         let barrier = Number(this.system.chargeBarrierHP);
         if (barrier > 0) {
-            await this.update({ "system.attributes.health.temp": Math.max(this.system.attributes.health.temp - barrier, 0) }, { diff: false });
-            await this.update({ "system.chargeBarrierHP": 0 }, { diff: false });
+            await this.update({ "system.attributes.health.temp": Math.max(this.system.attributes.health.temp - barrier, 0) }, { diff: true });
+            await this.update({ "system.chargeBarrierHP": 0 }, { diff: true });
         }
 
         let cbStack = this.getStatusCount("Charge_Barrier");
         if (cbStack > 0) {
             let shield = cbStack * 3;
-            await this.update({ "system.attributes.health.temp": this.system.attributes.health.temp + shield }, { diff: false });
-            await this.update({ "system.chargeBarrierHP": shield }, { diff: false });
+            await this.update({ "system.attributes.health.temp": this.system.attributes.health.temp + shield }, { diff: true });
+            await this.update({ "system.chargeBarrierHP": shield }, { diff: true });
             createEffectsMessage(this.name, `Gains ${shield} Temporary HP from [/status/Charge_Barrier] Charge Barrier!`);
         }
 
@@ -2516,7 +2513,7 @@ export class PTActor extends Actor {
 
         system.attributes.light.value = Math.max(Number(system.attributes.light.value) - count, 0);
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
     }
 
     async gainLight(count) {
@@ -2524,7 +2521,7 @@ export class PTActor extends Actor {
 
         system.attributes.light.value = Math.min(Number(system.attributes.light.value) + count, system.attributes.light.max);
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
     }
 
     async gainEmotion(count) {
@@ -2532,7 +2529,7 @@ export class PTActor extends Actor {
 
         system.emotion = Number(system.emotion) + count;
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
     }
 
     async loseEmotion(count) {
@@ -2543,7 +2540,7 @@ export class PTActor extends Actor {
             system.emotion = 0;
         }
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
     }
 
     async handleNextTurn() {
@@ -2585,11 +2582,11 @@ export class PTActor extends Actor {
             speed -= sluggish;
         }
 
-        await this.update({ "system.alreadyTriggeredHazards": [] }, { diff: false });
-        await this.update({ "system.movement": Math.max(0, 6 + speed) }, { diff: false });
-        await this.update({ "system.nextRoundMovement": 0 }, { diff: false });
-        await this.update({ "system.kineticStorageMovement": kMovement }, { diff: false });
-        await this.update({ "system.movementPenalty": 0 }, { diff: false });
+        await this.update({ "system.alreadyTriggeredHazards": [] }, { diff: true });
+        await this.update({ "system.movement": Math.max(0, 6 + speed) }, { diff: true });
+        await this.update({ "system.nextRoundMovement": 0 }, { diff: true });
+        await this.update({ "system.kineticStorageMovement": kMovement }, { diff: true });
+        await this.update({ "system.movementPenalty": 0 }, { diff: true });
 
         let reactions = Number(this.system.attributes.rank.value) + this.augmentEffectCount("Additional Reaction") + this.outfitEffectCount("Additional Reaction");
         reactions += this.items.filter(x => x.type == "weapon" && x.system.form == "Small" && x.system.active == true).length;
@@ -2608,10 +2605,10 @@ export class PTActor extends Actor {
 
         await this.write("discardedReactions", 0);
 
-        await this.update({ "system.reactions": reactions }, { diff: false });
+        await this.update({ "system.reactions": reactions }, { diff: true });
 
         let actions = Math.max(Math.ceil(Number(this.system.attributes.rank.value) / 2), 1);
-        await this.update({ "system.actions": Number(actions) + Number(this.augmentEffectCount("Extra Action")) }, { diff: false });
+        await this.update({ "system.actions": Number(actions) + Number(this.augmentEffectCount("Extra Action")) }, { diff: true });
 
         await this.updateOverheatedWeapons();
 
@@ -2636,10 +2633,26 @@ export class PTActor extends Actor {
             }
 
             createEffectsMessage(this.name, line);
-            await this.update({ "system.alreadyTriggeredHazards": [getTokenCenter(token)] }, { diff: false });
+            await this.update({ "system.alreadyTriggeredHazards": [getTokenCenter(token)] }, { diff: true });
         }
 
         await this.setRecycledEvadeStatus(false);
+
+        const system = this.toObject(false).system;
+
+        if (system.staggered) {
+            system.staggerRounds = Number(system.staggerRounds) - 1;
+
+            if (system.staggerRounds <= 0 && !this.read("staggeredThisRound")) {
+                system.staggered = false;
+                system.attributes.stagger.value = system.attributes.stagger.max;
+                system.attributes.stagger.temp = Number(system.attributes.stagger.temp) + 10;
+
+                createEffectsMessage(this.name, `${this.name} has recovered from stagger!`);
+            }
+        }
+        
+        await this.update({ system }, { diff: true, render: true });
     }
 
     getRecycledEvadeCount() {
@@ -2651,19 +2664,19 @@ export class PTActor extends Actor {
     }
 
     async resetRecycledEvadeCount() {
-        await this.update({ "system.recycledEvadeCount": 0 }, { diff: false });
+        await this.update({ "system.recycledEvadeCount": 0 }, { diff: true });
     }
 
     async setRecycledEvadeStatus(val) {
         if (val == false) {
-            await this.update({ "system.recycledEvadeCount": 0 }, { diff: false });
+            await this.update({ "system.recycledEvadeCount": 0 }, { diff: true });
         }
 
-        await this.update({ "system.canRecycledEvade": val }, { diff: false });
+        await this.update({ "system.canRecycledEvade": val }, { diff: true });
     }
 
     async incRecycledEvadeCount() {
-        await this.update({ "system.recycledEvadeCount": Number(this.getRecycledEvadeCount()) + 1 }, { diff: false });
+        await this.update({ "system.recycledEvadeCount": Number(this.getRecycledEvadeCount()) + 1 }, { diff: true });
     }
 
     async doRoll(formula) {
@@ -2712,7 +2725,7 @@ export class PTActor extends Actor {
 
     async discardReactions(count) {
         let pr = this.system.reactions;
-        await this.update({ "system.reactions": Math.max(Number(this.system.reactions) - count, 0) }, { diff: false, render: true });
+        await this.update({ "system.reactions": Math.max(Number(this.system.reactions) - count, 0) }, { diff: true, render: true });
         let r = this.system.reactions;
         createEffectsMessage(this.name, `Discards ${count} Reactions! (${pr} -> ${r})`);
         await this.write("discardedReactions", this.read("discardedReactions") + count);
@@ -2745,7 +2758,7 @@ export class PTActor extends Actor {
             system.overheatedWeapons.push(weapon);
         }
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
     }
 
     async updateOverheatedWeapons() {
@@ -2757,7 +2770,7 @@ export class PTActor extends Actor {
 
         system.overheatedWeapons = system.overheatedWeapons.filter(x => x.rounds > 0);
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
     }
 
     async stagger(silent = false, preventable = true) {
@@ -2773,7 +2786,7 @@ export class PTActor extends Actor {
             createEffectsMessage(this.name, `${this.name} has been staggered!`);
         }
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
         await this.takeDamage(0, null, 0, 0, 5, true);
 
         if (this.augmentEffectCount("Indomitable") > 0 && !this.system.indomitableSpent && preventable) {
@@ -2782,9 +2795,11 @@ export class PTActor extends Actor {
             system2.staggerRounds = 0;
             system2.staggered = false;
             system2.indomitableSpent = true;
-            await this.update({ system2 }, { diff: false, render: true });
+            await this.update({ system2 }, { diff: true, render: true });
             createEffectsMessage(this.name, `${this.name} is Indomitable! Recovered from stagger.`);
         }
+
+        await this.write("staggeredThisRound", true);
     }
 
     async takeForceDamage(dice, context = null) {
@@ -2836,7 +2851,7 @@ export class PTActor extends Actor {
             });
         }
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
 
         if (status == "Critical" && this.getStatusCount("Poise") == 0) {
             await this.applyStatus("Poise", 1, 0);
@@ -2861,7 +2876,7 @@ export class PTActor extends Actor {
             type.count = Math.max(Number(type.count) - count, 0);
         }
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
 
         if (status == "Charge") {
             let chargeSpent = Number(system.chargeSpent) + count;
@@ -2871,7 +2886,7 @@ export class PTActor extends Actor {
                 await this.applyStatus("Overcharge", count);
                 createEffectsMessage(this.name, `Gained ${count} [/status/Overcharge] Overcharge from spent [/status/Charge] Charge!`);
             }
-            await this.update({ "system.chargeSpent": chargeSpent }, { diff: false });
+            await this.update({ "system.chargeSpent": chargeSpent }, { diff: true });
         }
 
         await this.verifyStatusRelation("Poise", "Critical");
@@ -2909,7 +2924,7 @@ export class PTActor extends Actor {
             })
         }
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
 
         await this.verifyStatusRelation("Poise", "Critical");
         await this.verifyStatusRelation("Ruin", "Devastation");
@@ -2932,7 +2947,7 @@ export class PTActor extends Actor {
 
         system.movementPenalty = Number(system.movementPenalty) + count;
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
     }
 
     async setStatusNext(status, count) {
@@ -2951,7 +2966,7 @@ export class PTActor extends Actor {
             })
         }
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
         await this.verifyBlackLung();
     }
 
@@ -2972,7 +2987,7 @@ export class PTActor extends Actor {
             await reduceBloodfeast(val);
         }
 
-        await this.update({ "system.rejuvenatingBloodNegative": Number(this.system.rejuvenatingBloodNegative) + val }, { diff: false, render: true });
+        await this.update({ "system.rejuvenatingBloodNegative": Number(this.system.rejuvenatingBloodNegative) + val }, { diff: true, render: true });
         
         let rbhp = this.getSpentBloodfeast();
         rbhp -= 10 * Math.floor(rbhp / 10);
@@ -3053,7 +3068,7 @@ export class PTActor extends Actor {
             count: count,
         };
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
     }
 
     getExsanguinateBonus(type) {
@@ -3142,7 +3157,7 @@ export class PTActor extends Actor {
     async spendAction(triggerBleed = true, free = false) {
         if (!free) {
             let actions = Number(this.system.actions);
-            await this.update({ "system.actions": Math.max(actions - 1, 0) }, { diff: false });
+            await this.update({ "system.actions": Math.max(actions - 1, 0) }, { diff: true });
             createEffectsMessage(this.name, `Spends 1 Action! (${actions} -> ${Math.max(actions - 1, 0)})`)
         }
         if (triggerBleed) {
@@ -3153,7 +3168,7 @@ export class PTActor extends Actor {
     async spendReaction(triggerBleed = true, free = false, double = false) {
         if (!free) {
             let reactions = Number(this.system.reactions);
-            await this.update({ "system.reactions": Math.max(reactions - (double ? 2 : 1), 0) }, { diff: false });
+            await this.update({ "system.reactions": Math.max(reactions - (double ? 2 : 1), 0) }, { diff: true });
             createEffectsMessage(this.name, `Spends ${double ? 2 : 1} Reaction${double ? 's' : ''}! (${reactions} -> ${Math.max(reactions - (double ? 2 : 1), 0)})`)
         }
 
@@ -3175,7 +3190,7 @@ export class PTActor extends Actor {
             source: source
         };
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
     }
 
     augmentEffectCount(name) {
@@ -3260,7 +3275,7 @@ export class PTActor extends Actor {
 
         for (let ally of allies) {
             if (ally.system.paramedicUses > 0) {
-                await ally.update({ "system.paramedicUses": Number(ally.system.paramedicUses) - 1 }, { diff: false });
+                await ally.update({ "system.paramedicUses": Number(ally.system.paramedicUses) - 1 }, { diff: true });
                 await ally.applyStatus("Heal_Efficiency", 2);
                 createEffectsMessage(ally.name, `Gains 2 [/status/Heal_Efficiency] Heal Efficiency from Paramedic!`);
             }
@@ -3285,13 +3300,13 @@ export class PTActor extends Actor {
     async pushToOutgoing(mark) {
         const system = this.toObject(false).system;
         system.outgoingMarks.push(mark);
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
     }
 
     async removeFromOutgoing(predicate) {
         const system = this.toObject(false).system;
         system.outgoingMarks = system.outgoingMarks.filter(predicate);
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
     }
 
     async applyMark(source, markType) {
@@ -3301,7 +3316,7 @@ export class PTActor extends Actor {
 
         system.incomingMarks.push(mark);
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
 
         await source.pushToOutgoing(mark);
     }
@@ -3314,7 +3329,7 @@ export class PTActor extends Actor {
             system.attributes.light.value = 0;
         }
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
     }
 
     async removeMark(source, markType) {
@@ -3322,7 +3337,7 @@ export class PTActor extends Actor {
 
         system.incomingMarks = system.incomingMarks.filter(x => !(x.source == source.system.id && x.id == markType));
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
 
         await source.removeFromOutgoing(x => !(x.source == source.system.id && x.id == markType));
     }
@@ -3424,7 +3439,7 @@ export class PTActor extends Actor {
     async setMaintainedBarrier(val) {
         const system = this.toObject(false).system;
         system.maintainedBarrier = val;
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
     }
 
     async getTechnique() {
@@ -3440,7 +3455,7 @@ export class PTActor extends Actor {
             }, { parent: this });
         }
 
-        await technique.update({ "system.effects": [] }, { diff: false, render: true });
+        await technique.update({ "system.effects": [] }, { diff: true, render: true });
 
         return technique;
     }
@@ -3538,7 +3553,7 @@ export class PTActor extends Actor {
 
         hotbar.push(await registerEffectMacro("Discard Reaction", async (actor) => {
             let reactions = Number(actor.system.reactions);
-            await actor.update({ "system.reactions": Math.max(reactions - 1, 0) }, { diff: false });
+            await actor.update({ "system.reactions": Math.max(reactions - 1, 0) }, { diff: true });
             createEffectsMessage(actor.name, `Spends 1 Reaction! (${reactions} -> ${Math.max(reactions - 1, 0)})`);
         }, "icons/Discard_Reaction.png"));
 
@@ -3551,12 +3566,12 @@ export class PTActor extends Actor {
 
                 if (actor.augmentEffectCount("Meditation") > 0) {
                     let emotion = Number(actor.system.emotion);
-                    await actor.update({ "system.emotion": emotion + 6 }, { diff: false });
+                    await actor.update({ "system.emotion": emotion + 6 }, { diff: true });
                     createEffectsMessage(actor.name, `Gains 6 [/resources/EmotionIcon] Emotion from Meditation! (${emotion} -> ${emotion + 8})`);
                 }
 
                 await actor.write("usedControlledStagger", true);
-                await this.update({ "system.actions": Number(this.system.actions) + 1 }, { diff: false, render: true });
+                await this.update({ "system.actions": Number(this.system.actions) + 1 }, { diff: true, render: true });
                 await actor.write("pendingControlledStagger", true);
             }, "icons/Controlled_Stagger.png"));
         }
@@ -3568,7 +3583,7 @@ export class PTActor extends Actor {
 
                 if (charge >= cost) {
                     await actor.reduceStatus("Charge", cost);
-                    await actor.update({ "system.movement": Number(actor.system.movement) + (cost / 3) }, { render: true, diff: false });
+                    await actor.update({ "system.movement": Number(actor.system.movement) + (cost / 3) }, { render: true, diff: true });
                     createEffectsMessage(actor.name, `Spends ${cost} [/status/Charge] Charge to gain ${cost / 3} SQR of movement!`)
                 }
                 else {
@@ -3597,7 +3612,7 @@ export class PTActor extends Actor {
                 let stance = await pollUserInputOptions(actor, "Select a Stance to change to.", stances, 0);
 
                 if (stance != "None") {
-                    await actor.update({ "system.activeStance": stance }, { render: true, diff: false });
+                    await actor.update({ "system.activeStance": stance }, { render: true, diff: true });
                     createEffectsMessage(actor.name, `Switches to ${stance} Stance!`);
                     await actor.spendReaction(false, false);
                 }
@@ -3612,7 +3627,7 @@ export class PTActor extends Actor {
 
                 if (frostbite >= cost) {
                     await actor.reduceStatus("Frostbite", cost);
-                    await actor.update({ "system.movement": Number(actor.system.movement) + cost }, { render: true, diff: false });
+                    await actor.update({ "system.movement": Number(actor.system.movement) + cost }, { render: true, diff: true });
                     createEffectsMessage(actor.name, `Burns ${cost} [/status/Frostbite] Frostbite to gain ${cost} SQR of movement!`)
                 }
                 else {
@@ -3649,7 +3664,7 @@ export class PTActor extends Actor {
 
                 if (actor.getRidden()) {
                     let ridden = actor.getMountedActor();
-                    await actor.update({ "system.mountedCharacter": null }, { diff: false, render: true })
+                    await actor.update({ "system.mountedCharacter": null }, { diff: true, render: true })
                     sendNetworkMessage("CLEAR_MOUNT", { target: ridden.system.id });
                     sendNetworkMessage("EDIT_SCALE", { target: ridden.system.id, scale: 2 });
                     createEffectsMessage(ridden.name, `Is dismounted from ${actor.name}!`);
@@ -3657,7 +3672,7 @@ export class PTActor extends Actor {
 
                 if (actor.getRiding()) {
                     let ridden = actor.getMountedActor();
-                    await actor.update({ "system.mountedCharacter": null }, { diff: false, render: true })
+                    await actor.update({ "system.mountedCharacter": null }, { diff: true, render: true })
                     await actor.modifyScale(2);
                     sendNetworkMessage("CLEAR_MOUNT", { target: ridden.system.id });
                     createEffectsMessage(actor.name, `Dismounts from ${ridden.name}!`);
@@ -3689,7 +3704,7 @@ export class PTActor extends Actor {
                     target = map[await pollUserInputOptions(actor, "Choose ally to mount.", options)];
                 }
 
-                await actor.update({ "system.mountedCharacter": target.system.id }, { diff: false, render: true });
+                await actor.update({ "system.mountedCharacter": target.system.id }, { diff: true, render: true });
                 sendNetworkMessage("UPDATE_MOUNT", { target: target.system.id, char: actor.system.id });
                 sendNetworkMessage("EDIT_SCALE", { target: target.system.id, scale: 0.5 });
                 await this.spendAction(false, false);
@@ -3718,7 +3733,7 @@ export class PTActor extends Actor {
                     target = map[await pollUserInputOptions(actor, "Choose ally to mount.", options)];
                 }
 
-                await actor.update({ "system.mountedCharacter": target.system.id }, { diff: false, render: true });
+                await actor.update({ "system.mountedCharacter": target.system.id }, { diff: true, render: true });
                 sendNetworkMessage("UPDATE_MOUNT", { target: target.system.id, char: actor.system.id });
                 await this.modifyScale(0.5);
                 await this.spendAction(false, false);
@@ -3734,8 +3749,8 @@ export class PTActor extends Actor {
                     return;
                 }
 
-                await actor.update({ "system.panic": false }, { diff: false });
-                await actor.update({ "system.attributes.sanity.value": actor.system.attributes.sanity.max }, { diff: false, render: true });
+                await actor.update({ "system.panic": false }, { diff: true });
+                await actor.update({ "system.attributes.sanity.value": actor.system.attributes.sanity.max }, { diff: true, render: true });
                 createEffectsMessage(actor.name, `[/status/Panic] ${actor.name} snaps out of their panic!`);
             }, "status/PanicBlue.png"));
         }
@@ -3818,7 +3833,7 @@ export class PTActor extends Actor {
             data[i + 1] = hotbar[i];
         }
 
-        await game.user.update({ hotbar: data }, { diff: false, recursive: false, noHook: true, render: true });
+        await game.user.update({ hotbar: data }, { diff: true, recursive: false, noHook: true, render: true });
     }
 
     // fix z index issue later
@@ -3830,7 +3845,7 @@ export class PTActor extends Actor {
             }
         };
         sys.system.flags[str] = val;
-        await this.update(sys, { diff: false, render: true });
+        await this.update(sys, { diff: true, render: true });
     }
 
     read(str) {
@@ -3896,7 +3911,7 @@ export class PTActor extends Actor {
         pages.push(page);
         system.activeAbnoPages = pages;
 
-        await this.update({ system }, { diff: false, render: true });
+        await this.update({ system }, { diff: true, render: true });
 
         if (page == "Protective Mother") {
             await this.applyStatus("Aggro", 5, 0);

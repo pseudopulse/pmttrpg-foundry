@@ -346,10 +346,10 @@ async function updateActor(actor, forceSync, forceRegen = false) {
     const system = actor.toObject(false).system;
     if (system.id == null || forceRegen) {
       system.id = generateUUID();
-      await actor.update({ system }, { diff: false });
+      await actor.update({ system }, { diff: true });
     }
     else if (forceSync) {
-      await actor.update({ system }, { diff: false });
+      await actor.update({ system }, { diff: true });
     }
   }
 }
@@ -496,7 +496,7 @@ Hooks.on('moveToken', async (token, data, action, user) => {
       createEffectsMessage(token.actor.name, `Gains ${movement} [/status/Charge] Charge from Velocity Generator!`);
     }
 
-    await token.actor.update({ "system.movement": Math.max(Number(token.actor.system.movement) - sqr, 0) }, { diff: false });
+    await token.actor.update({ "system.movement": Math.max(Number(token.actor.system.movement) - sqr, 0) }, { diff: true });
     await token.actor.fireStatusEffects(Triggers.MOVE);
     if (dest.elevation == origin.elevation) {
       await handleHazardMovement(token, centerPosition(origin), centerPosition(dest));
@@ -505,7 +505,7 @@ Hooks.on('moveToken', async (token, data, action, user) => {
 
   if (token.getFlag("pmttrpg", "ignoreNextMovementCheck") && getActorUser(token.actor) == game.user) {
     await token.setFlag("pmttrpg", "ignoreNextMovementCheck", false);
-    await token.update({ movementAction: "walk" }, { render: true, diff: false });
+    await token.update({ movementAction: "walk" }, { render: true, diff: true });
 
     if (dest.elevation == origin.elevation) {
       await handleHazardMovement(token, centerPosition(origin), centerPosition(dest));

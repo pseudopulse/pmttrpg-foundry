@@ -351,7 +351,7 @@ export const outfitEffects = [
 
                     let increment = type == "Charge" ? toSpend / 3 : toSpend;
 
-                    await actor.update({ "system.nextRoundMovement": Number(actor.system.nextRoundMovement) + increment }, { diff: false });
+                    await actor.update({ "system.nextRoundMovement": Number(actor.system.nextRoundMovement) + increment }, { diff: true });
                     createEffectsMessage(actor.name, `Spends ${toSpend} [/status/${type}] ${type} to gain ${increment} SQR of movement next round!`);
                     await actor.reduceStatus(type, toSpend);
                 },
