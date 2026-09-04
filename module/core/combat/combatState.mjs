@@ -24,7 +24,7 @@ export function getCombatantTokens() {
 
     for (let turn of game.combat.turns) {
         if (turn.token != null) {
-            let token = canvas.tokens.placeables.find(x => x.actor.system.id == turn.token.actor.system.id);
+            let token = canvas.tokens.placeables.find(x => x.actor != null && turn.token.actor != null && x.actor.system.id == turn.token.actor.system.id);
             
             if (token != null && !tokens.includes(token)) {
                 tokens.push(token);
