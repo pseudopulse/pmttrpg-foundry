@@ -79,6 +79,8 @@
       "staggerRounds": 0,
       "actions": 0,
       "reactions": 0,
+      "counterReactions": 0,
+      "blockReactions": 0,
       "emotionLevelUsed": 0,
       "indomitableSpent": false,
       "unstoppableSpent": false,

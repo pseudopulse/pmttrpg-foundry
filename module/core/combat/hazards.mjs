@@ -95,23 +95,28 @@ export async function handleHazardMovement(token, from, to) {
             continue;
         }
 
+        let hazardDice = "d6";
+        if (token.actor.augmentEffectCount("Careful Footwork") > 0) {
+            hazardDice = "d4";
+        }
+
         let status = getStatusForHazard(hazard.type);
         if (status != "None") {
-            let total = await doRoll("1d6");
+            let total = await doRoll(`1${hazardDice}`);
             await token.actor.applyStatus(status, total);
             statusInflictions[status] = (statusInflictions[status] || 0) + total;
         }
         else if (hazard.type == HazardType.CLEANSING_GAS) {
             if (!anyCleansingGasTriggered) {
-                let roll = await doRoll(`2d6+${token.actor.system.abilities.Fortitude.value}-2`);
+                let roll = await doRoll(`2${hazardDice}+${token.actor.system.abilities.Fortitude.value}-2`);
                 
                 if (roll <= 6) {
-                    let damage = await doRoll(`4d6`);
+                    let damage = await doRoll(`4${hazardDice}`);
                     await token.actor.takeDamage(0, null, 0, damage, 0, false);
                     lines.push(`Rolls ${roll} and takes ${damage} ST damage from the Cleansing Gas!`);
                 }
                 else if (roll <= 9) {
-                    let damage = await doRoll(`2d6`);
+                    let damage = await doRoll(`2${hazardDice}`);
                     await token.actor.takeDamage(0, null, 0, damage, 0, false);
                     lines.push(`Rolls ${roll} and takes ${damage} ST damage from the Cleansing Gas!`);
                 }

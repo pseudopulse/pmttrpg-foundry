@@ -11,14 +11,14 @@
                 <div class="cr-block-holder">
                     <div id="crw-weapons">
                         {{#each weapons as |item id|}}
-                        <li class='item flexrow' data-item-id='{{item._id}}'>
+                        <li class='item flexrow' data-item-id='{{item._id}}' data-tip="{{ecd item}}" data-use-tip-offset="true" data-tip-offset="70" data-tipWidth="35vw">
                             <div class="crw-resource">
                                 <div class='crw-item-name'>
                                     <div class='crw-item-icon'>
                                         <a class='rollable' data-roll-type='item'>
                                             <img class="crw-type-img"
                                                 src='systems/pmttrpg/assets/damageTypes/{{item.system.damageType}}.png'
-                                                title='Counter' width='24' height='24' />
+                                                data-tip='Counter' width='24' height='24' />
                                         </a>
                                     </div>
                                     <h4 class="crw-item-text" style="text-wrap-mode: wrap !important; width: 12rem !important;">{{item.name}}</h4>
@@ -35,7 +35,7 @@
                     </div>
                     <div id="crw-outfits">
                         {{#each outfits as |item id|}}
-                        <li class='item flexrow' data-item-id='{{item._id}}'>
+                        <li class='item flexrow' data-item-id='{{item._id}}' data-tip="{{ecd item}}" data-use-tip-offset="true" data-tip-offset="70" data-tipWidth="35vw">
                             <div class="crw-resource">
                                 <h4 class="crw-item-text" style="text-wrap-mode: wrap !important; width: 8rem !important; text-align: center;">{{item.name}}</h4>
                                 <div class="cr-def-roll">
@@ -43,7 +43,7 @@
                                     <a class='rollable' data-roll-type='Block'>
                                             <img class="crw-type-img"
                                                 src='systems/pmttrpg/assets/damageTypes/Block.png'
-                                                title='Block' width='24' height='24' />
+                                                data-tip='Block' width='24' height='24' />
                                         </a>
                                     <h4 class="crw-item-text crw-rollText">
                                         {{rollContext.diceCount}}d{{rollContext.diceMax}}+{{rollContext.dicePower}}</h4>
@@ -54,7 +54,7 @@
                                     <a class='rollable' data-roll-type='Evade'>
                                             <img class="crw-type-img"
                                                 src='systems/pmttrpg/assets/damageTypes/Evade.png'
-                                                title='Evade' width='24' height='24' />
+                                                data-tip='Evade' width='24' height='24' />
                                         </a>
                                     <h4 class="crw-item-text crw-rollText">
                                         {{rollContext.diceCount}}d{{rollContext.diceMax}}+{{rollContext.dicePower}}</h4>
@@ -71,7 +71,7 @@
                                     <a class='rollable' data-roll-type='block'>
                                             <img class="crw-type-img"
                                                 src='systems/pmttrpg/assets/damageTypes/Block.png'
-                                                title='Block' width='24' height='24' />
+                                                data-tip='Block' width='24' height='24' />
                                         </a>
                                     <h4 class="crw-item-text crw-rollText">1d10+{{actor.system.abilities.Temperance.value}}</h4>
                                 </div>

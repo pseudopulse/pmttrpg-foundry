@@ -2,7 +2,7 @@
     {{#each costs as |cost|}}
     <div class="cc-cost">
         <img class="cc-cost-img" src='systems/pmttrpg/assets/status/{{cost.status}}.png'
-        title='{{cost.status}}' width='24' height='24' />
+        data-tip='{{cost.status}}' width='24' height='24' />
         <h4 class="cc-cost-text">{{cost.cost}}</h4>
     </div>
     {{/each}}

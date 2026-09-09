@@ -118,6 +118,9 @@ export class PTActor extends Actor {
             if (effect != null) {
                 systemData.initiativeModifier = effect.count
             }
+            else {
+                systemData.initiativeModifier = 0;
+            }
         }
 
         if (systemData.staggered && attr.stagger.value > 0) {
@@ -389,9 +392,13 @@ export class PTActor extends Actor {
     handleProt(context, cat, type = false) {
         let dmg = 0;
         let text = null;
-        let performProt = (prot, frag) => {
+        let performProt = (prot, frag, fOverride = -1) => {
             let p = -this.getStatusCount(prot);
             let f = this.getStatusCount(frag);
+
+            if (fOverride != -1) {
+                f = fOverride;
+            }
 
             dmg = p + f;
 
@@ -411,6 +418,14 @@ export class PTActor extends Actor {
         }
         else {
             performProt("Protection", "Fragile");
+        }
+
+        if (this.getStatusCount("Tremor_Decay")) {
+            let count = Math.floor(this.getStatusCount("Tremor") / 2);
+
+            if (count > 0) {
+                performProt("", "", count);
+            }
         }
 
         return { damage: dmg, text: text };
@@ -471,7 +486,7 @@ export class PTActor extends Actor {
             res = 0.25;
         }
 
-        if (pendingSeveringStrike.includes(this)) {
+        if (pendingSeveringStrike.includes(this) && cat != "ST") {
             if (res <= 0.25) {
                 res += 0.25;
             }
@@ -1083,7 +1098,7 @@ export class PTActor extends Actor {
 
             if (bursts.ruptureBurst && doDamageEffects) {
                 await ctx1.fireEvent("Rupture Burst");
-                await ctx2.actor.fireStatusEffect("Rupture");
+                await ctx2.actor.fireStatusEffect("Rupture", false, ctx1.actor);
                 attackerTriggers.push("Rupture Burst");
                 totalAssassinationDamage += 3;
             }
@@ -2271,6 +2286,9 @@ export class PTActor extends Actor {
         createClashResponse(this, context);
     }
 
+    setTarget(token) {
+        token.setTarget(true, { releaseOthers: true });
+    }
 
     async handleCombatStart() {
         await this.resetCombatData();
@@ -2405,7 +2423,7 @@ export class PTActor extends Actor {
             await ctx.fireEvent("Round End");
         }
 
-        if (this.system.overchargeDeclared) {
+        if (this.augmentEffectCount("Use Overcharge") > 0) {
             await this.fireStatusEffect("Overcharge");
         }
 
@@ -2556,6 +2574,11 @@ export class PTActor extends Actor {
         speed += this.system.nextRoundMovement;
         if (this.augmentEffectCount("Companion - Swift") > 0) {
             speed += 2;
+        }
+
+        if (this.getStatusCount("Strider_[Hare]") > 0) {
+            speed -= 3;
+            await this.setStatus("Strider_[Hare]", 0);
         }
 
         if (this.augmentEffectCount("Kinetic Storage") > 0) {
@@ -3081,7 +3104,7 @@ export class PTActor extends Actor {
         return 0;
     }
 
-    async fireStatusEffect(status, ignoreDecay = false) {
+    async fireStatusEffect(status, ignoreDecay = false, source = null) {
         if (status == "Poison" && await this.popEffectTrigger("Skip Next Poison")) {
             return;
         }
@@ -3114,6 +3137,11 @@ export class PTActor extends Actor {
 
         if (status == "Frostbite" && this.getStatusCount("Deep_Chill") > 0) {
             await this.reduceStatus("Deep_Chill", 1);
+            return;
+        }
+
+        if (status == "Rupture" && this.getStatusCount("Deathrite_[Haste]") > 0 && source != null && source.getStatusCount("Haste") >= 3) {
+            await this.reduceStatus("Deathrite_[Haste]", 1);
             return;
         }
 

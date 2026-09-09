@@ -1,5 +1,6 @@
 import { getActorTeam } from "../../pmttrpg.mjs";
 import { findHoldersOfPage } from "../effects/abnoCards.mjs";
+import { statusList } from "../status/statusEffects.mjs";
 
 export function enrichClashData(str, dontMerge = false) {
     if (str.startsWith("\n")) {
@@ -8,23 +9,43 @@ export function enrichClashData(str, dontMerge = false) {
     if (!dontMerge) {
         str = merge(str);
     }
+    str = str.replace(/\\n/g, "\n");
+
     const parts = str.split("\n");
     let result = "";
 
     for (const part of parts) {
-        result = result + `<p>${part}</p>\n`
+        result = result + `<p>${part}</p>`
     }
 
     let icons = result.match(/\[.*?\]/g);
+    let statusDesc = [];
     if (icons != null) {
-        for (const match of icons) {
+        for (let match of icons) {
             let index = match.replace("[", "").replace("]", "");
+            if (match == "[/status/Deathrite_[Haste]") {
+                match = "[/status/Deathrite_[Haste]]";
+                index = "/status/Deathrite_[Haste]";
+            }
+            
             if (!index.startsWith("/")) {
                 continue;
             }
 
-            result = result.replace(match, `<img class="inline-status" src="systems/pmttrpg/assets${index}.png" width="24" height="24" />`);
+            let status = statusList.find(x => x.name == index.replace("/status/", ""));
+
+            if (status != null && !status.hidden) {
+                result = result.replace(match, `<img class="inline-status" src="systems/pmttrpg/assets${index}.png" width="24" height="24" data-tip='%SD${statusDesc.length}'/>`);
+                statusDesc.push(status.desc);
+            }
+            else {
+                result = result.replace(match, `<img class="inline-status" src="systems/pmttrpg/assets${index}.png" width="24" height="24" />`);
+            }
         }
+    }
+
+    for (let i = 0; i < statusDesc.length; i++) {
+        result = result.replace(`%SD${i}`, statusDesc[i]);
     }
     
     return result;

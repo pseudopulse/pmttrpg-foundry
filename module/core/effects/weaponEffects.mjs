@@ -844,6 +844,7 @@ export let weaponEffects = [
         },
         ["Clash Win"], false, 1
     ),
+    simpleStatusEffect("Deathrite [Haste]", false, false),
 ]
 
 export function setWeaponEffects(array) {

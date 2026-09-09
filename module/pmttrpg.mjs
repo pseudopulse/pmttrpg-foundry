@@ -3,7 +3,7 @@ import { PTActor } from "./documents/actor.mjs";
 import { getRollContextFromData, PTItem } from "./documents/item.mjs";
 import { PTActorSheet } from "./sheets/actor.mjs";
 import { PTItemSheet } from "./sheets/item.mjs";
-import { handler, sendNetworkMessage, registerMessages, getActorUser } from "./core/helpers/netmsg.mjs";
+import { handler, sendNetworkMessage, registerMessages, getActorUser, testUserPermission } from "./core/helpers/netmsg.mjs";
 import { currentRound, currentTurn, roundChange, setRound, turnChange, updateCombatant, getCombatantTokens, isActorCombatant } from "./core/combat/combatState.mjs";
 import { getEffectsArray } from "./core/effects/effectHelpers.mjs";
 import { RollContext } from "./core/combat/rollContext.mjs";
@@ -15,9 +15,13 @@ import { Triggers } from "./core/status/statusEffect.mjs";
 import { handleBarReplacement } from "./core/combat/bars.mjs";
 import { loadAllHazards, getHazardCountBetweenTwoPoints, HazardType, handleHazardMovement, clearHazards } from "./core/combat/hazards.mjs";
 import { skillEffects } from "./core/effects/skillEffects.mjs";
+import { quickHUDHooks } from "./core/combat/quickHUD.mjs";
 // import Hooks from "@client/helpers/hooks.mjs";
 
 let ignoreNextMountFlag = [];
+let tooltip = null;
+
+let currentPlayerActor = null;
 
 Hooks.once("init", async () => {
   // debug
@@ -136,6 +140,15 @@ Hooks.once("init", async () => {
       ctx.item = item;
       return ctx;
     },
+    ecd(item) {
+      let ctx = getRollContextFromData(item);
+      if (item.type == "skill" || item.type == "tool") {
+        return ctx.getDescription();
+      }
+      else {
+        return `1d${ctx.diceMax}+${ctx.dicePower}\n` + ctx.getDescription();
+      }
+    },
     drctx(item, type) {
       return getRollContextFromData(item, true, type);
     },
@@ -220,6 +233,30 @@ Hooks.once("init", async () => {
 
   setWeaponEffects(weaponEffects.concat(skillEffects.filter(x => weaponEffects.find(y => y.name == x.name) == null)));
 
+  tooltip = document.createElement("div");
+  tooltip.className = "tooltip";
+  tooltip.style.position = "fixed";
+  tooltip.style.pointerEvents = "none";
+  document.body.appendChild(tooltip);
+
+  document.addEventListener("mouseover", (event) => {
+    const target = event.target.closest("[data-tip]");
+
+    if (!target) return;
+
+    showTooltip(target, target.dataset.tip, target.dataset.useTipOffset, target.dataset.tipOffset, target.dataset.tipWidth);
+  });
+
+  document.addEventListener("mouseout", (event) => {
+    const target = event.target.closest("[data-tip]");
+
+    if (!target) return;
+
+    hideTooltip();
+  });
+
+  quickHUDHooks();
+
   Handlebars.registerPartial('ptEffect', '{{> systems/pmttrpg/templates/item/parts/effect.hbs}}')
   Handlebars.registerPartial('ptWeaponBlock', '{{> systems/pmttrpg/templates/item/parts/weapon-block.hbs}}')
   Handlebars.registerPartial('ptOutfitBlock', '{{> systems/pmttrpg/templates/item/parts/outfit-block.hbs}}')
@@ -230,6 +267,80 @@ Hooks.once("init", async () => {
   Handlebars.registerPartial('ptConditionalCosts', '{{> systems/pmttrpg/templates/item/parts/conditional-costs.hbs}}')
   return preloadHandlebarsTemplates();
 });
+
+/*document.addEventListener("click", (event) => {
+  if (event.button != 0) return;
+  let point = screenToWorld(event.clientX, event.clientY);
+  let selected = getCombatantTokens().find(x => {
+    if (x.actor == null) return;
+    let bounds = x.mesh._canvasBounds;
+
+    return point.x > bounds.minX && point.x < bounds.maxX &&
+      point.y > bounds.minY && point.y < bounds.maxY;
+  });
+
+  if (selected != null && testUserPermission(selected.actor, game.user)) {
+    currentPlayerActor = selected.actor;
+  }
+})*/
+
+function screenToWorld(x, y) {
+    let transform = canvas.app.stage.worldTransform;
+    x = (x - transform.tx) / canvas.stage.scale.x;
+    y = (y - transform.ty) / canvas.stage.scale.y;
+    
+    return { x: x, y: y }; 
+}
+
+export function getPlayerActor() {
+  if (currentPlayerActor == null) {
+    currentPlayerActor = game.user.character;
+  }
+
+  return currentPlayerActor;
+}
+
+function showTooltip(target, text, useOffset, tipOffset, width) {
+  tooltip.innerHTML = enrichClashData(text, true);
+
+  if (width != null) {
+    tooltip.style.maxWidth = width;
+  }
+
+  const rect = target.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+
+  let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+  let topPoint = rect.bottom + 8;
+
+  if (useOffset) {
+    const targetCenter = rect.left + rect.width / 2;
+
+    if (targetCenter > window.innerWidth / 2) {
+      console.log("left");
+      left = rect.left - tooltipRect.width - tipOffset;
+    } else {
+      console.log("right");
+      left = rect.right + tooltipRect.width / 3 + tipOffset;
+    }
+
+    topPoint = rect.top + rect.height / 2 - tooltipRect.height / 2;
+  }
+  else {
+    left = Math.max(
+      8,
+      Math.min(left, window.innerWidth - tooltipRect.width - 8)
+    );
+  }
+
+  tooltip.style.top = `${topPoint}px`;
+  tooltip.style.left = `${left}px`;
+  tooltip.classList.add("visible");
+}
+
+function hideTooltip() {
+  tooltip.classList.remove("visible");
+}
 
 export async function updateHazards(hazards) {
   await game.settings.set('pmttrpg', 'hazards', safeJsonConvert(hazards, ["display"]));
@@ -323,7 +434,7 @@ export async function setBloodfeast(val) {
 
 export async function addBloodfeast(val) {
   let cur = getBloodfeast();
-  await setBloodfeast(cur + val);
+  await setBloodfeast(cur + val);ooltip 
 }
 
 export async function reduceBloodfeast(val) {

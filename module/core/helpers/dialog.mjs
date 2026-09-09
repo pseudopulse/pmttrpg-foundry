@@ -238,7 +238,7 @@ export async function getActionModifiers(actor, context) {
                             let item = actor.items.get(element.dataset.itemId);
                             let ctx = getRollContextFromData(item);
 
-                            if (actor.system.light < item.system.light) {
+                            if (Number(actor.system.light) < Number(item.system.light)) {
                                 failedAny = true;
                             }
 

@@ -426,7 +426,7 @@ export let skillEffects = [
     new Effect(
         "Red Plum Blossom",
         (context, count, trigger) => {
-            context.triggers["On Crit"].applyInfliction("Bleed", count * 2, false);
+            context.triggers["On Crit"].applyInfliction("Bleed", Number(count) * 2, false);
         },
         (count) => {
             return `Inflict ${Number(count) * 2} [/status/Bleed] Bleed.`

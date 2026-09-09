@@ -1,7 +1,7 @@
 <div class="ase-main-holder">
     {{!-- stat overrides --}}
     <div class="ase-resources-holder grid-2col ase-grid-object" style="width: 100%; padding: 3%;">
-        <div class="ase-resource ase-stat-holder" title="Max Health Override">
+        <div class="ase-resource ase-stat-holder" data-tip="Max Health Override">
             <div style="display: flex;">
                 <img class="ase-resource-icon ase-stat-icon" src="systems/pmttrpg/assets/resources/HPIcon.webp" width="24"
                 height="24" />
@@ -16,7 +16,7 @@
                 <input class="ase-setting-toggle" id="useHPOverride" type="checkbox" />
             </div>
         </div>
-        <div class="ase-resource ase-stat-holder" title="Max Stagger Override">
+        <div class="ase-resource ase-stat-holder" data-tip="Max Stagger Override">
             <div style="display: flex;">
                 <img class="ase-resource-icon ase-stat-icon" src="systems/pmttrpg/assets/resources/StaggerIcon.webp"
                 width="24" height="24" />
@@ -31,7 +31,7 @@
                 <input class="ase-setting-toggle" id="useSTOverride" type="checkbox" />
             </div>
         </div>
-        <div class="ase-resource ase-stat-holder" title="Max Sanity Override">
+        <div class="ase-resource ase-stat-holder" data-tip="Max Sanity Override">
             <div style="display: flex;">
                 <img class="ase-resource-icon ase-stat-icon" src="systems/pmttrpg/assets/resources/PanicBlue.png" width="24"
                 height="24" />
@@ -65,7 +65,7 @@
 
     {{! -- actor link }}
     <div class="ase-resources-holder ase-grid-object" style="width: 100%; gap: 2rem;">
-        <div class="ase-resource-content" style="position: relative;" title="Linked Actor">
+        <div class="ase-resource-content" style="position: relative;" data-tip="Linked Actor">
             <div class="ase-resource" style="padding: 5%">
                 <button onclick="toggleSDP(event)" class="ase-dropbtn ase-small-dropdown" style="width: 13rem; height: 3rem">
                     {{linkedActorName}}
@@ -79,14 +79,14 @@
             </div>
         </div>
         <div>
-            <div class="ase-resource" style="height: 3.5rem; gap: 4rem; width: 16rem; position: relative;" title="Damage taken will also be dealt to the linked actor.">
+            <div class="ase-resource" style="height: 3.5rem; gap: 4rem; width: 16rem; position: relative;" data-tip="Damage taken will also be dealt to the linked actor.">
                 <label class="ase-item-name">Is Abno Part:</label>
                 <div class="ase-resource-xp">
                     <input style="height: 2rem; position: absolute; top: 15%; right: -3%;" class="as-resource-input ase-setting-toggle" type="checkbox" id="isAbnormalityPart" />
                 </div>
             </div>
 
-            <div class="ase-resource" style="height: 3.5rem; gap: 4rem; width: 16rem; position: relative;" title="Will act on the linked actor's initiative instead of having it's own.">
+            <div class="ase-resource" style="height: 3.5rem; gap: 4rem; width: 16rem; position: relative;" data-tip="Will act on the linked actor's initiative instead of having it's own.">
                 <label class="ase-item-name">Initiative Bound:</label>
                 <div class="ase-resource-xp">
                     <input style="height: 2rem; position: absolute; top: 15%; right: -3%;" class="as-resource-input ase-setting-toggle" type="checkbox" id="initiativeBound" />
@@ -95,7 +95,7 @@
         </div>
     </div>
     <div class="ase-resources-holder ase-grid-object" style="width: 100%; gap: 2rem;">
-        <div class="ase-resource" style="height: 3.5rem; gap: 4rem; width: 16rem; position: relative;" title="Damage taken will also be dealt to the linked actor.">
+        <div class="ase-resource" style="height: 3.5rem; gap: 4rem; width: 16rem; position: relative;" data-tip="Damage taken will also be dealt to the linked actor.">
             <label class="ase-item-name">PvP Resistances:</label>
             <div class="ase-resource-xp">
                 <input style="height: 2rem; position: absolute; top: 15%; right: -3%;" class="as-resource-input ase-setting-toggle" type="checkbox" id="usePvpResistance" />
@@ -103,10 +103,10 @@
         </div>
     </div>
     <div class="ase-resources-holder ase-grid-object" style="width: 100%; gap: 2rem;">
-        <button class="ase-export ase-resource" style="width: 13rem; height: 3rem" title="Export a sheet's data to clipboard.">
+        <button class="ase-export ase-resource" style="width: 13rem; height: 3rem" data-tip="Export a sheet's data to clipboard.">
             Export
         </button>
-        <button class="ase-import ase-resource" style="width: 13rem; height: 3rem" title="Load clipboard data to this sheet.">
+        <button class="ase-import ase-resource" style="width: 13rem; height: 3rem" data-tip="Load clipboard data to this sheet.">
             Import
         </button>
     </div>

@@ -5,6 +5,7 @@ import { RollContext } from "../core/combat/rollContext.mjs";
 import { enrichClashData } from "../core/helpers/clash.mjs";
 import { outfitEffects } from "../core/effects/outfitEffects.mjs";
 import { findItemOwner } from "../pmttrpg.mjs";
+import { pollUserInputConfirm, pollUserInputOptions, pollUserInputText } from "../core/helpers/dialog.mjs";
 //
 
 export function calculateTechniqueCost(effects, actor) {
@@ -88,6 +89,80 @@ export class PTItemSheet extends ItemSheet {
         context.forms = context.system.attackType == "Ranged" ? optionsR : optionsM;
 
         return context;
+    }
+
+    async loadEffectsFromClipboard() {
+        if (!(await pollUserInputConfirm(game.user, "This will overwrite all of the effects on this item. Are you sure?"))) {
+            return;
+        }
+
+        let text = await pollUserInputText(game.user, 'Paste effect data below (select the square of cells in sheets and hit copy).', 'paste here');
+
+        await this.item.update({ "system.effects": [] }, { diff: true, render: true });
+
+        let rows = text
+            .trim()
+            .split("\n")
+            .map(line => line.split(/\t+/).map(x => x.trim()))
+            .filter(row => row.length >= 2)
+            .filter(row => !row.every(x => x === "---" || x === ""));
+
+        rows = rows[0];
+
+        const result = [];
+
+        for (let i = 0; i < rows.length; i++) {
+            const element = rows[i];
+            if (element == "---" || element == "" || !Object.is(Number(element), NaN)) {
+                continue;
+            }
+
+            result.push([element.replace(/[^a-zA-Z0-9\s]/g, ''), rows[i + 2]]);
+        }
+
+        let effects = this.item.system.effects;
+        
+        for (let effect of result) {
+            let def = getEffectsArray(this.item.type).find(x => x.name == effect[0]);
+            if (def == null) {
+                let matches = getEffectsArray(this.item.type).filter(x => x.name.includes(effect[0]));
+
+                if (matches.length == 0) {
+                    continue;
+                }
+
+                if (matches.length == 1) {
+                    def = matches[0];
+                }
+
+                if (matches.length > 1) {
+                    let options = [];
+
+                    for (let match of matches) {
+                        options.push({
+                            name: match.name
+                        });
+                    }
+
+                    let eff = await pollUserInputOptions(game.user, `Select possible match for missing effect "${effect[0]}"`, options);
+
+                    def = getEffectsArray(this.item.type).find(x => x.name == eff);
+
+                    if (def == null) {
+                        continue;
+                    }
+                }
+            }
+
+            effects.push({
+                name: def.name,
+                trigger: def.validTriggers[0],
+                count: Object.is(Number(effect[1]), NaN) ? 0 : Number(effect[1]),
+                index: effects.length
+            });
+        }
+
+        await this.item.update({ "system.effects": effects }, { diff: true, render: true });
     }
 
     capitalizeFirstLetter(val) {
@@ -245,6 +320,10 @@ export class PTItemSheet extends ItemSheet {
             }
 
             this.item.update({ system }, { render: true, diff: true });
+        });
+
+        html.on('click', '.ise-import', async (ev) => {
+            await this.loadEffectsFromClipboard();
         });
     }
 }

@@ -2,7 +2,7 @@
     {{#if (ne ignoreLight true)}}
     <div class="sc-cost">
         <img class="sc-cost-img" src='systems/pmttrpg/assets/resources/LightIcon.webp'
-        title='Light' width='24' height='24' />
+        data-tip='Light' width='24' height='24' />
         <h4 class="sc-cost-text">{{system.light}}</h4>
     </div>
     {{/if}}
@@ -10,7 +10,7 @@
     {{#each context.costs as |cost|}}
     <div class="sc-cost">
         <img class="sc-cost-img" src='systems/pmttrpg/assets/status/{{cost.status}}.png'
-        title='{{cost.status}}' width='24' height='24' />
+        data-tip='{{cost.status}}' width='24' height='24' />
         <h4 class="sc-cost-text">{{cost.cost}}</h4>
     </div>
     {{/each}}

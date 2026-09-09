@@ -1,9 +1,12 @@
 <form class="{{cssClass}} flexcol" autocomplete="off">
     <header class="sheet-header">
-        <div class="header-fields">
+        <div class="header-fields" style="display: flex">
             <h1 class="charname">
                 <input name="name" type="text" value="{{item.name}}" placeholder="Name" />
             </h1>
+            <div class="ia-resource-content" data-tip="Copy effects from external sheet.">
+                <button class="dropbtn dropbtn-small ise-import" style="height: 3rem; width: 3rem;">+</button>
+            </div>
         </div>
     </header>
 
@@ -19,7 +22,7 @@
         </div>
         {{/each}}
 
-        <div class="ia-resource-content">
+        <div class="ia-resource-content" data-tip="Add effect.">
             <button class="dropbtn dropbtn-small effect-add-button">+</button>
         </div>
     </section>

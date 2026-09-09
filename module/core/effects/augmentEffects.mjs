@@ -891,6 +891,9 @@ export const augmentEffects = [
         },
         ["On Use"], false, 1
     ),
+
+    new markerEffect("Use Overcharge", false, 1),
+    new markerEffect("Careful Footwork", false, 1),
 ];
 
 function augmentThresholdEffect(name, bar, mult, status, negativeStatus = []) {

@@ -236,7 +236,7 @@ export function getActorUser(actor) {
  * 
  * @param {Actor} actor 
  */
-function testUserPermission(actor, user) {
+export function testUserPermission(actor, user) {
     if (!user.isGM) {
         return actor.testUserPermission(user, "OWNER");
     }

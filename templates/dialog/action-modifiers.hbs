@@ -9,7 +9,7 @@
             <div class="am-block-holder">
                 <div id="amw-skills">
                     {{#each skills as |item id|}}
-                    <li class='item flexrow costTogglable' data-type='skill' data-item-id='{{item._id}}'>
+                    <li class='item flexrow costTogglable' data-type='skill' data-item-id='{{item._id}}' data-tip="{{ecd item}}" data-use-tip-offset="true" data-tip-offset="70" data-tipWidth="35vw">
                         {{#with (rctx item) as |ctx|}}
                         <div class="amw-resource costTogglable-valid">
                             <div class='amw-item-name'>
@@ -39,66 +39,66 @@
                 <div id="amw-options">
                     <div class="am-options-holder">
                         <div class="amw-resource am-option">
-                            <div class='amw-item-name am-option-text' title="CW/CL effects will not trigger for this clash.">
+                            <div class='amw-item-name am-option-text' data-tip="CW/CL effects will not trigger for this clash.">
                                 <input class="amw-skill-input misc-toggle" type="checkbox" data-id="IgnoreCWL" />
                                 <h4 class="amw-item-text am-option-text">Ignore Clash Effects</h4>
                             </div>
                         </div>
                         <div class="amw-resource am-option">
-                            <div class='amw-item-name am-option-text' title="Roll with advantage.">
+                            <div class='amw-item-name am-option-text' data-tip="Roll with advantage.">
                                 <input class="amw-skill-input misc-toggle" type="checkbox" data-id="Adv" />
                                 <h4 class="amw-item-text am-option-text">Advantage</h4>
                             </div>
                         </div>
                         <div class="amw-resource am-option">
-                            <div class='amw-item-name am-option-text' title="Roll with disadvantage.">
+                            <div class='amw-item-name am-option-text' data-tip="Roll with disadvantage.">
                                 <input class="amw-skill-input misc-toggle" type="checkbox" data-id="Disadv" />
                                 <h4 class="amw-item-text am-option-text">Disadvantage</h4>
                             </div>
                         </div>
                         <div class="amw-resource am-option">
-                            <div class='amw-item-name am-option-text' title="Ignore Emotion loss from this clash.">
+                            <div class='amw-item-name am-option-text' data-tip="Ignore Emotion loss from this clash.">
                                 <input class="amw-skill-input misc-toggle" type="checkbox" data-id="IgnoreEmotion" />
                                 <h4 class="amw-item-text am-option-text">Ignore Emotion</h4>
                             </div>
                         </div>
                         <div class="amw-resource am-option">
-                            <div class='amw-item-name am-option-text' title="Action counts as Protecting.">
+                            <div class='amw-item-name am-option-text' data-tip="Action counts as Protecting.">
                                 <input class="amw-skill-input misc-toggle" type="checkbox" data-id="Protect" />
                                 <h4 class="amw-item-text am-option-text">Protect</h4>
                             </div>
                         </div>
                         <div class="amw-resource am-option">
                             <div class='amw-item-name am-option-text'
-                                title="Action counts as a free attack from a Defensive Two-Handed weapon.">
+                                data-tip="Action counts as a free attack from a Defensive Two-Handed weapon.">
                                 <input class="amw-skill-input misc-toggle" type="checkbox" data-id="Def2H" />
                                 <h4 class="amw-item-text am-option-text">Def. 2H</h4>
                             </div>
                         </div>
                         <div class="amw-resource am-option">
                             <div class='amw-item-name am-option-text'
-                                title="Action counts as a defensive follow-up.">
+                                data-tip="Action counts as a defensive follow-up.">
                                 <input class="amw-skill-input misc-toggle" type="checkbox" data-id="DefFollowup" />
                                 <h4 class="amw-item-text am-option-text">Def. Followup</h4>
                             </div>
                         </div>
                         <div class="amw-resource am-option">
                             <div class='amw-item-name am-option-text'
-                                title="Action counts as being against your possessive bond's target.">
+                                data-tip="Action counts as being against your possessive bond's target.">
                                 <input class="amw-skill-input misc-toggle" type="checkbox" data-id="BondTarget" />
                                 <h4 class="amw-item-text am-option-text">Bond Target</h4>
                             </div>
                         </div>
                         <div class="amw-resource am-option">
                             <div class='amw-item-name am-option-text'
-                                title="Will not take damage from losing this clash.">
+                                data-tip="Will not take damage from losing this clash.">
                                 <input class="amw-skill-input misc-toggle" type="checkbox" data-id="Reactive" />
                                 <h4 class="amw-item-text am-option-text">Reactive</h4>
                             </div>
                         </div>
                         <div class="amw-resource am-option">
                             <div class='amw-item-name am-option-text'
-                                title="Modifier to the attack's Dice Power.">
+                                data-tip="Modifier to the attack's Dice Power.">
                                 <input class="amw-skill-input misc-toggle" type="number" data-id="PowerMod" />
                                 <h4 class="amw-item-text am-option-text">Power Mod</h4>
                             </div>
@@ -113,7 +113,7 @@
                     {{#each conditionals as |item|}}
                     <li class='item flexrow costTogglable' data-type='conditional' data-item-id='{{item.name}}'>
                         <div class="amw-resource costTogglable-valid">
-                            <div class='amw-item-name' title="{{item.description}}">
+                            <div class='amw-item-name' data-tip="{{item.description}}">
                                 <input class="amw-skill-input conditional-toggle" type="checkbox" />
                                 <h4 class="amw-item-text">{{item.name}}</h4>
                             </div>
@@ -121,7 +121,7 @@
                         </div>
             
                         <div class="amw-resource am-disabled costTogglable-invalid">
-                            <div class='amw-item-name am-disabled' title="{{item.description}}">
+                            <div class='amw-item-name am-disabled' data-tip="{{item.description}}">
                                 <input class="amw-skill-input conditional-toggle" type="checkbox" />
                                 <h4 class="amw-item-text">{{item.name}}</h4>
                             </div>
