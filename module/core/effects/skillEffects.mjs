@@ -2288,6 +2288,8 @@ export let skillEffects = [
     ),
     amplitudeConversion("Tremor_Fracture"),
     amplitudeConversion("Tremor_Distribution"),
+    amplitudeConversion("Tremor_Decay"),
+    amplitudeConversion("Tremor_Reverb"),
     hazardousCreation(HazardType.BROKEN_GLASS),
     hazardousCreation(HazardType.EXHAUST_FUMES),
     hazardousCreation(HazardType.CHILLING_FROST),

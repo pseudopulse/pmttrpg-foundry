@@ -117,7 +117,7 @@ export class PTItemSheet extends ItemSheet {
                 continue;
             }
 
-            result.push([element.replace(/[^a-zA-Z0-9\s]/g, ''), rows[i + 2]]);
+            result.push([element.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\([^)]*\)|\[[^\]]*\]/g, ''), rows[i + 2]]);
         }
 
         let effects = this.item.system.effects;
