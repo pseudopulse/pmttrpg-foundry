@@ -1270,6 +1270,32 @@ export let skillEffects = [
         ["Clash Win"], false, 5, false, true
     ),
     new Effect(
+        "Shrapnel Shards",
+        (context, count, trigger) => {
+            context.conditionals.push(new Conditional(
+                "Shrapnel Shards - Main", `Lose 4 Dice Power, for Shrapnel Shards main target`,
+                (context) => {
+                    context.dicePower = Number(context.dicePower) - 4;
+                    context.skillDicePower = Number(context.skillDicePower) - 4;
+                },
+                [], null
+            ));
+
+            context.conditionals.push(new Conditional(
+                "Shrapnel Shards - Sub", `Gain 2 Dice Power, for Shrapnel Shards sub-target`,
+                (context) => {
+                    context.dicePower = Number(context.dicePower) + 2;
+                    context.skillDicePower = Number(context.skillDicePower) + 2;
+                },
+                [], null
+            ));
+        },
+        (count) => {
+            return `Lose 4 Dice Power. If the attack succeeds, becomes an area of effect behind the target with +2 Dice Power`
+        },
+        ["On Use"], false, 1, false, true
+    ),
+    new Effect(
         `Blitz`,
         (context, count, trigger) => {
             if (context.actor.getStatusCount("Haste") >= count * 2) {
