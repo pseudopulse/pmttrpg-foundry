@@ -255,7 +255,7 @@ Hooks.once("init", async () => {
     hideTooltip();
   });
 
-  quickHUDHooks();
+  // quickHUDHooks();
 
   Handlebars.registerPartial('ptEffect', '{{> systems/pmttrpg/templates/item/parts/effect.hbs}}')
   Handlebars.registerPartial('ptWeaponBlock', '{{> systems/pmttrpg/templates/item/parts/weapon-block.hbs}}')
