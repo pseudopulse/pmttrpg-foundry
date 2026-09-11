@@ -2377,6 +2377,7 @@ export let skillEffects = [
         },
         ["On Use"], false, 1, false, true
     ),
+    simpleStatusEffect("Deathrite [Haste]", false, false),
 ]
 
 function amplitudeConversion(name) {
