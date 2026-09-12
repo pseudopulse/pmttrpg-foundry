@@ -1301,6 +1301,7 @@ export let skillEffects = [
             if (context.actor.getStatusCount("Haste") >= count * 2) {
                 context.dicePower = Number(context.dicePower) - 2;
                 context.skillDicePower = Number(context.skillDicePower) - 2;
+                context.diceCount = Math.min(Number(context.diceCount) + count, 3);
             }
         },
         (count) => {
