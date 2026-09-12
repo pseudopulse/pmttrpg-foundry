@@ -434,7 +434,7 @@ export async function setBloodfeast(val) {
 
 export async function addBloodfeast(val) {
   let cur = getBloodfeast();
-  await setBloodfeast(cur + val);ooltip 
+  await setBloodfeast(cur + val);
 }
 
 export async function reduceBloodfeast(val) {

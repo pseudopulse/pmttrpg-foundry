@@ -252,7 +252,7 @@ export class PTActor extends Actor {
         system.unlockSkillsUsed = [];
         system.hasUnlocked = false;
         system.fallbackIdentitySpent = false;
-        system.flags = {};
+        system.flags = null;
 
         await this.update({ system }, { diff: true, render: true });
         await this.verifyBlackLung();
