@@ -96,6 +96,21 @@ export const statusList = [
             await actor.takeDamageStatus(actor.getStatusCount("Tremor"), "Tremor", "HP", "[/status/Tremor_Reverb] Tremor bursted for %DMG% HP damage! (%PHP% -> %HP%)");
         }
 
+        if (actor.getStatusCount("Tremor_Everlasting") > 0) {
+            let roll = new Roll("1d10");
+            let threshold = 5 + actor.getStatusCount("Tremor");
+            let evalu = await roll.evaluate();
+            let value = evalu.total;
+
+            while (value < threshold) {
+                threshold -= 5;
+                roll = new Roll("1d10");
+                evalu = await roll.evaluate();
+                value = evalu.total;
+                await actor.takeDamageStatus(actor.getStatusCount("Tremor"), "Tremor", "ST", "[/status/Tremor_Everlasting] Tremor bursted for %DMG% ST damage! (%PST% -> %ST%)");
+            }
+        }
+
         let effects = actor.system.statusEffects;
 
         if (effects != null) {
@@ -200,6 +215,7 @@ export const statusList = [
     new StatusEffect("Tremor_Distribution", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Gain 1 Dice Power for every 5 [/status/Tremor] Tremor across all allies, up to 3", true),
     new StatusEffect("Tremor_Reverb", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Take HP damage equal to [/status/Tremor] Tremor when burst", true),
     new StatusEffect("Tremor_Decay", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Every 2 [/status/Tremor] Tremor counts as 1 [/status/Fragile] Fragile", true),
+    new StatusEffect("Tremor_Everlasting", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "When burst, roll a 1d10. If the value is less than (5 + [/status/Tremor] Tremor), deal ST damage again. Reduce the threshold by 5 and repeat until failure.", true),
     //
     new StatusEffect("Strider_[Hare]", Triggers.START, async (actor) => {
         await actor.applyStatus("Haste", 3);
