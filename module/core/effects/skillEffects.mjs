@@ -287,6 +287,26 @@ export let skillEffects = [
         false,
         5, false, true
     ),
+    new Effect(
+        "Burn the Candle",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (context) => {
+                await context.target.fireStatusEffect("Burn");
+                let count = context.target.getStatusCount("Burn");
+                await context.target.applyStatus("Sinking", 0, count);
+                createEffectsMessage(context.target, `Gains ${count} [/status/Sinking] Sinking from decaying [/status/Burn] Burn!`);
+            });
+        },
+        (count) => {
+            return `Trigger [/status/Burn] Burn on target. The target gains [/status/Sinking] Sinking next round equal to the remaining [/status/Burn] Burn.`;
+        },
+        ["Clash Win"],
+        false,
+        1, false, true
+    ),
+    markerEffect("Wildfire", false, 3, "Clash Win", (count) => {
+        return `If this attack staggers the target, spread the target's [/status/Burn] Burn to all characters within ${count} SQR.`;
+    }),
     statusPauseEffect("Dark Flame", 1),
     //
     simpleStatusEffect("Frostbite", false, true),
@@ -2406,6 +2426,60 @@ export let skillEffects = [
         ["On Use"], false, 1, false, true
     ),
     simpleStatusEffect("Deathrite [Haste]", false, false),
+    simpleStatusEffect("Deathrite [Prey]", false, false),
+    simpleStatusEffect("Deathrite [Stolen]", false, false),
+    simpleStatusEffect("Strider [Primate]", false, true),
+
+    new Effect(
+        "Headlock",
+        (context, count, trigger) => {
+            context.costs.push({
+                cost: 4,
+                status: "Combo"
+            })
+        },
+        (count) => {
+            return `Spend 4 Combo. Initiate a Grapple check; this Grapple may not use skills`;
+        },
+        ["Clash Win"], false, 1
+    ),
+    new Effect(
+        "Flow State",
+        (context, count, trigger) => {
+            if (context.actor != null && context.actor.getStatusCount("Combo") >= 3) {
+                context.dicePower = Number(context.dicePower) + 1;
+                context.skillDicePower = Number(context.skillDicePower) + 1;
+            }
+        },
+        (count) => {
+            return `Gain 1 Dice Power at 3+ [/status/Combo] Combo`;
+        },
+        ["On Use"], false, 1
+    ),
+    new Effect(
+        "Untouchable",
+        (context, count, trigger) => {
+            if (context.actor == null) {
+                return;
+            }
+
+            let cost = Math.min(3, context.actor.getStatusCount("Combo"));
+
+            if (cost > 0) {
+                context.dicePower = Number(context.dicePower) + cost;
+                context.skillDicePower = Number(context.skillDicePower) + cost;
+
+                context.costs.push({
+                    cost: cost,
+                    status: "Combo"
+                })
+            }
+        },
+        (count) => {
+            return `Spend up to 3 [/status/Combo] Combo. For every [/status/Combo] Combo spent, gain 1 Dice Power. Move SQR equal to [/status/Combo] Combo on Clash Win.`;
+        },
+        ["On Use"], false, 1
+    ),
 ]
 
 function amplitudeConversion(name) {

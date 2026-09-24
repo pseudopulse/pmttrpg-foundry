@@ -27,6 +27,26 @@ export function enrichClashData(str, dontMerge = false) {
                 match = "[/status/Deathrite_[Haste]]";
                 index = "/status/Deathrite_[Haste]";
             }
+
+            if (match == "[/status/Deathrite_[Prey]") {
+                match = "[/status/Deathrite_[Prey]]";
+                index = "/status/Deathrite_[Prey]";
+            }
+
+            if (match == "[/status/Deathrite_[Stolen]") {
+                match = "[/status/Deathrite_[Stolen]]";
+                index = "/status/Deathrite_[Stolen]";
+            }
+
+            if (match == "[/status/Strider_[Hare]") {
+                match = "[/status/Strider_[Hare]]";
+                index = "/status/Strider_[Hare]";
+            }
+
+            if (match == "[/status/Strider_[Primate]") {
+                match = "[/status/Strider_[Primate]]";
+                index = "/status/Strider_[Primate]";
+            }
             
             if (!index.startsWith("/")) {
                 continue;

@@ -164,6 +164,18 @@ export let weaponEffects = [
         false, 1, true
     ),
     new Effect(
+        "Overheated",
+        (context, count, trigger) => { 
+            context.triggers["Clash Win"].applyInfliction("Burn", 2, false);
+            context.triggers["Clash Lose"].applyInfliction("Burn", -2, false);
+        },
+        (count) => {
+            return [null, "Inflict 2 [/status/Burn] Burn", "Gain 2 [/status/Burn] Burn", null, null];
+        },
+        ["Always Active"],
+        false, 1, true
+    ),
+    new Effect(
         "Smogged",
         (context, count, trigger) => { 
             context.triggers["Clash Win"].applyInfliction("Smoke", 2, false);
@@ -845,6 +857,8 @@ export let weaponEffects = [
         ["Clash Win"], false, 1
     ),
     simpleStatusEffect("Deathrite [Haste]", false, false),
+    simpleStatusEffect("Deathrite [Prey]", false, false),
+    simpleStatusEffect("Deathrite [Stolen]", false, false),
 ]
 
 export function setWeaponEffects(array) {

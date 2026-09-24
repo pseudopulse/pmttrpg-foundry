@@ -253,6 +253,7 @@ export class PTActor extends Actor {
         system.hasUnlocked = false;
         system.fallbackIdentitySpent = false;
         system.flags = null;
+        system.deathriteSkills = [];
 
         await this.update({ system }, { diff: true, render: true });
         await this.verifyBlackLung();
@@ -634,6 +635,24 @@ export class PTActor extends Actor {
 
     async processClashResolution(ctx1, ctx2) {
         this.processIgnorePower(ctx1, ctx2);
+
+        if (ctx1.actor.getStatusCount("Deathrite_[Prey]") > 0 && ctx2.actor.augmentEffectCount("Prey Inflictor") > 0) {
+            ctx1.dicePower = Number(ctx1.dicePower) - 10;
+            ctx1.result = Math.max(Number(ctx1.result) - 10, 1);
+        }
+
+        if (ctx2.actor.getStatusCount("Deathrite_[Prey]") > 0 && ctx1.actor.augmentEffectCount("Prey Inflictor") > 0) {
+            ctx2.dicePower = Number(ctx2.dicePower) - 10;
+            ctx2.result = Math.max(Number(ctx2.result) - 10, 1);
+        }
+        
+        if (ctx1.actor.getStatusCount("Deathrite_[Prey]") > 0 && ctx2.actor.augmentEffectCount("Prey Inflictor") <= 0) {
+            await ctx1.actor.fireStatusEffect("Deathrite_[Prey]");
+        }
+
+        if (ctx2.actor.getStatusCount("Deathrite_[Prey]") > 0 && ctx1.actor.augmentEffectCount("Prey Inflictor") <= 0) {
+            await ctx2.actor.fireStatusEffect("Deathrite_[Prey]");
+        }
 
         createResultMessage(ctx1, ctx2);
 
@@ -1319,6 +1338,13 @@ export class PTActor extends Actor {
                     createEffectsMessage(ctx1.actor.name, `Recovers ${cachedBleed} HP from Rare Meal! (${php} -> ${hp})`);
                 }
 
+                if (ctx1.hasEffect("Collect Bounty") && ctx1.actor.isMarkedTarget(ctx2.actor)) {
+                    let count = ctx1.actor.augmentEffectCount("Collect Bounty");
+                    await ctx1.actor.heal(Number(count * 5), Number(count * 5), 0, ctx1.actor);
+                    await ctx1.actor.applyStatus("Strength", 0, count);
+                    createEffectsMessage(ctx1.actor.name, `Recovers ${count * 5} HP/ST and gains ${count} next round [/status/Strength] Strength from Collect Bounty!`);
+                }
+
                 if (ctx2.actor.augmentEffectCount("Im So Full Of Blood") > 0) {
                     let bleed = ctx2.actor.getStatusCount("Bleed");
                     
@@ -1342,8 +1368,33 @@ export class PTActor extends Actor {
             await ctx2.actor.update({ "system.persistentVenom": true }, { diff: true, render: true});
         }
 
+        if (ctx1.hasEffect("Wildfire") && ctx2.actor.system.staggered) {
+            let count = ctx2.actor.getStatusCount("Burn");
+            let range = ctx1.effectCount("Wildfire");
+            await this.applyInAoe(ctx2.actor, range, async (actor) => {
+                await actor.applyStatus("Burn", count);
+            }, ctx1.actor);
+
+            createEffectsMessage(ctx1.actor.name, `Spreads ${count} [/status/Burn] Burn to nearby targets from Wildfire!`);
+        }
+
         pendingEffectiveHealEffects[ctx1.actor] = null;
         pendingEffectiveHealEffects[ctx2.actor] = null;
+    }
+
+    async applyInAoe(origin, distance, callback, user) {
+        let source = getCombatantTokens().find(x => x.actor == origin);
+        let dispo = 0;
+        if (user != null) {
+            dispo = getCombatantTokens().find(x => x.actor == user).document.disposition;
+        }
+    
+        for (let token of getCombatantTokens().filter(x => user == null ? true : x.document.disposition != dispo)) {
+            if (token.actor == null) continue;
+            if (scale(canvas.grid.measureDistance(source, token)) <= distance) {
+                await callback(token.actor);
+            }
+        }
     }
 
     getCanDualWield() {
@@ -1897,6 +1948,20 @@ export class PTActor extends Actor {
     }
 
     async takeDamage(damage, context, flatHP = 0, flatST = 0, flatSP = 0, silent = false, selfCtx = null, header = "()", denyStagger = false, delayStagger = false, dontStagger = false) {
+        if (this.getStatusCount("Deathrite_[Prey]") > 0 && context != null) {
+            if (context.actor != null && context.actor.augmentEffectCount("Prey Inflictor") > 0) {
+                if (selfCtx != null && !selfCtx.isOffensive()) {
+                    damage = Math.floor(Number(damage) * 0.25);
+                }
+            }
+        }
+
+        if (context != null && this.augmentEffectCount("Prey Inflictor") > 0) {
+            if (context.actor != null && context.actor.getStatusCount("Deathrite_[Prey]") > 0) {
+                damage = Math.floor(Number(damage) * 0.5);
+            }
+        }
+        
         if (context == null) {
             context = new RollContext();
             context.target = this;
@@ -2566,6 +2631,10 @@ export class PTActor extends Actor {
         if (sinking > 0 && this.augmentEffectCount("Torment Nexus") > 0) {
             await this.applyStatus("Charge", sinking);
             createEffectsMessage(this.name, `Gains ${sinking} [/status/Charge] Charge from Torment Nexus!`);
+        }
+
+        if (this.getStatusCount("Strider_[Primate]") > 0) {
+            await this.applyStatus("Haste", 1);
         }
 
         let kMovement = Math.max(this.system.movement - this.system.kineticStorageMovement, 0);

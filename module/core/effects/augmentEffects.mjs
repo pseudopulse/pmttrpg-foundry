@@ -196,6 +196,21 @@ export const augmentEffects = [
         },
         null, ["Always Active"], false, 1, false, true
     ),
+    new Effect(
+        "Blazing Burn",
+        (context, count, trigger) => {
+            context.events["Clash Win"].push(async (context) => {
+                if (context.target != null && context.target.getStatusCount("Burn") > 0) {
+                    await applyInAoe(context.target, 1, async (actor) => {
+                        await actor.applyStatus("Burn", count, 0);
+                    }, context.actor);
+                }
+            });
+        },
+        (count) => {
+            return `If the target has [/status/Burn] Burn, inflict ${count} [/status/Burn] Burn to adjacent characters.`;
+        }, ["Clash Win"], false, 3, false, true
+    ),
     //
     augmentThresholdEffect("Activate Strength", "HP", 1, ["Strength"], ["Feeble"]),
     augmentThresholdEffect("Activate Endurance", "HP", 1, ["Endurance"]),
@@ -781,6 +796,8 @@ export const augmentEffects = [
     markerEffect("Blood Replenisher", false, 1),
     markerEffect("Self-Destructive Dedication", false, 1),
     markerEffect("Coagulated Echo", false, 1),
+
+    markerEffect("Collect Bounty", false, 5),
     
     new Effect(
         "Blood Skates",
@@ -894,6 +911,30 @@ export const augmentEffects = [
 
     new markerEffect("Use Overcharge", false, 1),
     new markerEffect("Careful Footwork", false, 1),
+
+    new markerEffect("Prey Inflictor", false, 1),
+
+    new Effect(
+        "Combo",
+        (context, count, trigger) => {
+            context.triggers["Clash Win"].applyInfliction("Combo", 1, false);
+            context.triggers["Clash Lose"].applyInfliction("Combo", -1, false);
+        },
+        (count) => {
+            return [null, "Gain 1 [/status/Combo] Combo", "Lose 1 [/status/Combo] Combo", null, null];
+        },
+        ["On Use"], false, 1, true
+    ),
+    new Effect(
+        "Useless!",
+        (context, count, trigger) => {
+            context.triggers["Clash Lose"].applyInfliction("Terror", -count, false);
+        },
+        (count) => {
+            return `Gain ${count} [/status/Terror] Terror`;
+        },
+        ["Clash Lose"], false, 3
+    ),
 ];
 
 function augmentThresholdEffect(name, bar, mult, status, negativeStatus = []) {

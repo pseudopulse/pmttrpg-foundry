@@ -314,8 +314,20 @@ export class RollContext {
                 if (this.hasEffect(`Instant ${infliction.key}`)) {
                     infliction.nextRound = false;
                 }
-
-                if (cur < 0) {
+                
+                if (status == "Combo") {
+                    if (cur > 0) {
+                        let prev = infliction.nextRound ? Number(this.actor.getStatusCountNext(status)) : Number(this.actor.getStatusCount(status));
+                        await this.actor.applyStatus(status, infliction.nextRound ? 0 : Math.abs(cur), infliction.nextRound ? Math.abs(cur) : 0);
+                        lines.push(`Gain ${Math.abs(cur)} [/status/${status.replace(" ", "_")}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + Math.abs(cur)})`);
+                    }
+                    else {
+                        let prev = infliction.nextRound ? Number(this.actor.getStatusCountNext(status)) : Number(this.actor.getStatusCount(status));
+                        await this.actor.reduceStatus(status, Math.abs(cur))
+                        lines.push(`Lose ${Math.abs(cur)} [/status/${status.replace(" ", "_")}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev - Math.abs(cur)})`);
+                    }
+                }
+                else if (cur < 0) {
                     let prev = infliction.nextRound ? Number(this.actor.getStatusCountNext(status)) : Number(this.actor.getStatusCount(status));
                     await this.actor.applyStatus(status, infliction.nextRound ? 0 : Math.abs(cur), infliction.nextRound ? Math.abs(cur) : 0);
                     lines.push(`Gain ${Math.abs(cur)} [/status/${status.replace(" ", "_")}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + Math.abs(cur)})`);
@@ -528,7 +540,19 @@ export class RollContext {
                     infliction.nextRound = false;
                 }
 
-                if (cur < 0) {
+                if (status == "Combo") {
+                    if (cur > 0) {
+                        let prev = infliction.nextRound ? Number(this.actor.getStatusCountNext(status)) : Number(this.actor.getStatusCount(status));
+                        await this.actor.applyStatus(status, infliction.nextRound ? 0 : Math.abs(cur), infliction.nextRound ? Math.abs(cur) : 0);
+                        lines.push(`Gain ${Math.abs(cur)} [/status/${status.replace(" ", "_")}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + Math.abs(cur)})`);
+                    }
+                    else {
+                        let prev = infliction.nextRound ? Number(this.actor.getStatusCountNext(status)) : Number(this.actor.getStatusCount(status));
+                        await this.actor.reduceStatus(status, Math.abs(cur))
+                        lines.push(`Lose ${Math.abs(cur)} [/status/${status.replace(" ", "_")}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev - Math.abs(cur)})`);
+                    }
+                }
+                else if (cur < 0) {
                     let prev = infliction.nextRound ? Number(this.actor.getStatusCountNext(status)) : Number(this.actor.getStatusCount(status));
                     await this.actor.applyStatus(status, infliction.nextRound ? 0 : Math.abs(cur), infliction.nextRound ? Math.abs(cur) : 0);
                     lines.push(`Gain ${Math.abs(cur)} [/status/${status.replace(" ", "_")}] ${status.replace("_", " ")}${infliction.nextRound ? " next round" : ""}. (${prev} -> ${prev + Math.abs(cur)})`);
@@ -537,7 +561,7 @@ export class RollContext {
                     if (this.target != null && !this.ignoringInflictions) {
                         let prev = infliction.nextRound ? Number(this.target.getStatusCountNext(status)) : Number(this.target.getStatusCount(status));
                         await this.target.applyStatus(status, infliction.nextRound ? 0 : cur, infliction.nextRound ? cur : 0);
-                        if (!alreadyApplied.includes(status))  {
+                        if (!alreadyApplied.includes(status)) {
                             alreadyApplied.push(status);
                             totalAidHP += 3;
                         }

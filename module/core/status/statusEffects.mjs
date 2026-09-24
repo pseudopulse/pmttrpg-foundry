@@ -58,6 +58,9 @@ export const statusList = [
         }
         
     }, (count) => { return count / 2 }, "Take HP damage equal to [/status/Bleed] Bleed when taking actions or reactions."),
+    new StatusEffect("Terror", Triggers.ACTION, async (actor) => {
+        await actor.takeDamageStatus(Math.floor(actor.getStatusCount("Terror") / 2), "Terror", "SP", "[/status/Terror] Feared for %DMG% SP damage! (%PSP% -> %SP%)")
+    }, (count) => { return count / 2 }, "Take SP damage equal to half of [/status/Terror] Terror when taking actions or reactions."),
     new StatusEffect("Poison", Triggers.ACTION, async (actor) => {
         let dmg = 2 * Math.floor(actor.getStatusCount("Poison") / 10);
         if (dmg > 0) {
@@ -94,6 +97,12 @@ export const statusList = [
 
         if (actor.getStatusCount("Tremor_Reverb") > 0) {
             await actor.takeDamageStatus(actor.getStatusCount("Tremor"), "Tremor", "HP", "[/status/Tremor_Reverb] Tremor bursted for %DMG% HP damage! (%PHP% -> %HP%)");
+        }
+
+        if (actor.getStatusCount("Tremor_Scorch") > 0) {
+            let c = Math.floor(actor.getStatusCount("Tremor") / 2);
+            await actor.takeDamageStatus(c, "Tremor", "HP", "[/status/Tremor_Scorch] Tremor bursted for %DMG% HP damage and [/status/Burn] Burn! (%PHP% -> %HP%)");
+            await actor.applyStatus("Burn", c);
         }
 
         if (actor.getStatusCount("Tremor_Everlasting") > 0) {
@@ -214,16 +223,26 @@ export const statusList = [
     new StatusEffect("Tremor_Fracture", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "The hit that bursts [/status/Tremor] Tremor is treated as if your ST resistance is one tier higher", true),
     new StatusEffect("Tremor_Distribution", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Gain 1 Dice Power for every 5 [/status/Tremor] Tremor across all allies, up to 3", true),
     new StatusEffect("Tremor_Reverb", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Take HP damage equal to [/status/Tremor] Tremor when burst", true),
+    new StatusEffect("Tremor_Scorch", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Take HP damage equal to half of [/status/Tremor] Tremor when burst. Gain [/status/Burn] Burn equal to the damage taken.", true),
     new StatusEffect("Tremor_Decay", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Every 2 [/status/Tremor] Tremor counts as 1 [/status/Fragile] Fragile", true),
     new StatusEffect("Tremor_Everlasting", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "When burst, roll a 1d10. If the value is less than (5 + [/status/Tremor] Tremor), deal ST damage again. Reduce the threshold by 5 and repeat until failure.", true),
     //
     new StatusEffect("Strider_[Hare]", Triggers.START, async (actor) => {
         await actor.applyStatus("Haste", 3);
     }, (count) => { return count; }, "Gain 3 [/status/Haste] Haste that does not increase movement"),
+    new StatusEffect("Strider_[Primate]", Triggers.HIT, async (actor) => {
+        
+    }, (count) => { return count - 1; }, "Gain 1 [/status/Haste] Haste. This unit may jump higher and throw things 10 SQR further. Lose 1 stack when hit"),
     new StatusEffect("Strider_[Mao]", Triggers.START, async (actor) => {
         await actor.applyStatus("Haste", 3);
     }, (count) => { return 0; }, "Gain 3 [/status/Haste] Haste"),
     new StatusEffect("Deathrite_[Haste]", Triggers.NONE, async (actor) => {}, (count) => { return count; }, "Prevents [/status/Rupture] Rupture decay when burst by a target with 3+ [/status/Haste] Haste and gets consumed"),
+    new StatusEffect("Deathrite_[Prey]", Triggers.END, async (actor) => {
+        await actor.gainLight(1);
+        createEffectsMessage(actor.name, 'Gains 1 Light from their [/status/Deathrite_[Prey]] Deathrite [Prey] expiring!');
+    }, (count) => { return 0; }, "Lose 10 Dice Power when clashing against the unit who inflicted this. Deal -50% damage against the unit who inflicted this. When defending against the unit who inflicted this, take -75% damage. The stack is lost after 1 round or when clashing any other unit. Regain 1 Light when this effect expires."),
+    new StatusEffect("Deathrite_[Stolen]", Triggers.NONE, async (actor) => {}, (count) => { return count; }, "Lose access to a number of skills equal to the stack. When clashing with the unit who inflicted this status, lose 1 stack. Stolen skills may be used at 0 light cost once when regained"),
+    new StatusEffect("Combo", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Resource used by effects. Gain 1 on clash win, lose 1 on clash lose"),
 ];
 
 export function findStatusDef(name) {

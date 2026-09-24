@@ -122,7 +122,8 @@
       "unlockSkillsUsed": [],
       "hasUnlocked": false,
       "rejuvenatingBloodNegative": 0,
-      "fallbackIdentitySpent": false
+      "fallbackIdentitySpent": false,
+      "deathriteSkills": []
     }
   },
   "Item": {
