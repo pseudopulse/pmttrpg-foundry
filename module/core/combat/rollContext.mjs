@@ -303,6 +303,8 @@ export class RollContext {
                 }
 
                 if (this.actor.augmentEffectCount("Rekindled Embers") > 0 && infliction.key == "Burn") {
+                    let stat = this.actor.system.attributes.health.value;
+                    let max = this.actor.system.attributes.health.max;
                     let thresholds = Math.min(Math.floor((max - stat) / (max * 0.25)), 3);
                     cur += thresholds;
                 }
@@ -528,6 +530,8 @@ export class RollContext {
                 }
 
                 if (this.actor.augmentEffectCount("Rekindled Embers") > 0 && infliction.key == "Burn") {
+                    let stat = this.actor.system.attributes.health.value;
+                    let max = this.actor.system.attributes.health.max;
                     let thresholds = Math.min(Math.floor((max - stat) / (max * 0.25)), 3);
                     cur += thresholds;
                 }
