@@ -141,7 +141,9 @@ export class PTItem extends Item {
 
         const label = `[${item.type}] ${item.name} targeting ${game.user.targets.first().actor.name}`;
 
-        const roll = new Roll(`1d${context.diceMax}+${context.dicePower}`, "");
+        let max = context.hasEffect("Volley") ? 2 : 1;
+
+        const roll = new Roll(`${max}d${context.diceMax}+${context.dicePower}`, "");
         let result = await roll.evaluate();
 
         if (enemyCtx != null) {
@@ -150,7 +152,7 @@ export class PTItem extends Item {
         }
 
         if (context.forcedAdvState != 0 || this.actor.getStatusCount("Paralysis") > 0) {
-            const reroll = await new Roll(`1d${context.diceMax}+${context.dicePower}`, "").evaluate();
+            const reroll = await new Roll(`${max}d${context.diceMax}+${context.dicePower}`, "").evaluate();
 
             if (context.forcedAdvState > 0) {
                 result = result.total > reroll.total ? result : reroll;

@@ -304,6 +304,22 @@ export let skillEffects = [
         false,
         1, false, true
     ),
+    new Effect(
+        "Reduce to Ash",
+        (context, count, trigger) => {
+            if (context.target != null) {
+                let burn = context.target.getStatusCount("Burn");
+
+                if (burn >= 3 + Number(count)) {
+                    context.triggers["Clash Win"].applyInfliction("Disarm", Math.min(Math.floor(burn / 2), Number(count)), true);
+                }
+            }
+        },
+        (count) => {
+            return `If the target has ${3 + Number(count)}+ [/status/Burn] Burn, inflict [/status/Disarm] Disarm equal to half of the [/status/Burn] Burn, max ${count}`;
+        },
+        ["Clash Win"], false, 3
+    ),
     markerEffect("Wildfire", false, 3, "Clash Win", (count) => {
         return `If this attack staggers the target, spread the target's [/status/Burn] Burn to all characters within ${count} SQR.`;
     }),
@@ -861,12 +877,11 @@ export let skillEffects = [
                 let tremor = await context.target.getStatusCount("Tremor");
                 if (tremor <= 3) return;
 
-                await context.actor.takeDamageStatus(Math.floor(tremor / 2), "none", "ST", "Takes %DMG% ST damage from Tremor Boost! (%PST% -> %ST%)");
                 await context.target.takeDamageStatus(Math.floor(tremor / 2), "none", "ST", "Takes %DMG% ST damage from Tremor Boost! (%PST% -> %ST%)");
             })
         },
         (count) => {
-            return "Burst [/status/Tremor] Tremor. If the target has 4+ [/status/Tremor] Tremor, deal half of it as ST damage to target and self."
+            return "Burst [/status/Tremor] Tremor. If the target has 4+ [/status/Tremor] Tremor, deal half of it as ST damage to target."
         },
         ["Clash Win"], false, 1, false, true
     ),
@@ -926,6 +941,25 @@ export let skillEffects = [
         },
         (count) => {
             return `Target takes no ST damage from burst. Inflict 2 [/status/Feeble] Feeble and [/status/Disarm] Disarm next round.`
+        }, 
+        ["Tremor Burst"], false, 1, false, true
+    ),
+    new Effect(
+        `Tremor Scorch`,
+        (context, count, trigger) => {
+            context.triggers["Tremor Burst"].modify.push(async (context, data) => {
+                let burn = Number(context.target.getStatusCount("Burn"));
+                let tremor = Number(context.target.getStatusCount("Tremor"));
+
+                if (burn > 0 && tremor > 0) {
+                    let damage = Math.floor((burn + tremor) / 2);
+
+                    await context.target.takeDamageStatus(damage, "Tremor", "HP", "Takes %DMG% HP damage from Scorch! (%PHP% -> %HP%)");
+                }
+            })
+        },
+        (count) => {
+            return `Deal HP damage equal to half of the target's combined [/status/Burn] Burn and [/status/Tremor] Tremor`
         }, 
         ["Tremor Burst"], false, 1, false, true
     ),
@@ -2430,7 +2464,6 @@ export let skillEffects = [
     simpleStatusEffect("Deathrite [Prey]", false, false),
     simpleStatusEffect("Deathrite [Stolen]", false, false),
     simpleStatusEffect("Strider [Primate]", false, true),
-
     new Effect(
         "Headlock",
         (context, count, trigger) => {
@@ -2443,6 +2476,19 @@ export let skillEffects = [
             return `Spend 4 Combo. Initiate a Grapple check; this Grapple may not use skills`;
         },
         ["Clash Win"], false, 1
+    ),
+    new Effect(
+        "Volley",
+        (context, count, trigger) => {
+            context.costs.push({
+                cost: 10,
+                status: "Combo"
+            })
+        },
+        (count) => {
+            return `Spend 10 Combo. Increase Weapon Dice to a 2d(max) instead of 1d(max)`;
+        },
+        ["On Use"], false, 1
     ),
     new Effect(
         "Flow State",
@@ -2481,6 +2527,7 @@ export let skillEffects = [
         },
         ["On Use"], false, 1
     ),
+    skillBonusEffect("Paralysis", 0, 5, 1),
 ]
 
 function amplitudeConversion(name) {

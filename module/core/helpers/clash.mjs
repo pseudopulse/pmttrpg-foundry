@@ -184,8 +184,8 @@ export async function createAbnoPageMessage(page) {
 }
 
 export async function createClashMessage(actor, context) {
-    context.minRoll = Math.max(1 + context.dicePower, 0);
-    context.maxRoll = Math.max(context.diceMax + context.dicePower, 0)
+    context.minRoll = Math.max((context.hasEffect("Volley") ? 2 : 1) + context.dicePower, 0);
+    context.maxRoll = Math.max((context.hasEffect("Volley") ? context.diceMax * 2 : context.diceMax) + context.dicePower, 0)
 
     let rollColor = "cm-col-standard";
     if (context.result >= context.maxRoll) {
