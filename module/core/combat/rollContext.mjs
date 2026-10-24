@@ -1154,6 +1154,8 @@ export class RollContext {
                         name: effect.name
                     });
                 }
+
+                this.skillUsed = true;
             }
 
             if (this.modifiers.technique != null) {

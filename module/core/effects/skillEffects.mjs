@@ -138,6 +138,10 @@ export let skillEffects = [
     //
     simpleStatusEffect("Fragile", true, true),
     simpleStatusEffect("Stagger Fragile", true, true),
+    simpleStatusEffect("Terror", false),
+    skillBonusEffect("Terror", 2, 5, 1),
+    skillVigorEffect("Terror", 2, 5, 1),
+    markerEffect("Terror+", false, 3),
     new Effect(
         "Inflict [Type] Fragile",
         (context, count, trigger) => {
@@ -221,6 +225,12 @@ export let skillEffects = [
         ["Clash Win", "Clash Lose"],
         false, 1, false, true
     ),
+    //
+    simpleStatusEffect("Shock", false, true),
+    markerEffect("Shock+", false, 3),
+    skillVigorEffect("Shock", 2, 3),
+    skillBonusEffect("Shock", 3),
+    //
     simpleStatusEffect("Burn", false, true),
     markerEffect("Burn+", false, 3),
     skillVigorEffect("Burn", 2, 3),
@@ -2123,6 +2133,7 @@ export let skillEffects = [
     simpleStatusEffect("Poison", false, true),
     markerEffect("Poison+", false, 3),
     skillBonusEffect("Poison", 10, 5, 3),
+    skillVigorEffect("Poison", 10, 1, 3),
     new Effect(
         "Strengthening Toxicant",
         (context, count, trigger) => {
@@ -2373,6 +2384,7 @@ export let skillEffects = [
     amplitudeConversion("Tremor_Reverb"),
     amplitudeConversion("Tremor_Everlasting"),
     amplitudeConversion("Tremor_Scorch"),
+    amplitudeConversion("Tremor_Chilled"),
     hazardousCreation(HazardType.BROKEN_GLASS),
     hazardousCreation(HazardType.EXHAUST_FUMES),
     hazardousCreation(HazardType.CHILLING_FROST),

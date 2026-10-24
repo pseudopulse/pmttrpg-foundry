@@ -3,6 +3,7 @@ import { handleNegativeText } from "../../core/effects/effectHelpers.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
 import { Conditional } from "../combat/rollContext.mjs";
 import { createAlertBox, pollUserInputOptions, pollUserInputText } from "../helpers/dialog.mjs";
+import { getDistance } from "../../pmttrpg.mjs";
 
 export const outfitEffects = [
     new Effect(
@@ -378,6 +379,20 @@ export const outfitEffects = [
             return `Gain ${count * 2} Dice Power when clashing against your marked target.`;
         },
         ["On Use"], false, 1
+    ),
+    new Effect(
+        'Restrictions and Bindings',
+        (context, count, trigger) => {
+            if (context.target != null && context.actor != null) {
+                if (getDistance(context.target, context.actor) <= 1) {
+                    context.triggers["Clash Win"].applyInfliction("Terror", count, false);
+                }
+            }
+        },
+        (count) => {
+            return `Inflict ${count} [/status/Terror] Terror if adjacent to the target. Lose ${count} SQR of movement and dash movement.`;
+        },
+        ["Clash Win"], false, 5
     ),
 ]
 

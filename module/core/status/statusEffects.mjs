@@ -1,6 +1,7 @@
 import { StatusEffect, Triggers } from "./statusEffect.mjs";
-import { addBloodfeast, getAlliesWithinRadius, getEnemiesWithinRadius } from "../../pmttrpg.mjs";
+import { addBloodfeast, getAlliesWithinRadius, getEnemiesWithinRadius, scale } from "../../pmttrpg.mjs";
 import { createEffectsMessage } from "../helpers/clash.mjs";
+import { getCombatantTokens } from "../combat/combatState.mjs";
 
 export const statusList = [
     new StatusEffect("Burn", Triggers.END, async (actor) => {
@@ -28,6 +29,10 @@ export const statusList = [
         if (actor.augmentEffectCount("Sublimation") > 0 && res > 0) {
             await actor.applyStatus("Smoke", res);
             createEffectsMessage(actor.name, `Gains ${res} [/status/Smoke] Smoke from Sublimation!`);
+        }
+
+        if (actor.augmentEffectCount("Preservation") > 0) {
+            await actor.applyStatus("Protection", actor.getStatusCount("Frostbite"));
         }
     }, (count) => { return count / 2 }, "Take ST damage equal to [/status/Frostbite] Frostbite on round end."),
     new StatusEffect("Bleed", Triggers.ACTION, async (actor) => {
@@ -103,6 +108,12 @@ export const statusList = [
             let c = Math.floor(actor.getStatusCount("Tremor") / 2);
             await actor.takeDamageStatus(c, "Tremor", "HP", "[/status/Tremor_Scorch] Tremor bursted for %DMG% HP damage and [/status/Burn] Burn! (%PHP% -> %HP%)");
             await actor.applyStatus("Burn", c);
+        }
+
+        if (actor.getStatusCount("Tremor_Chilled") > 0) {
+            let c = Math.floor(actor.getStatusCount("Tremor") / 2);
+            await actor.takeDamageStatus(c, "Tremor", "HP", "[/status/Tremor_Chilled] Tremor bursted for %DMG% HP damage and [/status/Frostbite] Frostbite! (%PHP% -> %HP%)");
+            await actor.applyStatus("Frostbite", c);
         }
 
         if (actor.getStatusCount("Tremor_Everlasting") > 0) {
@@ -224,6 +235,7 @@ export const statusList = [
     new StatusEffect("Tremor_Distribution", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Gain 1 Dice Power for every 5 [/status/Tremor] Tremor across all allies, up to 3", true),
     new StatusEffect("Tremor_Reverb", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Take HP damage equal to [/status/Tremor] Tremor when burst", true),
     new StatusEffect("Tremor_Scorch", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Take HP damage equal to half of [/status/Tremor] Tremor when burst. Gain [/status/Burn] Burn equal to the damage taken.", true),
+    new StatusEffect("Tremor_Chilled", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Take HP damage equal to half of [/status/Tremor] Tremor when burst. Gain [/status/Frostbite] Frostbite equal to the damage taken.", true),
     new StatusEffect("Tremor_Decay", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Every 2 [/status/Tremor] Tremor counts as 1 [/status/Fragile] Fragile", true),
     new StatusEffect("Tremor_Everlasting", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "When burst, roll a 1d10. If the value is less than (5 + [/status/Tremor] Tremor), deal ST damage again. Reduce the threshold by 5 and repeat until failure.", true),
     //
@@ -243,7 +255,68 @@ export const statusList = [
     }, (count) => { return 0; }, "Lose 10 Dice Power when clashing against the unit who inflicted this. Deal -50% damage against the unit who inflicted this. When defending against the unit who inflicted this, take -75% damage. The stack is lost after 1 round or when clashing any other unit. Regain 1 Light when this effect expires."),
     new StatusEffect("Deathrite_[Stolen]", Triggers.NONE, async (actor) => {}, (count) => { return count; }, "Lose access to a number of skills equal to the stack. When clashing with the unit who inflicted this status, lose 1 stack. Stolen skills may be used at 0 light cost once when regained"),
     new StatusEffect("Combo", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Resource used by effects. Gain 1 on clash win, lose 1 on clash lose"),
+    // warframe stuff
+    new StatusEffect("Shock", Triggers.END, async (actor) => {
+        let count = 0;
+        let name = actor.name;
+        let shock = actor.getStatusCount("Shock");
+        await applyInAoe(actor, 2, async (actor) => {
+            count++;
+            if (count > 2) {
+                return;
+            }
+            await actor.takeDamageStatus(shock, "Shock", "HP", `Takes %DMG% HP damage from ${name}'s [/status/Shock] Shock! (%PHP% -> %HP%)`);
+        }, actor);
+    }, (count) => {
+        return count;
+    }, "Deal damage equal to [/status/Shock] Shock to the two closest targets within 2 SQR at the end of the round."),
+
+    new StatusEffect("Blast", Triggers.BURST, async (actor) => {
+        let count = 0;
+        await applyInAoe(actor, 1, async (act) => {
+            await actor.takeDamageStatus(actor.getStatusCount("Blast"), "Blast", "HP", `Takes %DMG% HP damage from ${actor.name}'s [/status/Blast] Blast! (%PHP% -> %HP%)`);
+        }, actor);
+
+        // await actor.takeDamageStatus(actor.getStatusCount("Blast"), "Blast", "HP", `Takes %DMG% HP damage from [/status/Blast] Blast! (%PHP% -> %HP%)`);
+        await actor.setStatus("Blast", 0);
+        await actor.fireStatusEffect("Burn");
+        await actor.fireStatusEffect("Frostbite");
+    }, (count) => {
+        return 0;
+    }, "([/status/Burn] + [/status/Frostbite]) Deal damage equal to [/status/Blast] Blast to all adjacent targets upon reaching 10 [/status/Blast] Blast or dying. Triggers [/status/Burn] Burn and [/status/Frostbite] Frostbite"),
+
+    new StatusEffect("Viral", Triggers.END, async (actor) => {}, (count) => { return count; }, 
+        "([/status/Frostbite] + [/status/Poison]) Increase incoming damage by [/status/Viral] Viral"),
+
+    new StatusEffect("Magnetic", Triggers.END, async (actor) => {}, (count) => { return count; }, 
+        "([/status/Frostbite] + [/status/Shock]) Increase incoming stagger damage by [/status/Magnetic] Magnetic"),
+
+    new StatusEffect("Corrosive", Triggers.END, async (actor) => {}, (count) => { return count; }, 
+        "([/status/Poison] + [/status/Shock]) Nullify stacks of [/status/Protection] Protection equal to [/status/Corrosive] Corrosive"),
+    
+    new StatusEffect("Radiation", Triggers.END, async (actor) => {}, (count) => { return count; }, 
+        "([/status/Burn] + [/status/Shock]) For every 10 [/status/Radiation] Radiation, one Action must be an attack against the nearest ally. All damage dealt is dealt back to this unit"),
+    
+    new StatusEffect("Gas", Triggers.BURST, async (actor) => {
+        
+    }, (count) => { return 0; }, 
+        "([/status/Burn] + [/status/Poison]) When gaining [/status/Gas] Gas, create Toxic Fumes nearby equal to the amount gained."),
 ];
+
+async function applyInAoe(origin, distance, callback, user) {
+    let source = getCombatantTokens().find(x => x.actor == origin);
+    let dispo = 0;
+    if (user != null) {
+        dispo = getCombatantTokens().find(x => x.actor == user).document.disposition;
+    }
+
+    for (let token of getCombatantTokens().filter(x => user == null ? true : x.document.disposition == dispo)) {
+        if (token.actor == null) continue;
+        if (scale(canvas.grid.measureDistance(source, token)) <= distance) {
+            await callback(token.actor);
+        }
+    }
+}
 
 export function findStatusDef(name) {
     return statusList.find(x => x.name == name);

@@ -6,6 +6,7 @@ import { findActorsOfTeam, getBloodfeast, scale } from "../../pmttrpg.mjs";
 import { Conditional } from "../combat/rollContext.mjs";
 import { pollReduceStatus, pollUserInputText } from "../helpers/dialog.mjs";
 import { MarkNames, MARKS } from "../status/mark.mjs";
+import { requestForcedMovement } from "../combat/movement.mjs";
 
 export const augmentEffects = [
     augmentBonusEffect("Burn", 2, false, "O"),
@@ -40,6 +41,14 @@ export const augmentEffects = [
     augmentVigorEffect("Haste", 2, "D"),
     augmentVigorEffect("Poison", 10, "O"),
     augmentVigorEffect("Poison", 10, "D"),
+    augmentBonusEffect("Terror", 4, false, "O"),
+    augmentBonusEffect("Terror", 4, false, "D"),
+    augmentVigorEffect("Terror", 4, "O"),
+    augmentVigorEffect("Terror", 4, "D"),
+    augmentBonusEffect("Shock", 2, false, "O"),
+    augmentBonusEffect("Shock", 2, false, "D"),
+    augmentVigorEffect("Shock", 3, "O"),
+    augmentVigorEffect("Shock", 3, "D"),
     new Effect(
         `Smoke Overflow`,
         (context, count, trigger) => {
@@ -100,12 +109,14 @@ export const augmentEffects = [
     flashEffect("Quick Gashes", "Bleed", true),
     flashEffect("Rapid Fumes", "Smoke", false),
     flashEffect("Sudden Downpour", "Sinking", false),
+    flashEffect("Quick Terror", "Terror", true),
     transferEffect("Pyromaniac", "Burn"),
     transferEffect("Cyromaniac", "Frostbite"),
     transferEffect("Hemomaniac", "Bleed"),
     transferEffect("Siphon Luck", "Poise"),
     transferEffect("Siphon Curse", "Ruin"),
     transferEffect("Energy Transfer", "Charge"),
+    transferEffect("Dipsomaniac", "Poison"),
     new Effect(
         "Systems Online",
         (context, count, trigger) => {
@@ -913,6 +924,7 @@ export const augmentEffects = [
     new markerEffect("Careful Footwork", false, 1),
 
     new markerEffect("Prey Inflictor", false, 1),
+    new markerEffect("Preservation", false, 1),
 
     new Effect(
         "Combo",
@@ -934,6 +946,50 @@ export const augmentEffects = [
             return `Gain ${count} [/status/Terror] Terror`;
         },
         ["Clash Lose"], false, 3
+    ),
+
+    new Effect(
+        `Nightmarish Strength`,
+        (context, count, trigger) => {
+            context.events["Clash Win"].push(async (context) => {
+                let sqr = Math.floor(context.target.getStatusCount("Terror") / 2);
+
+                if (sqr >= 1) {
+                    createEffectsMessage(context.target.name, `Is pushed ${sqr} SQR by Nightmarish Strength!`);
+                    await requestForcedMovement(context.actor, context.target, context.target, sqr, true, true);
+                }
+            })
+        },
+        (count) => {
+            return `If the target has [/status/Terror] Terror, push them a distance equal to half of their [/status/Terror] Terror.`
+        },
+        ["Clash Win"], false, 5, false, true
+    ),
+
+    new Effect(
+        "Fury of the Fallen",
+        (context, count, trigger) => {
+            
+        },
+        (count) => {
+            return 'Deal double damage if the user is at 1 HP.'
+        },
+        ["On Use"],
+        false, 1, false,
+    ),
+
+    new Effect(
+        "Weakness Anaylzed",
+        (context, count, trigger) => {
+            if (context.target != null && context.target.findResistance(context, context.damageType, "HP")) {
+                context.triggers["Clash Win"].applyInfliction(`${context.damageType}_Fragility`, 2, true);
+            }
+        },
+        (count) => {
+            return 'Inflict 2 Type Fragility next round if this attack struck Weak or Fatal.'
+        },
+        ["Clash Win"],
+        false, 1, false, true
     ),
 ];
 

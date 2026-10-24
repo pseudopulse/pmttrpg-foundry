@@ -67,6 +67,7 @@ export let weaponEffects = [
     simpleStatusEffect("Paralysis", true),
     simpleStatusEffect("Fragile", true),
     simpleStatusEffect("Stagger Fragile", true),
+    simpleStatusEffect("Terror", false),
     new Effect(
         "Inflict [Type] Fragile",
         (context, count, trigger) => {
@@ -108,6 +109,19 @@ export let weaponEffects = [
             return handleNegativeText(
                 `Gain % [/status/Poise] Poise`,
                 `Inflict % [/status/Poise] Poise`, 
+            count);
+        },
+        ["Clash Win", "Clash Lose"],
+    ),
+    new Effect(
+        `Gain Healing Efficiency`,
+        (context, count, trigger) => {
+            context.triggers[trigger].applyInfliction("Heal_Efficiency", -count, false);
+        },
+        (count) => {
+            return handleNegativeText(
+                `Gain % [/status/Heal_Efficiency] Healing Efficiency`,
+                `Inflict % [/status/Heal_Efficiency] Healing Efficiency`, 
             count);
         },
         ["Clash Win", "Clash Lose"],
@@ -183,6 +197,30 @@ export let weaponEffects = [
         },
         (count) => {
             return [null, "Inflict 2 [/status/Smoke] Smoke", "Gain 2 [/status/Smoke] Smoke", null, null];
+        },
+        ["Always Active"],
+        false, 1, true
+    ),
+    new Effect(
+        "Addictive Spite",
+        (context, count, trigger) => { 
+            context.triggers["Clash Win"].applyInfliction("Poison", 2, false);
+            context.triggers["Clash Lose"].applyInfliction("Poison", -2, false);
+        },
+        (count) => {
+            return [null, "Inflict 2 [/status/Poison] Poison", "Gain 2 [/status/Poison] Poison", null, null];
+        },
+        ["Always Active"],
+        false, 1, true
+    ),
+    new Effect(
+        "Terror",
+        (context, count, trigger) => { 
+            context.triggers["Clash Win"].applyInfliction("Terror", 2, false);
+            context.triggers["Clash Lose"].applyInfliction("Terror", -2, false);
+        },
+        (count) => {
+            return [null, "Inflict 2 [/status/Terror] Terror", "Gain 2 [/status/Terror] Terror", null, null];
         },
         ["Always Active"],
         false, 1, true

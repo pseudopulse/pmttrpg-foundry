@@ -397,6 +397,18 @@ export class PTActor extends Actor {
             let p = -this.getStatusCount(prot);
             let f = this.getStatusCount(frag);
 
+            if (this.getStatusCount("Corrosive")) {
+                p = Math.min(0, p + this.getStatusCount("Corrosive"));
+            }
+
+            if (prot == "Protection") {
+                f += this.getStatusCount("Viral");
+            }
+
+            if (prot == "Stagger_Protection") {
+                f += this.getStatusCount("Magnetic");
+            }
+
             if (fOverride != -1) {
                 f = fOverride;
             }
@@ -1961,6 +1973,12 @@ export class PTActor extends Actor {
                 damage = Math.floor(Number(damage) * 0.5);
             }
         }
+
+        if (context != null && context.actor != null) {
+            if (context.actor.augmentEffectCount("Fury of the Fallen") && Number(context.actor.system.attributes.health.value) <= 1) {
+                damage = Math.floor(Number(damage) * 2);
+            }
+        }
         
         if (context == null) {
             context = new RollContext();
@@ -2641,6 +2659,7 @@ export class PTActor extends Actor {
         let speed = this.getStatusCount("Haste") + this.getStatusCount("Bind");
         speed += 2 * this.augmentEffectCount("EMA");
         speed += this.system.nextRoundMovement;
+        speed -= this.outfitEffectCount("Restrictions and Bindings");
         if (this.augmentEffectCount("Companion - Swift") > 0) {
             speed += 2;
         }
@@ -2956,6 +2975,66 @@ export class PTActor extends Actor {
         await this.verifyStatusRelation("Poise", "Critical");
         await this.verifyStatusRelation("Ruin", "Devastation");
         await this.verifyBlackLung();
+        await this.verifyWarframeCombos();
+    }
+
+    async verifyWarframeCombos() {
+        let burn = this.getStatusCount("Burn");
+        let frostbite = this.getStatusCount("Frostbite");
+        let poison = this.getStatusCount("Poison");
+        let shock = this.getStatusCount("Shock");
+        
+        // bf -> blast
+        if (burn > 0 && frostbite > 0) {
+            this.setStatus("Blast", Math.min(burn, frostbite), true);
+        }
+        else {
+            this.setStatus("Blast", 0, true);
+        }
+
+        // bs -> radiation
+        if (burn > 0 && shock > 0) {
+            this.setStatus("Radiation", Math.min(burn, shock), true);
+        }
+        else {
+            this.setStatus("Radiation", 0, true);
+        }
+
+        // sp -> corrosive
+        if (poison > 0 && shock > 0) {
+            this.setStatus("Corrosive", Math.min(shock, poison), true);
+        }
+        else {
+            this.setStatus("Corrosive", 0, true);
+        }
+
+        // fs -> magnetic
+        if (frostbite > 0 && shock > 0) {
+            this.setStatus("Magnetic",Math.min(frostbite, shock), true);
+        }
+        else {
+            this.setStatus("Magnetic", 0, true);
+        }
+
+        // fp -> viral
+        if (burn > 0 && shock > 0) {
+            this.setStatus("Viral", Math.min(frostbite, poison), true);
+        }
+        else {
+            this.setStatus("Viral", 0, true);
+        }
+
+        // bp -> gas
+        if (burn > 0 && shock > 0) {
+            this.setStatus("Gas", Math.min(burn, poison), true);
+        }
+        else {
+            this.setStatus("Gas", 0, true);
+        }
+
+        if (this.getStatusCount("Blast") >= 10) {
+            await this.fireStatusEffect("Blast");
+        }
     }
 
     async reduceStatus(status, count = 0) {
@@ -2984,6 +3063,7 @@ export class PTActor extends Actor {
         await this.verifyStatusRelation("Poise", "Critical");
         await this.verifyStatusRelation("Ruin", "Devastation");
         await this.verifyBlackLung();
+        await this.verifyWarframeCombos();
     }
 
     async verifyStatusRelation(mainStatus, correlatedStatus) {
@@ -2999,7 +3079,9 @@ export class PTActor extends Actor {
         }
     }
 
-    async setStatus(status, count) {
+    async setStatus(status, count, skip = false) {
+        let oldGas = this.getStatusCount("Gas");
+
         count = Math.floor(count);
         const system = this.toObject(false).system;
 
@@ -3022,6 +3104,13 @@ export class PTActor extends Actor {
         await this.verifyStatusRelation("Ruin", "Devastation");
         await this.verifyBlackLung();
         await this.updateSmokescreen();
+        if (!skip) {
+            await this.verifyWarframeCombos();
+        }
+
+        if (status == "Gas" && this.getStatusCount("Gas") > oldGas) {
+            await this.fireStatusEffect("Gas");
+        }
     }
 
     async verifyBlackLung() {
@@ -3631,6 +3720,7 @@ export class PTActor extends Actor {
                     if (this.augmentEffectCount("Double Time") > 0) {
                         extraMovement += 3;
                     }
+                    movement -= this.outfitEffectCount("Restrictions and Bindings");
                     await actor.update({ "system.movement": movement + extraMovement });
                     createEffectsMessage(actor.name, `Gains ${extraMovement} extra movement from dashing! (${movement} -> ${movement + extraMovement})`);
                     await actor.spendAction(false);
@@ -3946,6 +4036,10 @@ export class PTActor extends Actor {
     }
 
     read(str) {
+        if (this.system == null || this.system.flags == null) {
+            return null;
+        }
+
         return this.system.flags[str];
     }
 
