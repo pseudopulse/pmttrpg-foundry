@@ -897,6 +897,101 @@ export let weaponEffects = [
     simpleStatusEffect("Deathrite [Haste]", false, false),
     simpleStatusEffect("Deathrite [Prey]", false, false),
     simpleStatusEffect("Deathrite [Stolen]", false, false),
+
+    new Effect(
+        `Inflict Random`,
+        (context, count, trigger) => {
+            let effects = [
+                "Burn", "Frostbite", "Poison", "Ruin", "Devastation", "Tremor", "Sinking", "Rupture", "Bleed", "Terror"
+            ];
+            context.triggers[trigger].applyInfliction(effects[Math.floor(Math.random() * effects.length)], count, false);
+        },
+        (count) => {
+            return handleNegativeText(
+                `Inflict % of a random status`, 
+                `Gain % of a random status`, 
+            count);
+        },
+        ["Clash Win", "Clash Lose"],
+        true, 5,
+    ),
+
+    new Effect(
+        "Point Strike",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (ctx) => {
+                let roll = new Roll("1d8");
+                let res = await roll.evaluate();
+
+                if (res.total >= 5) {
+                    await ctx.actor.applyStatus("Critical", 5);
+                    createEffectsMessage(ctx.actor.name, `Gains 5 [/status/Critical] Critical from Point Strike!`);
+                }
+            });
+        },
+        (count) => {
+            return `Roll a 1d8. At 5+, gain 5 [/status/Critical] Critical`
+        },
+        ["Clash Win", "Clash Lose"], false, 1, false, true
+    ),
+
+    new Effect(
+        "Clawing Open",
+        (context, count, trigger) => {
+            context.events[trigger].push(async (ctx) => {
+                let roll = new Roll("1d8");
+                let res = await roll.evaluate();
+
+                if (res.total >= 5) {
+                    await ctx.target.applyStatus("Devastation", 5);
+                    createEffectsMessage(ctx.actor.name, `Inflicts 5 [/status/Devastation] Devastation from Clawing Open!`);
+                }
+            });
+        },
+        (count) => {
+            return `Roll a 1d8. At 5+, inflict 5 [/status/Devastation] Devastation`
+        },
+        ["Clash Win", "Clash Lose"], false, 1, false, true
+    ),
+
+    new Effect(
+        "Primary Acuity",
+        (context, count, trigger) => {
+            if (context.target != null && context.target.findResistance(context, context.damageType, "HP")) {
+                context.triggers["Clash Win"].applyInfliction(`Critical`, -5, false);
+            }
+        },
+        (count) => {
+            return 'Gain 5 [/status/Critical] Critical when hitting Weak+ resistance';
+        },
+        ["Clash Win"],
+        false, 1, false, false
+    ),
+
+    new Effect(
+        "Devastating Acuity",
+        (context, count, trigger) => {
+            if (context.target != null && context.target.findResistance(context, context.damageType, "HP")) {
+                context.triggers["Clash Win"].applyInfliction(`Devastation`, 5, false);
+            }
+        },
+        (count) => {
+            return 'Inflict 5 [/status/Devastation] Devastation when hitting Weak+ resistance';
+        },
+        ["Clash Win"],
+        false, 1, false, false
+    ),
+
+    new Effect(
+        "Condition Overload",
+        (context, count, trigger) => {
+            
+        },
+        (count) => {
+            return `Deal +1 damage for every unique status on target.`;
+        },
+        ["Clash Win"], false, 1
+    )
 ]
 
 export function setWeaponEffects(array) {

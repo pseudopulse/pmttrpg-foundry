@@ -65,6 +65,16 @@ Hooks.once("init", async () => {
     requiresReload: false
   });
 
+  await game.settings.register('pmttrpg', 'doWFCombos', {
+    name: 'WF Combos',
+    hint: 'Lets WF status merging occur.',
+    config: true,
+    scope: 'world',
+    type: Boolean,
+    default: false,
+    requiresReload: false
+  });
+
   // actor stuff
   CONFIG.Actor.documentClass = PTActor;
   CONFIG.Actor.types = ["character"];

@@ -1974,6 +1974,12 @@ export class PTActor extends Actor {
             }
         }
 
+        if (context != null && context.hasEffect("Condition Overload")) {
+            let status = this.system.statusEffects.length;
+
+            damage = Math.floor(damage + status);
+        }
+
         if (context != null && context.actor != null) {
             if (context.actor.augmentEffectCount("Fury of the Fallen") && Number(context.actor.system.attributes.health.value) <= 1) {
                 damage = Math.floor(Number(damage) * 2);
@@ -2979,6 +2985,10 @@ export class PTActor extends Actor {
     }
 
     async verifyWarframeCombos() {
+        if (!game.settings.get('pmttrpg', 'doWFCombos')) {
+            return;
+        }
+
         let burn = this.getStatusCount("Burn");
         let frostbite = this.getStatusCount("Frostbite");
         let poison = this.getStatusCount("Poison");
@@ -3108,8 +3118,8 @@ export class PTActor extends Actor {
             await this.verifyWarframeCombos();
         }
 
-        if (status == "Gas" && this.getStatusCount("Gas") > oldGas) {
-            await this.fireStatusEffect("Gas");
+        if (status == "Gas" && this.getStatusCount("Gas") > oldGas && !skip) {
+            await this.fireStatusEffect("Gas", true);
         }
     }
 
