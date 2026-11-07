@@ -225,6 +225,7 @@ export const augmentEffects = [
     //
     augmentThresholdEffect("Activate Strength", "HP", 1, ["Strength"], ["Feeble"]),
     augmentThresholdEffect("Activate Endurance", "HP", 1, ["Endurance"]),
+    augmentThresholdEffect("Activate Medicine", "HP", 2, ["Heal_Efficiency"]),
     augmentThresholdEffect("Activate Haste", "HP", 1, ["Haste"], ["Feeble"]),
     augmentThresholdEffect("Activate Protection", "HP", 1, ["Protection", "Stagger_Protection"], ["Fragile", "Stagger_Fragile"]),
     augmentThresholdEffect("Activate Charge", "HP", 2, ["Charge"]),
@@ -1021,7 +1022,7 @@ function augmentThresholdEffect(name, bar, mult, status, negativeStatus = []) {
                 }
 
                 if (count >= 0) {
-                    if (count == 0) {
+                    if (thresholds == 0) {
                         return;
                     }
 
@@ -1032,6 +1033,10 @@ function augmentThresholdEffect(name, bar, mult, status, negativeStatus = []) {
                     createEffectsMessage(context.actor.name, `Gained ${thresholds * mult} [/status/${status[0]}] ${status[0].replace("_", " ")}${status.length > 1 ? ` and [/status/${status[1]}] ${status[1].replace("_", " ")}` : ""} from ${name}!`);
                 }
                 else {
+                    if (thresholds == 0) {
+                        return;
+                    }
+                    
                     for (let effect of negativeStatus) {
                         await context.actor.applyStatus(effect, thresholds * mult, 0);
                     }
