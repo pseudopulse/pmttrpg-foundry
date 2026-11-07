@@ -1403,6 +1403,7 @@ export let skillEffects = [
     allyStatusEffect("Haste", 1, true),
     allyStatusEffect("Poise", 1, false),
     allyStatusEffect("Critical", 1, false),
+    allyStatusEffect("Heal_Efficiency", 1, false),
     new Effect(
         "[Type] Protection",
         (context, count, trigger) => {

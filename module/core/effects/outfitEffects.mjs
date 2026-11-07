@@ -88,6 +88,7 @@ export const outfitEffects = [
     simpleStatusEffect("Fragile", true),
     simpleStatusEffect("Stagger Fragile", true),
     simpleStatusEffect("Poison", false),
+    simpleStatusEffect("Shock", false),
     new Effect(
         "Inflict [Type] Fragile",
         (context, count, trigger) => {
