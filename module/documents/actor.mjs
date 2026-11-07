@@ -3027,7 +3027,7 @@ export class PTActor extends Actor {
         }
 
         // fp -> viral
-        if (burn > 0 && shock > 0) {
+        if (burn > 0 && poison > 0) {
             this.setStatus("Viral", Math.min(frostbite, poison), true);
         }
         else {
@@ -3035,7 +3035,7 @@ export class PTActor extends Actor {
         }
 
         // bp -> gas
-        if (burn > 0 && shock > 0) {
+        if (burn > 0 && poison > 0) {
             this.setStatus("Gas", Math.min(burn, poison), true);
         }
         else {
