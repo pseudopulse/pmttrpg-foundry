@@ -899,6 +899,17 @@ export let weaponEffects = [
     simpleStatusEffect("Deathrite [Stolen]", false, false),
 
     new Effect(
+        `Blind Rage`,
+        (context, count, trigger) => {
+
+        },
+        (count) => {
+            return `Double Light cost. Double all status inflictions.`;
+        },
+        ["On Use"], false, 1
+    ),
+
+    new Effect(
         `Inflict Random`,
         (context, count, trigger) => {
             let effects = [
@@ -991,7 +1002,56 @@ export let weaponEffects = [
             return `Deal +1 damage for every unique status on target.`;
         },
         ["Clash Win"], false, 1
-    )
+    ),
+
+    new Effect(
+        "Critical Error (B)",
+        (context, count, trigger) => {
+            context.events["Critical Hit"].push(async (context) => {
+                context.target.applyStatus("Burn", context.critical);
+            })
+        },
+        (count) => {
+            return `Apply [/status/Burn] Burn equal to spent [/status/Critical] Critical`
+        },
+        ["On Crit"], false, 1, false, true
+    ),
+    new Effect(
+        "Critical Error (F)",
+        (context, count, trigger) => {
+            context.events["Critical Hit"].push(async (context) => {
+                context.target.applyStatus("Frostbite", context.critical);
+            })
+        },
+        (count) => {
+            return `Apply [/status/Frostbite] Frostbite equal to spent [/status/Critical] Critical`
+        },
+        ["On Crit"], false, 1, false, true
+    ),
+    new Effect(
+        "Critical Error (S)",
+        (context, count, trigger) => {
+            context.events["Critical Hit"].push(async (context) => {
+                context.target.applyStatus("Shock", context.critical);
+            })
+        },
+        (count) => {
+            return `Apply [/status/Shock] Shock equal to spent [/status/Critical] Critical`
+        },
+        ["On Crit"], false, 1, false, true
+    ),
+    new Effect(
+        "Critical Error (P)",
+        (context, count, trigger) => {
+            context.events["Critical Hit"].push(async (context) => {
+                context.target.applyStatus("Poison", context.critical);
+            })
+        },
+        (count) => {
+            return `Apply [/status/Poison] Poison equal to spent [/status/Critical] Critical`
+        },
+        ["On Crit"], false, 1, false, true
+    ),
 ]
 
 export function setWeaponEffects(array) {

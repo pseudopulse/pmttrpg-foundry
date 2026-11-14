@@ -1147,6 +1147,31 @@ export let skillEffects = [
         ["Sinking Burst"], false, 5, false, true
     ),
     new Effect(
+        `Sinking Phobia`,
+        (context, count, trigger) => {
+            context.triggers["Sinking Burst"].applyInfliction("Terror", 6, false);
+        },
+        (count) => {
+            return `Inflict 6 [/status/Terror] Terror`
+        },
+        ["Sinking Burst"], false, 1
+    ),
+    new Effect(
+        `Freeze Response`,
+        (context, count, trigger) => {
+            context.triggers[trigger].modify.push(async (context, data) => {
+                let terror = await context.target.getStatusCount("Terror");
+                if (terror <= 4) return;
+
+                data.applyInfliction("Paralysis", 2, false);
+            })
+        },
+        (count) => {
+            return `If the target has 5+ [/status/Terror] Terror, inflict 2 [/status/Paralysis] Paralysis`
+        },
+        ["Clash Win", "Clash Lose"], false, 1, false, true
+    ),
+    new Effect(
         `Absorb Sinking`,
         (context, count, trigger) => {
             context.events["Clash Win"].push(async (context) => {
@@ -1731,6 +1756,18 @@ export let skillEffects = [
             return `Gain [/status/Charge] Charge equal to burst [/status/Rupture] Rupture, max 12`
         }, 
         ["Rupture Burst"], false, 1, false, true
+    ),
+    new Effect(
+        "Right Behind You",
+        (context, count, trigger) => {
+            context.events["Before Attack"].push(async (context) => {
+                let distance = await requestForcedMovement(context.actor, context.actor, context.target, 1, false, false, true);
+            });
+        },
+        (count) => {
+            return `Choose a target with 8+ [/status/Terror] Terror and teleport to an adjacent square before using this skill.`;
+        },
+        ["On Use"], 1, false, false, true
     ),
     //
     overchargeEffectEvent("Overcharge - Refraction Strike", 1,

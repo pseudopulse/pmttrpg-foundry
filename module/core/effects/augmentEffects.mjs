@@ -35,6 +35,8 @@ export const augmentEffects = [
     augmentVigorEffect("Burn", 3, "D"),
     augmentVigorEffect("Frostbite", 2, "O"),
     augmentVigorEffect("Frostbite", 2, "D"),
+    augmentVigorEffect("Sinking", 2, "O"),
+    augmentVigorEffect("Sinking", 2, "D"),
     augmentVigorEffect("Bleed", 2, "O"),
     augmentVigorEffect("Bleed", 2, "D"),
     augmentVigorEffect("Haste", 2, "O"),
@@ -391,6 +393,7 @@ export const augmentEffects = [
     markerEffect("Tremor Resistance", true, 5),
     markerEffect("Sinking Resistance", true, 5),
     markerEffect("Damage Resistance", true, 3),
+    markerEffect("Terror Resistance", true, 5),
     markerEffect("Additional Reaction", true, 1),
     markerEffect("Throwing Master", false, 1),
     markerEffect("Concentrated Overcharge", false, 1),
@@ -977,6 +980,18 @@ export const augmentEffects = [
         },
         ["On Use"],
         false, 1, false,
+    ),
+
+    new Effect(
+        "The City's Difference",
+        (context, count, trigger) => {
+            context.dicePower = Number(context.dicePower) + Number(context.light);
+            context.skillDicePower = Number(context.skillDicePower) + Number(context.light);
+        },
+        (count) => {
+            return `Gain 2 Dice Power for every Light spent on this roll.`
+        },
+        ["On Use"], false, 1
     ),
 
     new Effect(

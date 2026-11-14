@@ -3517,17 +3517,6 @@ export class PTActor extends Actor {
         await source.pushToOutgoing(mark);
     }
 
-    async deductLight(cost) {
-        const system = this.toObject(false).system;
-
-        system.attributes.light.value = Number(system.attributes.light.value) - Number(cost);
-        if (Number(system.attributes.light.value) - Number(cost) < 0) {
-            system.attributes.light.value = 0;
-        }
-
-        await this.update({ system }, { diff: true, render: true });
-    }
-
     async removeMark(source, markType) {
         const system = this.toObject(false).system;
 

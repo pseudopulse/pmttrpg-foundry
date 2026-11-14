@@ -292,6 +292,15 @@ export class RollContext {
                     }
                 }
 
+                if (this.hasEffect("Blind Rage") && statusPlusValid.includes(status)) {
+                    if (cur < 0) {
+                        cur -= cur;
+                    }
+                    else {
+                        cur += cur;
+                    }
+                }
+
                 let plusEffect = this.effects.find(x => x.name == `${infliction.key}+`);
                 if (plusEffect != null) {
                     if (cur < 0) {
@@ -393,19 +402,19 @@ export class RollContext {
                     if (count < this.actor.system.abilities.Charm.value && await pollUserInputConfirm(this.actor, 
                         `Activate Striker Companion cost reduction? ${this.actor.system.abilities.Charm.value - count} uses remaining.`)
                     ) {
-                        await (await this.actor.getLinkedActor()).deductLight(Math.max(Number(this.modifiers.item.system.light) - 1, 0));
+                        await (await this.actor.getLinkedActor()).loseLight(Math.max(Number(this.light) - 1, 0));
                         await this.actor.update({ "system.strikerPerkCount": Number(count) + 1 });
                     }
                     else {
-                        await (await this.actor.getLinkedActor()).deductLight(this.modifiers.item.system.light);
+                        await (await this.actor.getLinkedActor()).loseLight(this.light);
                     }
                 }
                 else {
-                    await (await this.actor.getLinkedActor()).deductLight(this.modifiers.item.system.light);
+                    await (await this.actor.getLinkedActor()).loseLight(this.light);
                 }
             }
             else {
-                await this.actor.deductLight(this.modifiers.item.system.light);
+                await this.actor.loseLight(this.light);
             }
         }
 
@@ -510,6 +519,15 @@ export class RollContext {
                     }
                 }
 
+                if (this.hasEffect("Blind Rage") && statusPlusValid.includes(status)) {
+                    if (cur < 0) {
+                        cur -= cur;
+                    }
+                    else {
+                        cur += cur;
+                    }
+                }
+
                 if (this.flags.includes("Refractor-O") && statusPlusValid.includes(status)) {
                     if (cur < 0) {
                         cur -= 3;
@@ -574,6 +592,10 @@ export class RollContext {
                     }
                 }
             }
+        }
+
+        if (this.effectCount("Impassioned") <= -1) {
+            totalEmotion = 0;
         }
 
         if (totalEmotion > 0) {
@@ -1156,6 +1178,11 @@ export class RollContext {
                 }
 
                 this.skillUsed = true;
+                this.light = this.modifiers.item.system.light;
+
+                if (this.hasEffect("Blind Rage")) {
+                    this.light = Number(this.light) * 2;
+                }
             }
 
             if (this.modifiers.technique != null) {
