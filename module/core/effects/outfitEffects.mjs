@@ -73,6 +73,7 @@ export const outfitEffects = [
     markerEffect("Damage Resistance", true, 3),
     markerEffect("Vital Protections", true, 5),
     markerEffect("Impact Guard", true, 4),
+    markerEffect("Terror Resistance", true, 5),
     //
     markerEffect("Additional Reaction", false, 1),
     markerEffect("Additional Block", false, 1),
@@ -89,6 +90,7 @@ export const outfitEffects = [
     simpleStatusEffect("Stagger Fragile", true),
     simpleStatusEffect("Poison", false),
     simpleStatusEffect("Shock", false),
+    simpleStatusEffect("Terror", false),
     new Effect(
         "Inflict [Type] Fragile",
         (context, count, trigger) => {

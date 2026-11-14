@@ -184,6 +184,7 @@ export const statusList = [
     new StatusEffect("Hemorrhage", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Consumed when [/status/Bleed] Bleed triggers to prevent decay"),
     new StatusEffect("Renewed_Blaze", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Consumed when [/status/Burn] Burn triggers to prevent decay"),
     new StatusEffect("Deep_Chill", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Consumed when [/status/Frostbite] Frostbite triggers to prevent decay"),
+    new StatusEffect("Paranoia", Triggers.NONE, async (actor) => {}, (count) => { return 0; }, "Consumed when [/status/Terror] Terror triggers to prevent decay"),
     new StatusEffect("Dark_Flame", Triggers.AFTER_DECAY, async (actor) => {
         let burn = actor.getStatusCount("Burn");
         await actor.takeDamageStatus(burn, "Dark_Flame", "SP", "[/status/Dark_Flame] Burned for %DMG% SP damage! (%PSP% -> %SP%)")

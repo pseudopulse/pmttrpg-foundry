@@ -3303,6 +3303,11 @@ export class PTActor extends Actor {
             return;
         }
 
+        if (status == "Terror" && this.getStatusCount("Paranoia") > 0) {
+            await this.reduceStatus("Paranoia", 1);
+            return;
+        }
+
         if (status == "Frostbite" && this.getStatusCount("Deep_Chill") > 0) {
             await this.reduceStatus("Deep_Chill", 1);
             return;

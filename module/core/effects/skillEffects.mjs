@@ -233,6 +233,7 @@ export let skillEffects = [
     //
     simpleStatusEffect("Burn", false, true),
     markerEffect("Burn+", false, 3),
+    markerEffect("Terror+", false, 3),
     skillVigorEffect("Burn", 2, 3),
     skillBonusEffect("Burn", 3),
     new Effect(
@@ -271,6 +272,7 @@ export let skillEffects = [
         1, false, true
     ),
     statusPauseEffect("Renewed Blaze", 1),
+    statusPauseEffect("Paranoia", 1),
     new Effect(
         "Fireball",
         (context, count, trigger) => {
@@ -1397,6 +1399,19 @@ export let skillEffects = [
             return `If at or above ${Number(count) * 2} [/status/Haste] Haste, replace attack with ${Number(count)} attacks with -2 Dice Power.`
         },
         ["On Use"], false, 2, false, false
+    ),
+    new Effect(
+        `Whirlwind`,
+        (context, count, trigger) => {
+            if (context.actor.getStatusCount("Haste") >= 4) {
+                context.dicePower = Number(context.dicePower) - 2;
+                context.skillDicePower = Number(context.skillDicePower) - 2;
+            }
+        },
+        (count) => {
+            return `If at or above 4 [/status/Haste] Haste, replace attack with a 3x3 area of effect with -2 Dice Power.`
+        },
+        ["On Use"], false, 1, false, false
     ),
     new Effect(
         `Overspeed`,
